@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>Flight Runner</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #0b1020;
+      color: #e6f0ff;
+      font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, PingFang SC, Noto Sans SC, "Microsoft Yahei", sans-serif;
+    }
+
+    #game {
+      display: block;
+      margin: 0 auto;
+      background: linear-gradient(#051427, #0b274d);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .4);
+      touch-action: none;
+    }
+
+    .hud {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 12px;
+      pointer-events: none;
+    }
+
+    .hud .pill {
+      pointer-events: auto;
+      background: rgba(255, 255, 255, .08);
+      border: 1px solid rgba(255, 255, 255, .15);
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 14px;
+      backdrop-filter: blur(6px);
+    }
+
+    .btn {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .center {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+    }
+
+    .panel {
+      background: rgba(10, 14, 28, .78);
+      border: 1px solid rgba(255, 255, 255, .15);
+      border-radius: 16px;
+      padding: 16px 18px;
+      box-shadow: 0 10px 32px rgba(0, 0, 0, .45);
+      text-align: center;
+    }
+
+    .title {
+      font-weight: 700;
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
+
+    .sub {
+      opacity: .8;
+      font-size: 13px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      justify-content: center;
+    }
+
+    .touch-pad {
+      position: fixed;
+      bottom: 14px;
+      left: 14px;
+      right: 14px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .touch-btn {
+      flex: 1;
+      background: rgba(255, 255, 255, .06);
+      border: 1px solid rgba(255, 255, 255, .15);
+      border-radius: 12px;
+      padding: 14px 0;
+      text-align: center;
+      user-select: none;
+      color: #dbe9ff;
+    }
+
+    .touch-btn:active {
+      background: rgba(255, 255, 255, .14);
+    }
+
+    @keyframes pulse {
+      from {
+        opacity: 0.6;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    @media (min-width: 900px) {
+      .touch-pad {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="game" width="420" height="720"></canvas>
+  <div class="hud">
+    <div class="pill">距离 <span id="distance">0</span>m</div>
+    <div class="pill">金币 <span id="coins">0</span></div>
+    <div class="pill">燃料 <span id="fuel">100</span>%</div>
+    <div class="pill btn" id="pauseBtn">暂停 ⏸</div>
+  </div>
+  <div id="overlay" class="center"></div>
+  <div class="touch-pad">
+    <div class="touch-btn" id="leftBtn">← 左</div>
+    <div class="touch-btn" id="upBtn">↑ 上</div>
+    <div class="touch-btn" id="downBtn">↓ 下</div>
+    <div class="touch-btn" id="rightBtn">右 →</div>
+  </div>
+
+  <script>
+    (function () {
+      const canvas = document.getElementById('game');
+      const ctx = canvas.getContext('2d');
+      const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      const baseW = 420, baseH = 720;
+
+      function fitCanvas() {
+        const rect = canvas.getBoundingClientRect();
+        const scale = Math.min(window.innerWidth / baseW, (window.innerHeight - 80) / baseH);
+        const cssW = Math.round(baseW * scale);
+        const cssH = Math.round(baseH * scale);
+        canvas.style.width = cssW + 'px';
+        canvas.style.height = cssH + 'px';
+        canvas.width = Math.floor(baseW * dpr);
+        canvas.height = Math.floor(baseH * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      fitCanvas();
+      window.addEventListener('resize', fitCanvas);
+
+      // Game state
+      const state = {
+        playing: false,
+        paused: false,
+        score: 0,
+        fuel: 100,
+        maxFuel: 100,
+        speed: 2.2,
+        tick: 0,
+        distance: 0,
+        coins: 0,
+        clouds: [],
+        fuels: [],
+        coins: [],
+        player: { x: baseW * 0.5, y: baseH * 0.7, w: 36, h: 28, vx: 0, vy: 0, maxV: 4.2 },
+        crashed: false,
+        crashTick: 0,
+        highScore: localStorage.getItem('flightRunnerHighScore') || 0,
+        totalCoins: parseInt(localStorage.getItem('flightRunnerCoins') || '0'),
+        maxFuel: parseInt(localStorage.getItem('flightRunnerMaxFuel') || '100'),
+      };
+
+      // Helpers
+      const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+      function aabb(a, b) { return Math.abs(a.x - b.x) < (a.w + b.w) / 2 && Math.abs(a.y - b.y) < (a.h + b.h) / 2; }
+
+      // Overlay rendering
+      const overlay = document.getElementById('overlay');
+      function showStart() {
+        overlay.innerHTML = `
+        <div class="panel">
+          <div class="title">Flight Runner ✈️</div>
+          <div class="sub">键盘 ← → ↑ ↓ 或 触控移动，收集燃料和金币。
+          <br>燃料耗尽飞机就会坠毁！</div>
+          <div class="sub" style="margin-top: 8px;">
+            最高记录: ${Math.floor(state.highScore)}m | 总金币: ${state.totalCoins}
+          </div>
+          <div class="controls" style="margin-top: 12px;">
+            <div class="pill btn" id="startBtn">开始游戏 ▶</div>
+            <div class="pill btn" id="shopBtn" style="background: rgba(255,215,0,.2); border-color: rgba(255,215,0,.5);">商店 🛒</div>
+          </div>
+        </div>`;
+        bindStart();
+        bindShop();
+      }
+      function showGameOver() {
+        const isFuelEmpty = state.fuel <= 0;
+        const isNewRecord = state.distance > state.highScore;
+        overlay.innerHTML = `
+        <div class="panel">
+          <div class="title">${isFuelEmpty ? '✈️ 飞机坠毁' : '游戏结束'}</div>
+          <div class="sub">${isFuelEmpty ? '燃料耗尽，飞机失去动力！' : ''}</div>
+          <div class="sub">飞行距离: ${Math.floor(state.distance)}m ${isNewRecord ? '🏆 新记录!' : ''}</div>
+          <div class="sub">获得金币: ${state.coins}</div>
+          <div class="sub">总金币: ${state.totalCoins}</div>
+          <div class="controls">
+            <div class="pill btn" id="restartBtn">再来一次 ↻</div>
+          </div>
+        </div>`;
+        bindRestart();
+      }
+      function clearOverlay() { overlay.innerHTML = ''; }
+
+      function bindStart() {
+        const btn = document.getElementById('startBtn');
+        if (btn) btn.onclick = startGame;
+      }
+      function bindRestart() {
+        const btn = document.getElementById('restartBtn');
+        if (btn) btn.onclick = startGame;
+      }
+      function bindShop() {
+        const btn = document.getElementById('shopBtn');
+        if (btn) btn.onclick = showShop;
+      }
+
+      function showShop() {
+        overlay.innerHTML = `
+        <div class="panel">
+          <div class="title">商店 🛒</div>
+          <div class="sub">当前金币: ${state.totalCoins}</div>
+          <div class="sub" style="margin-top: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0;">
+              <span>燃料升级 (+20% 最大燃料)</span>
+              <div class="pill btn" id="buyFuelBtn" style="background: ${state.totalCoins >= 1000 ? 'rgba(0,255,0,.2)' : 'rgba(255,0,0,.2)'}; border-color: ${state.totalCoins >= 1000 ? 'rgba(0,255,0,.5)' : 'rgba(255,0,0,.5)'};">
+                ${state.totalCoins >= 1000 ? '购买 (1000)' : '金币不足 (1000)'}
+              </div>
+            </div>
+          </div>
+          <div class="controls" style="margin-top: 12px;">
+            <div class="pill btn" id="backBtn">返回 ↩</div>
+          </div>
+        </div>`;
+
+        const buyFuelBtn = document.getElementById('buyFuelBtn');
+        const backBtn = document.getElementById('backBtn');
+
+        if (buyFuelBtn) {
+          buyFuelBtn.onclick = () => {
+            if (state.totalCoins >= 1000) {
+              state.totalCoins -= 1000;
+              state.maxFuel = Math.min(200, state.maxFuel + 20);
+              state.fuel = state.maxFuel;
+              localStorage.setItem('flightRunnerCoins', state.totalCoins);
+              localStorage.setItem('flightRunnerMaxFuel', state.maxFuel);
+              showShop(); // 刷新商店界面
+            }
+          };
+        }
+
+        if (backBtn) {
+          backBtn.onclick = showStart;
+        }
+      }
+
+      // Entities generation
+      function spawnCloud() {
+        const w = 80 + Math.random() * 120;
+        const h = 40 + Math.random() * 60;
+        state.clouds.push({ x: Math.random() * baseW, y: -h, w, h, vy: state.speed * (0.5 + Math.random() * 0.8) });
+      }
+      function spawnFuel() {
+        const size = 20;
+        state.fuels.push({ x: 30 + Math.random() * (baseW - 60), y: -size, w: 20, h: 20, vy: state.speed * 1.1 });
+      }
+      function spawnCoin() {
+        const size = 16;
+        state.coins.push({ x: 30 + Math.random() * (baseW - 60), y: -size, w: size, h: size, vy: state.speed * 1.2 });
+      }
+
+      // Input
+      const keys = { left: false, right: false, up: false, down: false };
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') keys.left = true;
+        if (e.key === 'ArrowRight') keys.right = true;
+        if (e.key === 'ArrowUp') keys.up = true;
+        if (e.key === 'ArrowDown') keys.down = true;
+        if (e.key.toLowerCase() === 'p') togglePause();
+      });
+      window.addEventListener('keyup', (e) => {
+        if (e.key === 'ArrowLeft') keys.left = false;
+        if (e.key === 'ArrowRight') keys.right = false;
+        if (e.key === 'ArrowUp') keys.up = false;
+        if (e.key === 'ArrowDown') keys.down = false;
+      });
+
+      function bindTouch(btnId, prop) {
+        const el = document.getElementById(btnId);
+        if (!el) return;
+        const on = () => keys[prop] = true;
+        const off = () => keys[prop] = false;
+        el.addEventListener('touchstart', (e) => { e.preventDefault(); on(); });
+        el.addEventListener('touchend', (e) => { e.preventDefault(); off(); });
+        el.addEventListener('touchcancel', (e) => { e.preventDefault(); off(); });
+        el.addEventListener('mousedown', on);
+        el.addEventListener('mouseup', off);
+        el.addEventListener('mouseleave', off);
+      }
+      bindTouch('leftBtn', 'left');
+      bindTouch('rightBtn', 'right');
+      bindTouch('upBtn', 'up');
+      bindTouch('downBtn', 'down');
+
+      document.getElementById('pauseBtn').onclick = togglePause;
+
+      function togglePause() {
+        if (!state.playing) return;
+        state.paused = !state.paused;
+        document.getElementById('pauseBtn').textContent = state.paused ? '继续 ▶' : '暂停 ⏸';
+      }
+
+      // Game control
+      function reset() {
+        state.playing = true;
+        state.paused = false;
+        state.score = 0;
+        state.distance = 0;
+        state.coins = 0;
+        state.fuel = state.maxFuel;
+        state.speed = 2.2;
+        state.tick = 0;
+        state.crashed = false;
+        state.crashTick = 0;
+        state.clouds.length = 0;
+        state.fuels.length = 0;
+        state.coins.length = 0;
+        state.player.x = baseW * 0.5;
+        state.player.y = baseH * 0.7;
+        state.player.vx = 0;
+        state.player.vy = 0;
+        document.getElementById('pauseBtn').textContent = '暂停 ⏸';
+      }
+      function startGame() {
+        reset();
+        clearOverlay();
+      }
+      function gameOver() {
+        state.playing = false;
+        // 保存最高记录和金币
+        if (state.distance > state.highScore) {
+          state.highScore = state.distance;
+          localStorage.setItem('flightRunnerHighScore', state.distance);
+        }
+        localStorage.setItem('flightRunnerCoins', state.totalCoins);
+        showGameOver();
+      }
+
+      // Drawing helpers
+      function drawBackground() {
+        // horizon line
+        const grad = ctx.createLinearGradient(0, 0, 0, baseH);
+        grad.addColorStop(0, '#061a33');
+        grad.addColorStop(1, '#0b274d');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, baseW, baseH);
+
+        // 起点平台
+        if (state.distance < 50) {
+          const platformHeight = Math.max(0, 50 - state.distance);
+          ctx.fillStyle = 'rgba(100, 100, 100, 0.8)';
+          ctx.fillRect(0, baseH - platformHeight, baseW, platformHeight);
+
+          // 平台边缘
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(0, baseH - platformHeight);
+          ctx.lineTo(baseW, baseH - platformHeight);
+          ctx.stroke();
+        }
+
+        // 距离标记墙
+        const wallDistance = Math.floor(state.distance / 100) * 100;
+        for (let i = 0; i < 3; i++) {
+          const wallY = baseH - 200 - (state.distance - wallDistance - i * 100) * 2;
+          if (wallY > -100 && wallY < baseH + 100) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${0.1 - i * 0.03})`;
+            ctx.fillRect(0, wallY, baseW, 20);
+
+            // 距离数字
+            ctx.fillStyle = `rgba(255, 255, 255, ${0.8 - i * 0.2})`;
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${wallDistance + i * 100}m`, baseW / 2, wallY + 15);
+          }
+        }
+
+        // runway lines
+        ctx.strokeStyle = 'rgba(255,255,255,.08)';
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 6; i++) {
+          const y = (i * 160 + (state.tick * state.speed * 40) % 160) - 80;
+          ctx.beginPath();
+          ctx.moveTo(baseW * 0.2, y);
+          ctx.lineTo(baseW * 0.8, y + 20);
+          ctx.stroke();
+        }
+      }
+      function drawCloud(c) {
+        ctx.fillStyle = 'rgba(255,255,255,.2)';
+        roundRect(c.x - c.w / 2, c.y - c.h / 2, c.w, c.h, 18);
+        ctx.fill();
+      }
+      function drawFuel(f) {
+        // 绘制燃料为飞机形状，带发光效果
+        ctx.save();
+        ctx.translate(f.x, f.y);
+
+        // 发光效果
+        const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, 20);
+        glow.addColorStop(0, 'rgba(255, 209, 102, 0.8)');
+        glow.addColorStop(0.5, 'rgba(255, 209, 102, 0.3)');
+        glow.addColorStop(1, 'rgba(255, 209, 102, 0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(0, 0, 20, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 飞机主体
+        ctx.fillStyle = '#ffd166';
+        ctx.strokeStyle = 'rgba(0,0,0,.4)';
+        ctx.lineWidth = 2;
+
+        // 添加旋转动画
+        const rotation = Math.sin(state.tick * 0.1) * 0.1;
+        ctx.rotate(rotation);
+
+        ctx.beginPath();
+        ctx.moveTo(0, -10);
+        ctx.lineTo(8, 8);
+        ctx.lineTo(0, 3);
+        ctx.lineTo(-8, 8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // 燃料指示 - 闪烁效果
+        const alpha = 0.5 + 0.5 * Math.sin(state.tick * 0.2);
+        ctx.fillStyle = `rgba(255, 107, 107, ${alpha})`;
+        ctx.beginPath();
+        ctx.arc(0, 0, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 添加粒子效果
+        for (let i = 0; i < 3; i++) {
+          const angle = (state.tick * 0.1 + i * Math.PI * 2 / 3) % (Math.PI * 2);
+          const radius = 12 + Math.sin(state.tick * 0.15 + i) * 3;
+          const px = Math.cos(angle) * radius;
+          const py = Math.sin(angle) * radius;
+
+          ctx.fillStyle = `rgba(255, 209, 102, ${0.3 + 0.2 * Math.sin(state.tick * 0.2 + i)})`;
+          ctx.beginPath();
+          ctx.arc(px, py, 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.restore();
+      }
+      function drawPlayer(p) {
+        // simple plane icon
+        ctx.save();
+        const tilt = (p.vx / p.maxV) * 0.3;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(tilt);
+        ctx.fillStyle = '#7bdff2';
+        ctx.beginPath();
+        ctx.moveTo(0, -14);
+        ctx.lineTo(8, 10);
+        ctx.lineTo(0, 6);
+        ctx.lineTo(-8, 10);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawCrashedPlayer(p, crashTick) {
+        // 坠毁的飞机 - 分解成多个部分
+        ctx.save();
+        ctx.translate(p.x, p.y);
+
+        // 主机身 - 向下倾斜
+        const mainRotation = Math.PI * 0.3 + Math.sin(crashTick * 0.1) * 0.1;
+        ctx.rotate(mainRotation);
+        ctx.fillStyle = '#ff6b6b';
+        ctx.strokeStyle = 'rgba(0,0,0,.5)';
+        ctx.lineWidth = 2;
+
+        // 机身
+        ctx.beginPath();
+        ctx.moveTo(0, -12);
+        ctx.lineTo(6, 8);
+        ctx.lineTo(0, 4);
+        ctx.lineTo(-6, 8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // 左机翼 - 分离
+        ctx.save();
+        ctx.translate(-8, 2);
+        ctx.rotate(-0.5 + Math.sin(crashTick * 0.15) * 0.2);
+        ctx.fillStyle = '#ff8e8e';
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(-4, 6);
+        ctx.lineTo(2, 4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+
+        // 右机翼 - 分离
+        ctx.save();
+        ctx.translate(8, 2);
+        ctx.rotate(0.5 + Math.sin(crashTick * 0.12) * 0.2);
+        ctx.fillStyle = '#ff8e8e';
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(4, 6);
+        ctx.lineTo(-2, 4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+
+        // 尾翼 - 分离
+        ctx.save();
+        ctx.translate(0, 8);
+        ctx.rotate(0.3 + Math.sin(crashTick * 0.08) * 0.3);
+        ctx.fillStyle = '#ffaaaa';
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(-3, 4);
+        ctx.lineTo(3, 4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+
+        // 烟雾效果
+        for (let i = 0; i < 5; i++) {
+          const smokeX = (Math.random() - 0.5) * 20;
+          const smokeY = 15 + Math.random() * 10 + crashTick * 0.5;
+          const smokeSize = 3 + Math.random() * 4;
+          const smokeAlpha = Math.max(0, 0.6 - (crashTick - i * 5) * 0.02);
+
+          ctx.fillStyle = `rgba(100, 100, 100, ${smokeAlpha})`;
+          ctx.beginPath();
+          ctx.arc(smokeX, smokeY, smokeSize, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // 火花效果
+        for (let i = 0; i < 8; i++) {
+          const sparkX = (Math.random() - 0.5) * 30;
+          const sparkY = (Math.random() - 0.5) * 20;
+          const sparkLife = Math.max(0, 1 - (crashTick - i * 3) * 0.05);
+
+          if (sparkLife > 0) {
+            ctx.fillStyle = `rgba(255, 200, 0, ${sparkLife})`;
+            ctx.beginPath();
+            ctx.arc(sparkX, sparkY, 1 + Math.random() * 2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+        ctx.restore();
+      }
+
+      function drawCoin(c) {
+        // 绘制金币，带旋转和发光效果
+        ctx.save();
+        ctx.translate(c.x, c.y);
+
+        // 发光效果
+        const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, 12);
+        glow.addColorStop(0, 'rgba(255, 215, 0, 0.8)');
+        glow.addColorStop(0.5, 'rgba(255, 215, 0, 0.3)');
+        glow.addColorStop(1, 'rgba(255, 215, 0, 0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(0, 0, 12, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 金币主体
+        const rotation = state.tick * 0.1;
+        ctx.rotate(rotation);
+        ctx.fillStyle = '#ffd700';
+        ctx.strokeStyle = 'rgba(0,0,0,.3)';
+        ctx.lineWidth = 1;
+
+        // 圆形金币
+        ctx.beginPath();
+        ctx.arc(0, 0, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // 金币中心的符号
+        ctx.fillStyle = 'rgba(0,0,0,.6)';
+        ctx.font = 'bold 10px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('$', 0, 0);
+
+        ctx.restore();
+      }
+
+      function roundRect(x, y, w, h, r) {
+        const rr = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rr, y);
+        ctx.arcTo(x + w, y, x + w, y + h, rr);
+        ctx.arcTo(x + w, y + h, x, y + h, rr);
+        ctx.arcTo(x, y + h, x, y, rr);
+        ctx.arcTo(x, y, x + w, y, rr);
+        ctx.closePath();
+      }
+
+      // Update loop
+      let last = performance.now();
+      function loop(now) {
+        requestAnimationFrame(loop);
+        const dt = Math.min(33, now - last) / 16.6667; // normalize to 60fps units
+        last = now;
+
+        // UI
+        document.getElementById('distance').textContent = Math.floor(state.distance);
+        document.getElementById('coins').textContent = state.coins;
+        const fuelElement = document.getElementById('fuel');
+        const fuelValue = Math.max(0, Math.round(state.fuel));
+        fuelElement.textContent = fuelValue;
+
+        // 燃料不足警告
+        if (state.fuel < 20) {
+          fuelElement.style.color = '#ff6b6b';
+          fuelElement.style.animation = 'pulse 0.5s infinite alternate';
+        } else {
+          fuelElement.style.color = '#e6f0ff';
+          fuelElement.style.animation = 'none';
+        }
+
+        drawBackground();
+
+        if (!state.playing || state.paused) {
+          // draw idle clouds
+          state.clouds.forEach(drawCloud);
+          state.fuels.forEach(drawFuel);
+          drawPlayer(state.player);
+          return;
+        }
+
+        state.tick++;
+
+        // spawn
+        if (state.tick % 24 === 0) spawnCloud();
+        if (state.tick % 80 === 0) spawnFuel();
+        if (state.tick % 60 === 0) spawnCoin();
+
+        // player physics
+        const acc = 0.8;
+        const fric = 0.86;
+        if (keys.left) state.player.vx -= acc;
+        if (keys.right) state.player.vx += acc;
+        if (keys.up) state.player.vy -= acc * 0.7;
+        if (keys.down) state.player.vy += acc * 0.7;
+        state.player.vx = clamp(state.player.vx, -state.player.maxV, state.player.maxV);
+        state.player.vy = clamp(state.player.vy, -state.player.maxV * 0.8, state.player.maxV * 0.8);
+        state.player.x += state.player.vx * dt * 1.0;
+        state.player.y += state.player.vy * dt * 1.0;
+        state.player.vx *= fric;
+        state.player.vy *= fric;
+        state.player.x = clamp(state.player.x, 24, baseW - 24);
+        state.player.y = clamp(state.player.y, 80, baseH - 40);
+
+        // move clouds
+        for (let i = state.clouds.length - 1; i >= 0; i--) {
+          const c = state.clouds[i];
+          c.y += c.vy * dt;
+          drawCloud(c);
+          if (c.y - c.h / 2 > baseH + 60) { state.clouds.splice(i, 1); }
+        }
+
+
+        // move fuels
+        for (let i = state.fuels.length - 1; i >= 0; i--) {
+          const f = state.fuels[i];
+          f.y += f.vy * dt;
+          drawFuel(f);
+          if (aabb({ x: state.player.x, y: state.player.y, w: state.player.w, h: state.player.h }, f)) {
+            state.fuel = Math.min(state.maxFuel, state.fuel + 25);
+            state.score += 20;
+            state.fuels.splice(i, 1);
+            continue;
+          }
+          if (f.y - f.h / 2 > baseH + 40) state.fuels.splice(i, 1);
+        }
+
+        // move coins
+        for (let i = state.coins.length - 1; i >= 0; i--) {
+          const c = state.coins[i];
+          c.y += c.vy * dt;
+          drawCoin(c);
+          if (aabb({ x: state.player.x, y: state.player.y, w: state.player.w, h: state.player.h }, c)) {
+            state.coins++;
+            state.totalCoins++;
+            state.score += 10;
+            state.coins.splice(i, 1);
+            continue;
+          }
+          if (c.y - c.h / 2 > baseH + 40) state.coins.splice(i, 1);
+        }
+
+        // scoring & difficulty & fuel & distance
+        state.score += 0.2 * dt * (1 + (state.speed - 2.2) * 0.3);
+        state.distance += state.speed * dt * 0.1; // 每米获得一个金币
+        if (Math.floor(state.distance) > Math.floor(state.distance - state.speed * dt * 0.1)) {
+          state.coins++;
+          state.totalCoins++;
+        }
+        state.fuel -= 0.12 * dt * (1 + Math.abs(state.player.vx) * 0.08 + Math.abs(state.player.vy) * 0.08);
+        if (state.fuel <= 0 && !state.crashed) {
+          // 燃料耗尽，飞机坠毁
+          state.crashed = true;
+          state.crashTick = 0;
+          state.playing = false;
+          return;
+        }
+        if (state.tick % 360 === 0) state.speed = Math.min(4.2, state.speed + 0.12);
+
+        // draw player last
+        if (state.crashed) {
+          state.crashTick++;
+          drawCrashedPlayer(state.player, state.crashTick);
+          // 坠毁动画播放一段时间后显示游戏结束
+          if (state.crashTick > 120) {
+            showGameOver();
+          }
+        } else {
+          drawPlayer(state.player);
+        }
+      }
+      requestAnimationFrame(loop);
+
+      showStart();
+    })();
+  </script>
+</body>
+
+</html>

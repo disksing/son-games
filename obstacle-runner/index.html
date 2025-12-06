@@ -1,0 +1,1711 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <title>障碍跑酷</title>
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: #1a1a2e;
+            color: #e6f0ff;
+            font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, PingFang SC, Noto Sans SC, "Microsoft Yahei", sans-serif;
+            overflow: hidden;
+        }
+
+        #game {
+            display: block;
+            margin: 0 auto;
+            background: linear-gradient(to bottom, #87CEEB 0%, #98D8C8 50%, #6B8E23 100%);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, .4);
+            touch-action: none;
+        }
+
+        .hud {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 12px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .hud .pill {
+            pointer-events: auto;
+            background: rgba(0, 0, 0, .6);
+            border: 1px solid rgba(255, 255, 255, .3);
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 14px;
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, .1);
+        }
+
+        .center {
+            position: fixed;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            z-index: 20;
+        }
+
+        .panel {
+            background: rgba(10, 14, 28, .95);
+            border: 1px solid rgba(255, 255, 255, .2);
+            border-radius: 16px;
+            padding: 24px 28px;
+            box-shadow: 0 10px 32px rgba(0, 0, 0, .6);
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .title {
+            font-weight: 700;
+            font-size: 24px;
+            margin-bottom: 12px;
+            color: #ffd700;
+        }
+
+        .sub {
+            opacity: .9;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .powerup-indicator {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+        }
+
+        .powerup-icon {
+            font-size: 16px;
+        }
+
+        .fragment-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 4px;
+            margin: 12px 0;
+            justify-items: center;
+        }
+
+        .reset-shard {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.15s ease, box-shadow 0.2s ease;
+        }
+
+        .reset-shard.active {
+            background: linear-gradient(135deg, #a0e9ff, #7f7bf7);
+            border-color: rgba(160, 233, 255, 0.8);
+            box-shadow: 0 0 6px rgba(127, 123, 247, 0.6);
+            transform: scale(1.1);
+        }
+
+        .pill.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        @keyframes pulse {
+            from {
+                opacity: 0.6;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .shield-active {
+            animation: pulse 0.8s infinite alternate;
+            color: #00ff00 !important;
+        }
+
+        .speed-active {
+            color: #ff6b6b !important;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="game" width="800" height="600"></canvas>
+    <div class="hud">
+        <div class="pill">🎯 关卡: <span id="level">1</span>/20</div>
+        <div class="pill">❤️ 血量: <span id="hp">100</span>/<span id="maxHp">100</span></div>
+        <div class="pill">💰 金币: <span id="coins">0</span></div>
+        <div class="pill">⏱ 时间: <span id="time">0</span>s</div>
+        <div class="pill" id="shieldIndicator" style="display: none;">
+            <span class="powerup-icon">🛡️</span>
+            <span>护盾</span>
+        </div>
+        <div class="pill" id="speedIndicator" style="display: none;">
+            <span class="powerup-icon">⚡</span>
+            <span>加速</span>
+        </div>
+        <div class="pill btn" id="pauseBtn">暂停 ⏸</div>
+    </div>
+    <div id="overlay" class="center"></div>
+
+    <script>
+        (function () {
+            const canvas = document.getElementById('game');
+            const ctx = canvas.getContext('2d');
+            const baseW = 800, baseH = 600;
+
+            // Game state
+            const state = {
+                playing: false,
+                paused: false,
+                gameTime: 0,
+                coinCounter: 0, // 用于累计时间金币（0.1/秒）
+                coins: 0, // 显示的金币数（整数）
+                hp: 100, // 血量
+                maxHp: 100, // 最大血量（会在初始化后更新）
+                damagePerHit: 10, // 每次撞障碍扣血量（会在初始化后更新）
+                lastCoinDropTime: 0, // 上次掉落金币的时间
+                coinSpawnInterval: 10, // 金币生成间隔（秒）
+                distance: 0,
+                speed: 3,
+                baseSpeed: 3,
+                baseMaxV: 6, // 基础最大速度
+                tick: 0,
+                trackWidth: 400, // 赛道宽度
+                trackX: baseW * 0.5, // 赛道中心X
+                player: {
+                    x: baseW * 0.5,
+                    y: baseH - 80,
+                    w: 40,
+                    h: 50,
+                    vx: 0,
+                    vy: 0, // 前后移动速度
+                    maxV: 6,
+                    maxVy: 4, // 前后移动最大速度
+                    runFrame: 0, // 奔跑动画帧
+                    lastStepTime: 0 // 上次踏步时间
+                },
+                obstacles: [],
+                coinObjects: [],
+                powerups: [],
+                enemies: [], // 敌人
+                bullets: [], // 子弹
+                thunderStrikes: [], // 雷击（从天而降）
+                hasShield: false,
+                shieldTime: 0,
+                speedBoost: false,
+                speedBoostTime: 0,
+                activePowerup: null, // 当前激活的道具（第二个会取消第一个）
+                gameOver: false,
+                currentLevel: parseInt(localStorage.getItem('obstacleRunnerCurrentLevel') || '1'), // 当前关卡
+                maxLevel: 20, // 最大关卡
+                levelTime: 0, // 当前关卡时间
+                levelTargetTime: 30, // 每关目标时间（秒）
+                highScore: parseInt(localStorage.getItem('obstacleRunnerHighScore') || '0'),
+                totalCoins: parseInt(localStorage.getItem('obstacleRunnerTotalCoins') || '0'),
+                maxHpUpgrade: parseInt(localStorage.getItem('obstacleRunnerMaxHpUpgrade') || '0'), // 血量上限升级次数
+                damageReduction: parseInt(localStorage.getItem('obstacleRunnerDamageReduction') || '0'), // 伤害减少次数
+                coinSpawnSpeedUpgrade: parseInt(localStorage.getItem('obstacleRunnerCoinSpawnSpeedUpgrade') || '0'), // 金币生成速度升级次数
+                playerSpeedUpgrade: parseInt(localStorage.getItem('obstacleRunnerPlayerSpeedUpgrade') || '0'), // 玩家速度升级次数
+                shopPrices: JSON.parse(localStorage.getItem('obstacleRunnerShopPrices') || '{}') // 商店价格（每次购买后增加15%）
+            };
+
+            // 初始化升级后的值
+            state.maxHp = 100 + state.maxHpUpgrade * 20; // 每次升级+20血
+            state.damagePerHit = Math.max(1, 10 - state.damageReduction); // 基础伤害10
+
+            // 初始化金币生成速度
+            if (state.coinSpawnSpeedUpgrade === 0) {
+                state.coinSpawnInterval = 10;
+            } else if (state.coinSpawnSpeedUpgrade === 1) {
+                state.coinSpawnInterval = 5;
+            } else if (state.coinSpawnSpeedUpgrade === 2) {
+                state.coinSpawnInterval = 3;
+            } else {
+                state.coinSpawnInterval = 1;
+            }
+
+            // 初始化玩家速度
+            state.baseMaxV = 6 + state.playerSpeedUpgrade * 1;
+            state.player.maxV = state.baseMaxV;
+
+            // Helpers
+            const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+            function aabb(a, b) {
+                return Math.abs(a.x - b.x) < (a.w + b.w) / 2 && Math.abs(a.y - b.y) < (a.h + b.h) / 2;
+            }
+
+            // 音效生成
+            let audioContext = null;
+            function initAudio() {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) {
+                    // 忽略音效初始化错误
+                }
+            }
+
+            function playStepSound() {
+                if (!audioContext) {
+                    initAudio();
+                    if (!audioContext) return;
+                }
+
+                try {
+                    // 恢复音频上下文（如果被暂停）
+                    if (audioContext.state === 'suspended') {
+                        audioContext.resume();
+                    }
+
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+
+                    oscillator.frequency.value = 200 + Math.random() * 50;
+                    oscillator.type = 'sine';
+
+                    gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.08);
+
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.08);
+                } catch (e) {
+                    // 忽略音效错误
+                }
+            }
+
+            function playExplosionSound() {
+                if (!audioContext) {
+                    initAudio();
+                    if (!audioContext) return;
+                }
+                try {
+                    // 恢复音频上下文（如果被暂停）
+                    if (audioContext.state === 'suspended') {
+                        audioContext.resume();
+                    }
+
+                    // 创建爆炸音效（低沉的轰隆声）
+                    const oscillator1 = audioContext.createOscillator();
+                    const oscillator2 = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+
+                    oscillator1.connect(gainNode);
+                    oscillator2.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+
+                    // 低频轰隆声
+                    oscillator1.frequency.value = 60;
+                    oscillator1.type = 'sawtooth';
+                    oscillator2.frequency.value = 80;
+                    oscillator2.type = 'square';
+
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+                    oscillator1.start(audioContext.currentTime);
+                    oscillator2.start(audioContext.currentTime);
+                    oscillator1.stop(audioContext.currentTime + 0.5);
+                    oscillator2.stop(audioContext.currentTime + 0.5);
+                } catch (e) {
+                    // 忽略音效错误
+                }
+            }
+
+            // 初始化音效（需要用户交互后）
+            initAudio();
+
+            // Overlay rendering
+            const overlay = document.getElementById('overlay');
+            function showStart() {
+                overlay.innerHTML = `
+        <div class="panel">
+          <div class="title">🏃 障碍跑酷</div>
+          <div class="sub">使用方向键 ← → 控制角色左右移动<br>
+          躲避障碍物，收集金币和道具！<br>
+          ❤️ 撞到障碍物扣${state.damagePerHit}滴血，被炸弹砸中扣20滴血，${state.maxHp}滴血扣完游戏结束<br>
+          🛡️ 护盾：可抵挡一次障碍<br>
+          ⚡ 加速：移动速度提升<br>
+          💰 每坚持10秒会掉落一个金币，记得去捡！<br>
+          🛒 在商店可以升级血量和减少扣血量</div>
+          <div class="sub" style="margin-top: 12px; color: #ffd700;">
+            当前关卡: 第 ${state.currentLevel} 关 / 20关<br>
+            最高记录: ${Math.floor(state.highScore)}s | 总金币: ${state.totalCoins}
+          </div>
+          <div class="controls">
+            <div class="pill btn" id="startBtn">开始游戏 ▶</div>
+            <div class="pill btn" id="shopBtn" style="background: rgba(255,215,0,.2); border-color: rgba(255,215,0,.5);">商店 🛒</div>
+          </div>
+        </div>`;
+                bindStart();
+            }
+
+            function showGameOver() {
+                overlay.innerHTML = `
+        <div class="panel">
+          <div class="title">游戏结束 💥</div>
+          <div class="sub">存活时间: ${Math.floor(state.gameTime)}秒</div>
+          <div class="sub">获得金币: ${state.coins}</div>
+          <div class="sub">总金币: ${state.totalCoins}</div>
+          ${state.gameTime > state.highScore ? '<div class="sub" style="color: #ffd700; margin-top: 8px;">🏆 新记录！</div>' : ''}
+          <div class="controls">
+            <div class="pill btn" id="restartBtn">再来一次 ↻</div>
+            <div class="pill btn" id="shopBtn2" style="background: rgba(255,215,0,.2); border-color: rgba(255,215,0,.5);">商店 🛒</div>
+          </div>
+        </div>`;
+                bindRestart();
+            }
+
+            function clearOverlay() { overlay.innerHTML = ''; }
+
+            function bindStart() {
+                const btn = document.getElementById('startBtn');
+                if (btn) btn.onclick = startGame;
+                const shopBtn = document.getElementById('shopBtn');
+                if (shopBtn) shopBtn.onclick = showShop;
+            }
+
+            function bindRestart() {
+                const btn = document.getElementById('restartBtn');
+                if (btn) btn.onclick = startGame;
+                const shopBtn = document.getElementById('shopBtn2');
+                if (shopBtn) shopBtn.onclick = showShop;
+            }
+
+            // 获取商店价格（每次购买后增加15%）
+            function getShopPrice(itemName, basePrice, purchaseCount) {
+                // 计算价格：基础价格 * (1.15 ^ 购买次数)
+                const price = Math.floor(basePrice * Math.pow(1.15, purchaseCount));
+                return price;
+            }
+
+            function showShop() {
+                // 确保游戏暂停
+                if (state.playing) {
+                    state.paused = true;
+                }
+
+                const maxHpPrice = getShopPrice('maxHp', 50, state.maxHpUpgrade);
+                const damageReductionPrice = getShopPrice('damageReduction', 30, state.damageReduction);
+                const coinSpawnSpeedPrice = getShopPrice('coinSpawnSpeed', 40, state.coinSpawnSpeedUpgrade);
+                const playerSpeedPrice = getShopPrice('playerSpeed', 35, state.playerSpeedUpgrade);
+
+                const currentDamage = Math.max(1, 10 - state.damageReduction);
+                const nextCoinInterval = state.coinSpawnSpeedUpgrade === 0 ? 5 :
+                    state.coinSpawnSpeedUpgrade === 1 ? 3 :
+                        state.coinSpawnSpeedUpgrade === 2 ? 1 : 1;
+                const coinSpawnMaxed = state.coinSpawnSpeedUpgrade >= 3;
+
+                overlay.innerHTML = `
+        <div class="panel" style="max-width: 500px;">
+          <div class="title">商店 🛒</div>
+          <div class="sub" style="margin-bottom: 16px;">当前金币: ${state.totalCoins}</div>
+          
+          <div style="text-align: left; margin: 12px 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0; padding: 8px; background: rgba(255,255,255,.05); border-radius: 8px;">
+              <div>
+                <div style="font-weight: bold;">❤️ 增加血量上限 <span style="color: #ffd700;">(已购买: ${state.maxHpUpgrade})</span></div>
+                <div style="font-size: 12px; opacity: 0.8;">当前: ${state.maxHp} | 升级后: ${state.maxHp + 20}</div>
+              </div>
+              <div class="pill btn" id="buyMaxHp" style="background: ${state.totalCoins >= maxHpPrice ? 'rgba(0,255,0,.2)' : 'rgba(255,0,0,.2)'}; border-color: ${state.totalCoins >= maxHpPrice ? 'rgba(0,255,0,.5)' : 'rgba(255,0,0,.5)'};">
+                ${state.totalCoins >= maxHpPrice ? `购买 (${maxHpPrice})` : `金币不足 (${maxHpPrice})`}
+              </div>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0; padding: 8px; background: rgba(255,255,255,.05); border-radius: 8px;">
+              <div>
+                <div style="font-weight: bold;">🛡️ 减少扣血量 <span style="color: #ffd700;">(已购买: ${state.damageReduction})</span></div>
+                <div style="font-size: 12px; opacity: 0.8;">当前: ${currentDamage} | 升级后: ${Math.max(1, currentDamage - 1)}</div>
+              </div>
+              <div class="pill btn" id="buyDamageReduction" style="background: ${state.totalCoins >= damageReductionPrice && currentDamage > 1 ? 'rgba(0,255,0,.2)' : 'rgba(255,0,0,.2)'}; border-color: ${state.totalCoins >= damageReductionPrice && currentDamage > 1 ? 'rgba(0,255,0,.5)' : 'rgba(255,0,0,.5)'};">
+                ${currentDamage <= 1 ? '已满级' : state.totalCoins >= damageReductionPrice ? `购买 (${damageReductionPrice})` : `金币不足 (${damageReductionPrice})`}
+              </div>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0; padding: 8px; background: rgba(255,255,255,.05); border-radius: 8px;">
+              <div>
+                <div style="font-weight: bold;">⚡ 金币生成速度 <span style="color: #ffd700;">(已购买: ${state.coinSpawnSpeedUpgrade})</span></div>
+                <div style="font-size: 12px; opacity: 0.8;">当前: ${state.coinSpawnInterval}秒 | ${coinSpawnMaxed ? '已满级' : `升级后: ${nextCoinInterval}秒`}</div>
+              </div>
+              <div class="pill btn" id="buyCoinSpawnSpeed" style="background: ${!coinSpawnMaxed && state.totalCoins >= coinSpawnSpeedPrice ? 'rgba(0,255,0,.2)' : 'rgba(255,0,0,.2)'}; border-color: ${!coinSpawnMaxed && state.totalCoins >= coinSpawnSpeedPrice ? 'rgba(0,255,0,.5)' : 'rgba(255,0,0,.5)'};">
+                ${coinSpawnMaxed ? '已满级' : state.totalCoins >= coinSpawnSpeedPrice ? `购买 (${coinSpawnSpeedPrice})` : `金币不足 (${coinSpawnSpeedPrice})`}
+              </div>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0; padding: 8px; background: rgba(255,255,255,.05); border-radius: 8px;">
+              <div>
+                <div style="font-weight: bold;">🏃 玩家速度 <span style="color: #ffd700;">(已购买: ${state.playerSpeedUpgrade})</span></div>
+                <div style="font-size: 12px; opacity: 0.8;">当前: ${state.baseMaxV} | 升级后: ${state.baseMaxV + 1}</div>
+              </div>
+              <div class="pill btn" id="buyPlayerSpeed" style="background: ${state.totalCoins >= playerSpeedPrice ? 'rgba(0,255,0,.2)' : 'rgba(255,0,0,.2)'}; border-color: ${state.totalCoins >= playerSpeedPrice ? 'rgba(0,255,0,.5)' : 'rgba(255,0,0,.5)'};">
+                ${state.totalCoins >= playerSpeedPrice ? `购买 (${playerSpeedPrice})` : `金币不足 (${playerSpeedPrice})`}
+              </div>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0; padding: 8px; background: rgba(255,255,255,.05); border-radius: 8px;">
+              <div>
+                <div style="font-weight: bold;">💰 当前状态</div>
+                <div style="font-size: 12px; opacity: 0.8;">血量上限: ${state.maxHp} | 每次扣血: ${currentDamage} | 金币间隔: ${state.coinSpawnInterval}秒 | 速度: ${state.baseMaxV}</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="controls">
+            <div class="pill btn" id="backBtn">返回 ↩</div>
+          </div>
+        </div>`;
+
+                const buyMaxHpBtn = document.getElementById('buyMaxHp');
+                const buyDamageReductionBtn = document.getElementById('buyDamageReduction');
+                const buyCoinSpawnSpeedBtn = document.getElementById('buyCoinSpawnSpeed');
+                const buyPlayerSpeedBtn = document.getElementById('buyPlayerSpeed');
+                const backBtn = document.getElementById('backBtn');
+
+                if (buyMaxHpBtn) {
+                    buyMaxHpBtn.onclick = () => {
+                        if (state.totalCoins >= maxHpPrice) {
+                            state.totalCoins -= maxHpPrice;
+                            state.maxHpUpgrade++;
+                            state.maxHp = 100 + state.maxHpUpgrade * 20;
+                            localStorage.setItem('obstacleRunnerTotalCoins', state.totalCoins);
+                            localStorage.setItem('obstacleRunnerMaxHpUpgrade', state.maxHpUpgrade);
+                            showShop();
+                        }
+                    };
+                }
+
+                if (buyDamageReductionBtn) {
+                    buyDamageReductionBtn.onclick = () => {
+                        if (state.totalCoins >= damageReductionPrice && currentDamage > 1) {
+                            state.totalCoins -= damageReductionPrice;
+                            state.damageReduction++;
+                            state.damagePerHit = Math.max(1, 10 - state.damageReduction);
+                            localStorage.setItem('obstacleRunnerTotalCoins', state.totalCoins);
+                            localStorage.setItem('obstacleRunnerDamageReduction', state.damageReduction);
+                            showShop();
+                        }
+                    };
+                }
+
+                if (buyCoinSpawnSpeedBtn) {
+                    buyCoinSpawnSpeedBtn.onclick = () => {
+                        if (!coinSpawnMaxed && state.totalCoins >= coinSpawnSpeedPrice) {
+                            state.totalCoins -= coinSpawnSpeedPrice;
+                            state.coinSpawnSpeedUpgrade++;
+                            if (state.coinSpawnSpeedUpgrade === 1) {
+                                state.coinSpawnInterval = 5;
+                            } else if (state.coinSpawnSpeedUpgrade === 2) {
+                                state.coinSpawnInterval = 3;
+                            } else if (state.coinSpawnSpeedUpgrade >= 3) {
+                                state.coinSpawnInterval = 1;
+                            }
+                            localStorage.setItem('obstacleRunnerTotalCoins', state.totalCoins);
+                            localStorage.setItem('obstacleRunnerCoinSpawnSpeedUpgrade', state.coinSpawnSpeedUpgrade);
+                            showShop();
+                        }
+                    };
+                }
+
+                if (buyPlayerSpeedBtn) {
+                    buyPlayerSpeedBtn.onclick = () => {
+                        if (state.totalCoins >= playerSpeedPrice) {
+                            state.totalCoins -= playerSpeedPrice;
+                            state.playerSpeedUpgrade++;
+                            state.baseMaxV = 6 + state.playerSpeedUpgrade * 1;
+                            state.player.maxV = state.baseMaxV;
+                            localStorage.setItem('obstacleRunnerTotalCoins', state.totalCoins);
+                            localStorage.setItem('obstacleRunnerPlayerSpeedUpgrade', state.playerSpeedUpgrade);
+                            showShop();
+                        }
+                    };
+                }
+
+                if (backBtn) {
+                    backBtn.onclick = () => {
+                        // 恢复游戏状态
+                        if (state.playing) {
+                            state.paused = false;
+                        }
+                        if (state.gameOver) {
+                            showGameOver();
+                        } else {
+                            showStart();
+                        }
+                    };
+                }
+            }
+
+            // Input
+            const keys = { left: false, right: false, up: false, down: false };
+            window.addEventListener('keydown', (e) => {
+                // 如果overlay显示（商店等），不处理游戏输入
+                if (overlay.innerHTML.trim() !== '') {
+                    // 重置按键状态，避免卡住
+                    keys.left = false;
+                    keys.right = false;
+                    keys.up = false;
+                    keys.down = false;
+                    return;
+                }
+                if (e.key === 'ArrowLeft') keys.left = true;
+                if (e.key === 'ArrowRight') keys.right = true;
+                if (e.key === 'ArrowUp') keys.up = true;
+                if (e.key === 'ArrowDown') keys.down = true;
+                if (e.key.toLowerCase() === 'p') togglePause();
+            });
+            window.addEventListener('keyup', (e) => {
+                // 如果overlay显示（商店等），不处理游戏输入
+                if (overlay.innerHTML.trim() !== '') return;
+                if (e.key === 'ArrowLeft') keys.left = false;
+                if (e.key === 'ArrowRight') keys.right = false;
+                if (e.key === 'ArrowUp') keys.up = false;
+                if (e.key === 'ArrowDown') keys.down = false;
+            });
+
+            document.getElementById('pauseBtn').onclick = togglePause;
+
+            function togglePause() {
+                if (!state.playing) return;
+                state.paused = !state.paused;
+                document.getElementById('pauseBtn').textContent = state.paused ? '继续 ▶' : '暂停 ⏸';
+            }
+
+            // 根据关卡调整难度
+            function getLevelDifficulty(level) {
+                // 障碍物生成频率：第一关就很多，逐渐增加到第20关
+                // 第一关：40，第20关：15，线性递减（更频繁）
+                const baseObstacleSpawnRate = Math.max(15, 40 - (level - 1) * (25 / 19));
+                // 第一关：0.5，第20关：0.9，线性递增（更高概率）
+                const obstacleSpawnChance = Math.min(0.9, 0.5 + (level - 1) * (0.4 / 19));
+                const speedMultiplier = 1 + (level - 1) * 0.05; // 每关速度增加5%
+                const obstacleSpeedMultiplier = 1 + (level - 1) * 0.03; // 障碍物速度每关增加3%
+
+                return {
+                    obstacleSpawnRate: baseObstacleSpawnRate,
+                    obstacleSpawnChance: obstacleSpawnChance,
+                    speedMultiplier: speedMultiplier,
+                    obstacleSpeedMultiplier: obstacleSpeedMultiplier
+                };
+            }
+
+            // Game control
+            function reset() {
+                state.playing = true;
+                state.paused = false;
+                state.gameTime = 0;
+                state.levelTime = 0;
+                state.coinCounter = 0;
+                state.coins = 0;
+                // 更新maxHp和damagePerHit（可能已升级）
+                state.maxHp = 100 + state.maxHpUpgrade * 20; // 基础100血，每次升级+20
+                state.damagePerHit = Math.max(1, 10 - state.damageReduction); // 基础伤害10
+                state.hp = state.maxHp;
+                state.lastCoinDropTime = 0;
+                state.distance = 0;
+
+                // 根据关卡调整速度
+                const difficulty = getLevelDifficulty(state.currentLevel);
+                state.baseSpeed = 3 * difficulty.speedMultiplier;
+                state.speed = state.baseSpeed;
+
+                state.tick = 0;
+                state.gameOver = false;
+                state.obstacles.length = 0;
+                state.coinObjects.length = 0;
+                state.powerups.length = 0;
+                state.enemies.length = 0;
+                state.bullets.length = 0;
+                state.thunderStrikes.length = 0;
+                state.player.x = baseW * 0.5;
+                state.player.vx = 0;
+                state.player.maxV = state.baseMaxV;
+                state.hasShield = false;
+                state.shieldTime = 0;
+                state.speedBoost = false;
+                state.speedBoostTime = 0;
+                state.activePowerup = null;
+                document.getElementById('pauseBtn').textContent = '暂停 ⏸';
+                document.getElementById('shieldIndicator').style.display = 'none';
+                document.getElementById('speedIndicator').style.display = 'none';
+            }
+
+            function startGame() {
+                reset();
+                clearOverlay();
+            }
+
+            function completeLevel() {
+                state.playing = false;
+                state.totalCoins += state.coins;
+                localStorage.setItem('obstacleRunnerTotalCoins', state.totalCoins);
+
+                const completedLevel = state.currentLevel;
+                if (state.currentLevel < state.maxLevel) {
+                    // 进入下一关
+                    state.currentLevel++;
+                    localStorage.setItem('obstacleRunnerCurrentLevel', state.currentLevel);
+                    showLevelComplete(completedLevel);
+                } else {
+                    // 通关
+                    showGameComplete();
+                }
+            }
+
+            function endGame() {
+                state.playing = false;
+                state.gameOver = true;
+                if (state.gameTime > state.highScore) {
+                    state.highScore = state.gameTime;
+                    localStorage.setItem('obstacleRunnerHighScore', state.highScore);
+                }
+                state.totalCoins += state.coins;
+                localStorage.setItem('obstacleRunnerTotalCoins', state.totalCoins);
+                showGameOver();
+            }
+
+            function showLevelComplete(completedLevel) {
+                overlay.innerHTML = `
+        <div class="panel">
+          <div class="title">🎉 关卡完成！</div>
+          <div class="sub">第 ${completedLevel} 关完成！</div>
+          <div class="sub">获得金币: ${state.coins}</div>
+          <div class="sub">总金币: ${state.totalCoins}</div>
+          <div class="sub" style="margin-top: 12px; color: #ffd700;">
+            ${state.currentLevel <= state.maxLevel ? `下一关: 第 ${state.currentLevel} 关` : '恭喜通关！'}
+          </div>
+          <div class="controls">
+            <div class="pill btn" id="nextLevelBtn">下一关 ▶</div>
+            <div class="pill btn" id="backToMenuBtn">返回菜单 ↩</div>
+          </div>
+        </div>`;
+                const nextLevelBtn = document.getElementById('nextLevelBtn');
+                const backToMenuBtn = document.getElementById('backToMenuBtn');
+                if (nextLevelBtn) nextLevelBtn.onclick = startGame;
+                if (backToMenuBtn) backToMenuBtn.onclick = showStart;
+            }
+
+            function showGameComplete() {
+                overlay.innerHTML = `
+        <div class="panel">
+          <div class="title">🏆 恭喜通关！</div>
+          <div class="sub">你完成了所有20关！</div>
+          <div class="sub">获得金币: ${state.coins}</div>
+          <div class="sub">总金币: ${state.totalCoins}</div>
+          <div class="controls">
+            <div class="pill btn" id="restartBtn">重新开始 ↻</div>
+            <div class="pill btn" id="backToMenuBtn">返回菜单 ↩</div>
+          </div>
+        </div>`;
+                const restartBtn = document.getElementById('restartBtn');
+                const backToMenuBtn = document.getElementById('backToMenuBtn');
+                if (restartBtn) {
+                    restartBtn.onclick = () => {
+                        state.currentLevel = 1;
+                        localStorage.setItem('obstacleRunnerCurrentLevel', 1);
+                        startGame();
+                    };
+                }
+                if (backToMenuBtn) backToMenuBtn.onclick = showStart;
+            }
+
+            // Spawn functions
+            function spawnObstacle() {
+                const types = ['small', 'medium', 'large'];
+                const type = types[Math.floor(Math.random() * types.length)];
+                let w, h;
+                if (type === 'small') {
+                    w = 30;
+                    h = 40;
+                } else if (type === 'medium') {
+                    w = 50;
+                    h = 60;
+                } else {
+                    w = 70;
+                    h = 80;
+                }
+                const trackLeft = state.trackX - state.trackWidth / 2;
+                const trackRight = state.trackX + state.trackWidth / 2;
+                const difficulty = getLevelDifficulty(state.currentLevel);
+                state.obstacles.push({
+                    x: trackLeft + w / 2 + Math.random() * (state.trackWidth - w),
+                    y: -h,
+                    w: w,
+                    h: h,
+                    type: type,
+                    vy: state.speed * difficulty.obstacleSpeedMultiplier * (1 + state.levelTime * 0.005)
+                });
+            }
+
+            function spawnCoin() {
+                const sizes = ['small', 'medium', 'large'];
+                const size = sizes[Math.floor(Math.random() * sizes.length)];
+                let radius;
+                if (size === 'small') {
+                    radius = 12;
+                } else if (size === 'medium') {
+                    radius = 18;
+                } else {
+                    radius = 24;
+                }
+                state.coinObjects.push({
+                    x: 50 + Math.random() * (baseW - 100),
+                    y: -radius * 2,
+                    radius: radius,
+                    size: size,
+                    rotation: Math.random() * Math.PI * 2,
+                    rotationSpeed: 0.1 + Math.random() * 0.1,
+                    value: size === 'small' ? 1 : size === 'medium' ? 2 : 3,
+                    vy: state.speed * 1.2
+                });
+            }
+
+            function spawnPowerup() {
+                const types = ['shield', 'speed'];
+                const type = types[Math.floor(Math.random() * types.length)];
+                const trackLeft = state.trackX - state.trackWidth / 2;
+                const trackRight = state.trackX + state.trackWidth / 2;
+                state.powerups.push({
+                    x: trackLeft + 20 + Math.random() * (state.trackWidth - 40),
+                    y: -30,
+                    w: 30,
+                    h: 30,
+                    type: type,
+                    rotation: 0,
+                    vy: state.speed * 1.1
+                });
+            }
+
+            function spawnEnemy() {
+                const trackLeft = state.trackX - state.trackWidth / 2;
+                const trackRight = state.trackX + state.trackWidth / 2;
+                state.enemies.push({
+                    x: trackLeft + 30 + Math.random() * (state.trackWidth - 60),
+                    y: -40,
+                    w: 35,
+                    h: 35,
+                    prepareTime: 2, // 准备时间2秒
+                    prepareTimer: 0,
+                    hasAimed: false,
+                    bulletType: state.currentLevel >= 13 ? 'homing' : 'normal' // 13关以后是跟踪导弹
+                });
+            }
+
+            function spawnThunderStrike() {
+                const trackLeft = state.trackX - state.trackWidth / 2;
+                const trackRight = state.trackX + state.trackWidth / 2;
+                // 在玩家前后左右生成炸弹，前方概率更高
+                const directions = [
+                    { x: 0, y: -1, name: '前', weight: 3 },   // 前面（权重3，更多）
+                    { x: 0, y: 1, name: '后', weight: 1 },    // 后面（权重1）
+                    { x: -1, y: 0, name: '左', weight: 1 },   // 左边（权重1）
+                    { x: 1, y: 0, name: '右', weight: 1 }     // 右边（权重1）
+                ];
+
+                // 根据权重随机选择方向
+                const totalWeight = directions.reduce((sum, d) => sum + d.weight, 0);
+                let random = Math.random() * totalWeight;
+                let dir = directions[0];
+                for (let d of directions) {
+                    random -= d.weight;
+                    if (random <= 0) {
+                        dir = d;
+                        break;
+                    }
+                }
+
+                const distance = 60 + Math.random() * 80; // 距离玩家60-140像素
+                let strikeX = state.player.x + dir.x * distance;
+                let strikeY = state.player.y + dir.y * distance;
+
+                // 确保X在赛道内
+                const clampedX = clamp(strikeX, trackLeft + 40, trackRight - 40);
+
+                // 确保Y在屏幕范围内（包括最前面）
+                const minY = state.player.h / 2;
+                const maxY = baseH - state.player.h / 2;
+                strikeY = clamp(strikeY, minY, maxY);
+
+                state.thunderStrikes.push({
+                    x: clampedX,
+                    y: strikeY, // 目标Y位置（地面位置）
+                    startY: 0,
+                    radius: 50, // 红色圆圈半径
+                    prepareTime: 0, // 无准备时间，但会显示红圈
+                    prepareTimer: 0,
+                    hasStruck: false,
+                    hasHitPlayer: false, // 标记是否已击中玩家
+                    damage: 20, // 伤害20血
+                    fallSpeed: 8, // 掉落速度
+                    currentY: 0, // 从天上开始掉落
+                    hasStartedFalling: true // 立刻开始掉落
+                });
+            }
+
+            function spawnMultipleThunderStrikes(count) {
+                const trackLeft = state.trackX - state.trackWidth / 2;
+                const trackRight = state.trackX + state.trackWidth / 2;
+                const minY = state.player.h / 2;
+                const maxY = baseH - state.player.h / 2;
+
+                // 定义所有可能的位置（前后左右，以及组合位置）
+                const allPositions = [
+                    { x: 0, y: -1, name: '前' },   // 前面
+                    { x: 0, y: 1, name: '后' },    // 后面
+                    { x: -1, y: 0, name: '左' },   // 左边
+                    { x: 1, y: 0, name: '右' },    // 右边
+                    { x: -0.7, y: -0.7, name: '前左' }, // 前左
+                    { x: 0.7, y: -0.7, name: '前右' },  // 前右
+                    { x: -0.7, y: 0.7, name: '后左' },  // 后左
+                    { x: 0.7, y: 0.7, name: '后右' }    // 后右
+                ];
+
+                // 根据数量选择位置策略，确保分散在不同方向，不挨在一起
+                const minDistance = 120; // 炸弹之间的最小距离（不挨在一起）
+                let selectedPositions = [];
+                const actualCount = Math.min(count, 4);
+
+                // 定义主要方向
+                const mainDirections = [
+                    { x: 0, y: -1, name: '上' },   // 上面
+                    { x: 0, y: 1, name: '下' },    // 下面
+                    { x: -1, y: 0, name: '左' },   // 左边
+                    { x: 1, y: 0, name: '右' },    // 右边
+                    { x: 0, y: 0, name: '中' }     // 中间（玩家位置附近）
+                ];
+
+                if (actualCount === 1) {
+                    // 1个炸弹：随机选择一个方向
+                    const dir = mainDirections[Math.floor(Math.random() * 4)]; // 只选上下左右
+                    selectedPositions.push(dir);
+                } else if (actualCount === 2) {
+                    // 2个炸弹：选择两个不同的主要方向（确保不挨在一起）
+                    const shuffled = [...mainDirections.slice(0, 4)].sort(() => Math.random() - 0.5);
+                    selectedPositions = shuffled.slice(0, 2);
+                } else if (actualCount === 3) {
+                    // 3个炸弹：确保覆盖不同区域（比如：上、左、右 或 下、左、右）
+                    const directions = [...mainDirections.slice(0, 4)].sort(() => Math.random() - 0.5);
+                    selectedPositions = directions.slice(0, 3);
+                } else if (actualCount === 4) {
+                    // 4个炸弹：中间、左边、右边、上面（确保哪里都走不开）
+                    selectedPositions = [
+                        { x: 0, y: 0, name: '中' },   // 中间
+                        { x: -1, y: 0, name: '左' },  // 左边
+                        { x: 1, y: 0, name: '右' },   // 右边
+                        { x: 0, y: -1, name: '上' }   // 上面
+                    ];
+                }
+
+                // 生成炸弹，确保不挨在一起
+                const generatedBombs = [];
+                for (let pos of selectedPositions) {
+                    let attempts = 0;
+                    let validPosition = false;
+                    let strikeX, strikeY;
+
+                    // 尝试找到一个不与其他炸弹太近的位置
+                    while (!validPosition && attempts < 10) {
+                        const distance = 70 + Math.random() * 90; // 距离玩家70-160像素
+                        strikeX = state.player.x + pos.x * distance;
+                        strikeY = state.player.y + pos.y * distance;
+
+                        // 确保X在赛道内
+                        strikeX = clamp(strikeX, trackLeft + 40, trackRight - 40);
+
+                        // 确保Y在屏幕范围内
+                        strikeY = clamp(strikeY, minY, maxY);
+
+                        // 检查是否与已生成的炸弹太近
+                        validPosition = true;
+                        for (let bomb of generatedBombs) {
+                            const dx = strikeX - bomb.x;
+                            const dy = strikeY - bomb.y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            if (dist < minDistance) {
+                                validPosition = false;
+                                break;
+                            }
+                        }
+
+                        attempts++;
+                    }
+
+                    // 如果找到了有效位置，生成炸弹
+                    if (validPosition) {
+                        generatedBombs.push({ x: strikeX, y: strikeY });
+                        state.thunderStrikes.push({
+                            x: strikeX,
+                            y: strikeY, // 目标Y位置（地面位置）
+                            startY: 0,
+                            radius: 50, // 红色圆圈半径
+                            prepareTime: 0, // 无准备时间，但会显示红圈
+                            prepareTimer: 0,
+                            hasStruck: false,
+                            hasHitPlayer: false, // 标记是否已击中玩家
+                            damage: 20, // 伤害20血
+                            fallSpeed: 8, // 掉落速度
+                            currentY: 0, // 从天上开始掉落
+                            hasStartedFalling: true // 立刻开始掉落
+                        });
+                    }
+                }
+            }
+
+            // Drawing functions
+            function drawBackground() {
+                // 背景
+                const grad = ctx.createLinearGradient(0, 0, 0, baseH);
+                grad.addColorStop(0, '#87CEEB');
+                grad.addColorStop(0.5, '#98D8C8');
+                grad.addColorStop(1, '#6B8E23');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, baseW, baseH);
+
+                // 赛道
+                const trackLeft = state.trackX - state.trackWidth / 2;
+                const trackRight = state.trackX + state.trackWidth / 2;
+                ctx.fillStyle = '#555555';
+                ctx.fillRect(trackLeft, 0, state.trackWidth, baseH);
+
+                // 赛道边缘线
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(trackLeft, 0);
+                ctx.lineTo(trackLeft, baseH);
+                ctx.moveTo(trackRight, 0);
+                ctx.lineTo(trackRight, baseH);
+                ctx.stroke();
+
+                // 围栏
+                ctx.strokeStyle = '#8B4513';
+                ctx.lineWidth = 4;
+                const fenceSpacing = 30;
+                for (let y = 0; y < baseH; y += fenceSpacing) {
+                    // 左侧围栏
+                    ctx.beginPath();
+                    ctx.moveTo(trackLeft - 20, y);
+                    ctx.lineTo(trackLeft - 20, y + 15);
+                    ctx.stroke();
+                    // 右侧围栏
+                    ctx.beginPath();
+                    ctx.moveTo(trackRight + 20, y);
+                    ctx.lineTo(trackRight + 20, y + 15);
+                    ctx.stroke();
+                }
+
+                // 赛道中心线
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([20, 20]);
+                ctx.lineDashOffset = state.tick * 2;
+                ctx.beginPath();
+                ctx.moveTo(state.trackX, 0);
+                ctx.lineTo(state.trackX, baseH);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            function drawPlayer(p) {
+                ctx.save();
+                ctx.translate(p.x, p.y);
+
+                // 护盾效果
+                if (state.hasShield) {
+                    ctx.strokeStyle = '#00ff00';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, p.w / 2 + 5, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                // 更新奔跑动画帧
+                if (state.playing && !state.paused) {
+                    p.runFrame += 0.3;
+                    if (p.runFrame >= 8) p.runFrame = 0;
+                }
+
+                // 身体
+                ctx.fillStyle = '#4a90e2';
+                ctx.fillRect(-p.w / 2, -p.h / 2 + 5, p.w, p.h - 10);
+
+                // 头部
+                ctx.fillStyle = '#ffdbac';
+                ctx.beginPath();
+                ctx.arc(0, -p.h / 2 - 10, 12, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 眼睛
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.arc(-4, -p.h / 2 - 10, 2, 0, Math.PI * 2);
+                ctx.arc(4, -p.h / 2 - 10, 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 嘴巴
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(0, -p.h / 2 - 6, 3, 0, Math.PI);
+                ctx.stroke();
+
+                // 手臂（跑步动画 - 更明显的摆动）
+                const frame = Math.floor(p.runFrame);
+                const armPhase = (frame % 4) / 4 * Math.PI * 2;
+                const leftArmAngle = Math.sin(armPhase) * 0.6;
+                const rightArmAngle = Math.sin(armPhase + Math.PI) * 0.6;
+
+                ctx.strokeStyle = '#4a90e2';
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                ctx.moveTo(-p.w / 2, -p.h / 2 + 15);
+                ctx.lineTo(-p.w / 2 - 12, -p.h / 2 + 15 + Math.sin(leftArmAngle) * 12);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(p.w / 2, -p.h / 2 + 15);
+                ctx.lineTo(p.w / 2 + 12, -p.h / 2 + 15 + Math.sin(rightArmAngle) * 12);
+                ctx.stroke();
+
+                // 腿部（跑步动画 - 更明显的交替）
+                const leftLegAngle = Math.sin(armPhase) * 0.4;
+                const rightLegAngle = Math.sin(armPhase + Math.PI) * 0.4;
+
+                ctx.lineWidth = 6;
+                ctx.beginPath();
+                ctx.moveTo(-p.w / 4, p.h / 2 - 5);
+                ctx.lineTo(-p.w / 4 - 3, p.h / 2 + 18 + Math.sin(leftLegAngle) * 8);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(p.w / 4, p.h / 2 - 5);
+                ctx.lineTo(p.w / 4 + 3, p.h / 2 + 18 + Math.sin(rightLegAngle) * 8);
+                ctx.stroke();
+
+                // 脚
+                ctx.fillStyle = '#333';
+                ctx.beginPath();
+                ctx.ellipse(-p.w / 4 - 3, p.h / 2 + 18 + Math.sin(leftLegAngle) * 8, 6, 3, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(p.w / 4 + 3, p.h / 2 + 18 + Math.sin(rightLegAngle) * 8, 6, 3, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+
+            function drawObstacle(o) {
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(o.x - o.w / 2, o.y - o.h / 2, o.w, o.h);
+                ctx.strokeStyle = '#654321';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(o.x - o.w / 2, o.y - o.h / 2, o.w, o.h);
+            }
+
+            function drawCoin(c) {
+                ctx.save();
+                ctx.translate(c.x, c.y);
+                c.rotation += c.rotationSpeed;
+
+                // 发光效果
+                const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, c.radius * 1.5);
+                glow.addColorStop(0, 'rgba(255, 215, 0, 0.6)');
+                glow.addColorStop(0.5, 'rgba(255, 215, 0, 0.2)');
+                glow.addColorStop(1, 'rgba(255, 215, 0, 0)');
+                ctx.fillStyle = glow;
+                ctx.beginPath();
+                ctx.arc(0, 0, c.radius * 1.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 金币主体
+                ctx.rotate(c.rotation);
+                ctx.fillStyle = '#ffd700';
+                ctx.strokeStyle = '#ffaa00';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(0, 0, c.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // 金币符号
+                ctx.fillStyle = '#ffaa00';
+                ctx.font = `bold ${c.radius * 0.8}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('$', 0, 0);
+
+                ctx.restore();
+            }
+
+            function drawPowerup(p) {
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                p.rotation += 0.1;
+
+                // 发光效果
+                const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, p.w);
+                if (p.type === 'shield') {
+                    glow.addColorStop(0, 'rgba(0, 255, 0, 0.6)');
+                    glow.addColorStop(1, 'rgba(0, 255, 0, 0)');
+                } else {
+                    glow.addColorStop(0, 'rgba(255, 107, 107, 0.6)');
+                    glow.addColorStop(1, 'rgba(255, 107, 107, 0)');
+                }
+                ctx.fillStyle = glow;
+                ctx.beginPath();
+                ctx.arc(0, 0, p.w, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.rotate(p.rotation);
+                if (p.type === 'shield') {
+                    ctx.fillStyle = '#00ff00';
+                    ctx.strokeStyle = '#00aa00';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, p.w / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold 20px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('🛡️', 0, 0);
+                } else {
+                    ctx.fillStyle = '#ff6b6b';
+                    ctx.strokeStyle = '#cc0000';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, p.w / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold 20px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('⚡', 0, 0);
+                }
+
+                ctx.restore();
+            }
+
+            function drawThunderStrike(ts) {
+                ctx.save();
+                const targetY = ts.y; // 使用炸弹的目标Y位置（地面位置）
+
+                // 在地面显示红色圆圈标记（警告玩家）
+                if (!ts.hasStruck) {
+                    // 计算掉落进度（用于红圈闪烁效果）
+                    const fallProgress = Math.min(1, ts.currentY / targetY);
+                    const alpha = 0.4 + fallProgress * 0.4;
+                    const radius = ts.radius * (0.9 + fallProgress * 0.1);
+
+                    // 外圈（闪烁效果）
+                    ctx.strokeStyle = `rgba(255, 0, 0, ${alpha})`;
+                    ctx.lineWidth = 4 + fallProgress * 2;
+                    ctx.beginPath();
+                    ctx.arc(ts.x, targetY, radius, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    // 内圈填充
+                    ctx.fillStyle = `rgba(255, 0, 0, ${alpha * 0.3})`;
+                    ctx.beginPath();
+                    ctx.arc(ts.x, targetY, radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // 显示炸弹和轨迹（从天上掉下来）
+                if (!ts.hasStruck) {
+                    // 炸弹掉落轨迹
+                    if (ts.currentY < targetY && ts.currentY >= 0) {
+                        ctx.strokeStyle = 'rgba(255, 200, 0, 0.6)';
+                        ctx.lineWidth = 3;
+                        ctx.setLineDash([5, 5]);
+                        ctx.beginPath();
+                        ctx.moveTo(ts.x, 0);
+                        ctx.lineTo(ts.x, ts.currentY);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                    }
+
+                    // 绘制炸弹（从天上掉下来）
+                    if (ts.currentY < targetY && ts.currentY >= 0) {
+                        ctx.save();
+                        ctx.translate(ts.x, ts.currentY);
+
+                        // 炸弹主体
+                        ctx.fillStyle = '#333';
+                        ctx.beginPath();
+                        ctx.arc(0, 0, 12, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // 炸弹引线
+                        ctx.strokeStyle = '#ff6600';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(0, -12);
+                        ctx.lineTo(0, -20);
+                        ctx.stroke();
+
+                        // 炸弹火花
+                        const time = performance.now() / 100;
+                        const sparkAngle = (time * 0.3) % (Math.PI * 2);
+                        ctx.strokeStyle = '#ffaa00';
+                        ctx.lineWidth = 2;
+                        for (let i = 0; i < 4; i++) {
+                            const angle = sparkAngle + (i * Math.PI / 2);
+                            ctx.beginPath();
+                            ctx.moveTo(0, -20);
+                            ctx.lineTo(Math.cos(angle) * 8, -20 + Math.sin(angle) * 8);
+                            ctx.stroke();
+                        }
+
+                        ctx.restore();
+                    }
+                }
+
+                // 爆炸效果（如果已经击中）
+                if (ts.hasStruck) {
+                    // 爆炸圆圈
+                    const explosionTime = ts.prepareTimer;
+                    const explosionSize = 40 + explosionTime * 20;
+                    const explosionAlpha = Math.max(0, 1 - explosionTime * 2);
+
+                    // 外层爆炸
+                    ctx.fillStyle = `rgba(255, 200, 0, ${explosionAlpha})`;
+                    ctx.beginPath();
+                    ctx.arc(ts.x, targetY, explosionSize, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // 内层爆炸
+                    ctx.fillStyle = `rgba(255, 100, 0, ${explosionAlpha})`;
+                    ctx.beginPath();
+                    ctx.arc(ts.x, targetY, explosionSize * 0.6, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // 中心爆炸
+                    ctx.fillStyle = `rgba(255, 255, 255, ${explosionAlpha})`;
+                    ctx.beginPath();
+                    ctx.arc(ts.x, targetY, explosionSize * 0.3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+
+            // Update loop
+            let last = performance.now();
+            function loop(now) {
+                requestAnimationFrame(loop);
+                const dt = Math.min(33, now - last) / 16.6667;
+                last = now;
+
+                // UI updates
+                document.getElementById('level').textContent = state.currentLevel;
+                document.getElementById('time').textContent = Math.floor(state.levelTime);
+                document.getElementById('coins').textContent = state.coins;
+                document.getElementById('hp').textContent = Math.max(0, Math.floor(state.hp));
+                document.getElementById('maxHp').textContent = state.maxHp;
+                // 血量颜色变化
+                const hpEl = document.getElementById('hp');
+                if (state.hp <= 30) {
+                    hpEl.style.color = '#ff6b6b';
+                } else if (state.hp <= 50) {
+                    hpEl.style.color = '#ffd700';
+                } else {
+                    hpEl.style.color = '#e6f0ff';
+                }
+
+                // 护盾和加速指示器
+                const shieldIndicator = document.getElementById('shieldIndicator');
+                const speedIndicator = document.getElementById('speedIndicator');
+                if (state.hasShield) {
+                    shieldIndicator.style.display = 'flex';
+                    shieldIndicator.classList.add('shield-active');
+                } else {
+                    shieldIndicator.style.display = 'none';
+                    shieldIndicator.classList.remove('shield-active');
+                }
+                if (state.speedBoost) {
+                    speedIndicator.style.display = 'flex';
+                    speedIndicator.classList.add('speed-active');
+                } else {
+                    speedIndicator.style.display = 'none';
+                    speedIndicator.classList.remove('speed-active');
+                }
+
+                drawBackground();
+
+                if (!state.playing || state.paused) {
+                    drawPlayer(state.player);
+                    state.obstacles.forEach(drawObstacle);
+                    state.coinObjects.forEach(drawCoin);
+                    state.powerups.forEach(drawPowerup);
+                    state.enemies.forEach(drawEnemy);
+                    state.bullets.forEach(drawBullet);
+                    state.thunderStrikes.forEach(drawThunderStrike);
+                    return;
+                }
+
+                state.tick++;
+                state.gameTime += dt / 60; // 转换为秒
+                state.levelTime += dt / 60; // 关卡时间
+
+                // 金币系统：每秒0.1金币，每10秒显示1个
+                state.coinCounter += 0.1 * (dt / 60);
+                if (state.coinCounter >= 1) {
+                    state.coins += Math.floor(state.coinCounter);
+                    state.coinCounter = state.coinCounter % 1;
+                }
+
+
+                // 道具持续时间
+                if (state.hasShield) {
+                    state.shieldTime -= dt / 60;
+                    if (state.shieldTime <= 0) {
+                        state.hasShield = false;
+                    }
+                }
+                if (state.speedBoost) {
+                    state.speedBoostTime -= dt / 60;
+                    if (state.speedBoostTime <= 0) {
+                        state.speedBoost = false;
+                        state.speed = state.baseSpeed;
+                    }
+                }
+
+                // 生成障碍物（根据关卡难度，大量生成）
+                const difficulty = getLevelDifficulty(state.currentLevel);
+                if (state.tick % difficulty.obstacleSpawnRate === 0) {
+                    spawnObstacle();
+                }
+                if (state.tick % (difficulty.obstacleSpawnRate / 2) === 0 && Math.random() < difficulty.obstacleSpawnChance) {
+                    spawnObstacle();
+                }
+                // 额外生成障碍物（所有关卡都有）
+                if (state.tick % (difficulty.obstacleSpawnRate / 3) === 0 && Math.random() < difficulty.obstacleSpawnChance * 0.6) {
+                    spawnObstacle();
+                }
+                // 更多额外生成（增加难度）
+                if (state.tick % (difficulty.obstacleSpawnRate / 4) === 0 && Math.random() < difficulty.obstacleSpawnChance * 0.4) {
+                    spawnObstacle();
+                }
+
+                // 根据升级后的间隔掉落金币（在玩家附近的赛道内）
+                if (state.gameTime - state.lastCoinDropTime >= state.coinSpawnInterval) {
+                    const trackLeft = state.trackX - state.trackWidth / 2;
+                    const trackRight = state.trackX + state.trackWidth / 2;
+                    const dropX = state.player.x + (Math.random() - 0.5) * 150;
+                    const clampedX = clamp(dropX, trackLeft + 30, trackRight - 30);
+                    const sizes = ['small', 'medium', 'large'];
+                    const size = sizes[Math.floor(Math.random() * sizes.length)];
+                    let radius;
+                    if (size === 'small') {
+                        radius = 12;
+                    } else if (size === 'medium') {
+                        radius = 18;
+                    } else {
+                        radius = 24;
+                    }
+                    state.coinObjects.push({
+                        x: clampedX,
+                        y: -radius * 2,
+                        radius: radius,
+                        size: size,
+                        rotation: Math.random() * Math.PI * 2,
+                        rotationSpeed: 0.1 + Math.random() * 0.1,
+                        value: size === 'small' ? 1 : size === 'medium' ? 2 : 3,
+                        vy: state.speed * 1.2
+                    });
+                    state.lastCoinDropTime = state.gameTime;
+                }
+
+                // 生成道具
+                if (state.tick % 300 === 0) {
+                    spawnPowerup();
+                }
+
+                // 生成雷击（每关都会有，每1秒生成2-4个，增加难度）
+                if (state.tick % 60 === 0) {
+                    // 快速随机转盘决定生成2-4个炸弹（隐藏进行，速度很快）
+                    // 使用多个随机数模拟转盘，确保随机性
+                    const random1 = Math.random();
+                    const random2 = Math.random();
+                    const random3 = Math.random();
+                    // 综合多个随机数，生成2-4之间的随机数（提高难度）
+                    // 概率分布：2个(20%), 3个(40%), 4个(40%) - 增加难度
+                    const totalRandom = (random1 + random2 + random3) / 3;
+                    let bombCount;
+                    if (totalRandom < 0.20) {
+                        bombCount = 2; // 20%概率
+                    } else if (totalRandom < 0.60) {
+                        bombCount = 3; // 40%概率
+                    } else {
+                        bombCount = 4; // 40%概率
+                    }
+
+                    // 生成指定数量的炸弹，确保位置不重复
+                    spawnMultipleThunderStrikes(bombCount);
+                }
+
+                // 玩家物理
+                const acc = 0.5;
+                const fric = 0.85;
+                const trackLeft = state.trackX - state.trackWidth / 2;
+                const trackRight = state.trackX + state.trackWidth / 2;
+                // 全屏移动范围
+                const minY = state.player.h / 2; // 玩家可以移动的最小Y位置（屏幕顶部）
+                const maxY = baseH - state.player.h / 2; // 玩家可以移动的最大Y位置（屏幕底部）
+
+                // 左右移动
+                if (keys.left) state.player.vx -= acc;
+                if (keys.right) state.player.vx += acc;
+                state.player.vx = clamp(state.player.vx, -state.player.maxV, state.player.maxV);
+                state.player.x += state.player.vx * dt;
+                state.player.vx *= fric;
+                // 限制在赛道内
+                state.player.x = clamp(state.player.x, trackLeft + state.player.w / 2, trackRight - state.player.w / 2);
+
+                // 前后移动（全屏）
+                if (keys.up) state.player.vy -= acc;
+                if (keys.down) state.player.vy += acc;
+                state.player.vy = clamp(state.player.vy, -state.player.maxVy, state.player.maxVy);
+                state.player.y += state.player.vy * dt;
+                state.player.vy *= fric;
+                // 限制在全屏范围内
+                state.player.y = clamp(state.player.y, minY, maxY);
+
+                // 踏步音效（移动时播放）
+                if (state.playing && !state.paused && (keys.left || keys.right || keys.up || keys.down || Math.abs(state.player.vx) > 0.1 || Math.abs(state.player.vy) > 0.1)) {
+                    const frame = Math.floor(state.player.runFrame);
+                    if (frame !== Math.floor(state.player.lastStepTime)) {
+                        if (frame % 4 === 0 || frame % 4 === 2) {
+                            try {
+                                playStepSound();
+                            } catch (e) {
+                                // 忽略音效错误
+                            }
+                        }
+                        state.player.lastStepTime = frame;
+                    }
+                }
+
+                // 更新障碍物
+                for (let i = state.obstacles.length - 1; i >= 0; i--) {
+                    const o = state.obstacles[i];
+                    o.y += o.vy * dt;
+                    drawObstacle(o);
+
+                    // 碰撞检测
+                    if (aabb(state.player, o)) {
+                        if (state.hasShield) {
+                            // 护盾抵挡一次伤害
+                            state.hasShield = false;
+                            state.shieldTime = 0;
+                            state.obstacles.splice(i, 1);
+                            continue;
+                        } else {
+                            // 扣血（使用damagePerHit）
+                            state.hp -= state.damagePerHit;
+                            state.obstacles.splice(i, 1);
+                            // 如果血量<=0，游戏结束
+                            if (state.hp <= 0) {
+                                endGame();
+                                return;
+                            }
+                            continue;
+                        }
+                    }
+
+                    if (o.y > baseH + 100) {
+                        state.obstacles.splice(i, 1);
+                    }
+                }
+
+                // 更新金币
+                for (let i = state.coinObjects.length - 1; i >= 0; i--) {
+                    const c = state.coinObjects[i];
+                    c.y += c.vy * dt;
+                    drawCoin(c);
+
+                    // 收集检测
+                    const dx = state.player.x - c.x;
+                    const dy = state.player.y - c.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < state.player.w / 2 + c.radius) {
+                        // 收集金币立即增加
+                        state.coins += c.value;
+                        state.coinObjects.splice(i, 1);
+                        continue;
+                    }
+
+                    if (c.y > baseH + 100) {
+                        state.coinObjects.splice(i, 1);
+                    }
+                }
+
+                // 更新道具
+                for (let i = state.powerups.length - 1; i >= 0; i--) {
+                    const p = state.powerups[i];
+                    p.y += p.vy * dt;
+                    drawPowerup(p);
+
+                    // 收集检测
+                    if (aabb(state.player, p)) {
+                        // 如果已经有激活的道具，取消它
+                        if (state.activePowerup) {
+                            if (state.activePowerup.type === 'shield') {
+                                state.hasShield = false;
+                                state.shieldTime = 0;
+                            } else if (state.activePowerup.type === 'speed') {
+                                state.speedBoost = false;
+                                state.speedBoostTime = 0;
+                                state.speed = state.baseSpeed;
+                            }
+                        }
+
+                        // 激活新道具
+                        if (p.type === 'shield') {
+                            state.hasShield = true;
+                            state.shieldTime = 10; // 10秒护盾
+                            state.activePowerup = { type: 'shield', endTime: state.gameTime + 10 };
+                        } else if (p.type === 'speed') {
+                            state.speedBoost = true;
+                            state.speedBoostTime = 8; // 8秒加速
+                            state.speed = state.baseSpeed * 1.5;
+                            state.activePowerup = { type: 'speed', endTime: state.gameTime + 8 };
+                        }
+                        state.powerups.splice(i, 1);
+                        continue;
+                    }
+
+                    if (p.y > baseH + 100) {
+                        state.powerups.splice(i, 1);
+                    }
+                }
+
+                // 检查道具是否过期
+                if (state.activePowerup && state.gameTime >= state.activePowerup.endTime) {
+                    if (state.activePowerup.type === 'shield') {
+                        state.hasShield = false;
+                        state.shieldTime = 0;
+                    } else if (state.activePowerup.type === 'speed') {
+                        state.speedBoost = false;
+                        state.speedBoostTime = 0;
+                        state.speed = state.baseSpeed;
+                    }
+                    state.activePowerup = null;
+                }
+
+                // 更新雷击（炸弹）
+                for (let i = state.thunderStrikes.length - 1; i >= 0; i--) {
+                    const ts = state.thunderStrikes[i];
+                    const targetY = ts.y; // 使用炸弹的目标Y位置
+
+                    // 炸弹掉落动画（无准备时间，立刻掉落）
+                    if (ts.currentY < targetY) {
+                        ts.currentY += ts.fallSpeed * dt;
+                        if (ts.currentY > targetY) {
+                            ts.currentY = targetY;
+                        }
+                    }
+
+                    drawThunderStrike(ts);
+
+                    // 炸弹掉落到目标位置后，检查玩家是否在红色区域
+                    if (ts.currentY >= targetY && !ts.hasStruck) {
+                        ts.hasStruck = true;
+                        ts.prepareTimer = 0; // 重置计时器用于爆炸动画
+                    }
+
+                    // 如果炸弹已经爆炸，持续检测玩家是否在爆炸范围内（确保持续检测）
+                    if (ts.hasStruck && ts.prepareTimer < 0.1) {
+                        // 计算玩家和炸弹爆炸点的距离
+                        const dx = state.player.x - ts.x;
+                        const dy = state.player.y - targetY;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+
+                        // 如果玩家在爆炸范围内，受到伤害（只检测一次）
+                        if (dist < ts.radius && !ts.hasHitPlayer) {
+                            ts.hasHitPlayer = true; // 标记已击中玩家，避免重复伤害
+
+                            // 只有击中玩家时才播放音效
+                            playExplosionSound();
+
+                            if (state.hasShield) {
+                                // 护盾可以抵挡一次雷击
+                                state.hasShield = false;
+                                state.shieldTime = 0;
+                                if (state.activePowerup && state.activePowerup.type === 'shield') {
+                                    state.activePowerup = null;
+                                }
+                            } else {
+                                // 受到20点伤害
+                                state.hp -= 20; // 炸弹伤害20血
+                                if (state.hp <= 0) {
+                                    endGame();
+                                    return;
+                                }
+                            }
+                        }
+                    }
+
+                    // 爆炸效果持续0.3秒后移除
+                    if (ts.hasStruck) {
+                        ts.prepareTimer += dt / 60;
+                        if (ts.prepareTimer >= 0.3) {
+                            state.thunderStrikes.splice(i, 1);
+                        }
+                    }
+                }
+
+                // 关卡完成检测
+                if (state.levelTime >= state.levelTargetTime) {
+                    completeLevel();
+                    return;
+                }
+
+                // 绘制玩家
+                drawPlayer(state.player);
+
+                // 绘制敌人、子弹和雷击（雷击在更新循环中已经绘制，这里不需要重复）
+            }
+            requestAnimationFrame(loop);
+
+            showStart();
+        })();
+    </script>
+</body>
+
+</htm游戏怎么没打开呀？怎么打开游戏啊？打开游戏。爸爸爸爸爸爸怎么打开游戏？

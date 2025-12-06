@@ -1,0 +1,3323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>奶奶学英语 - Grandma Learns English</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            animation: fadeIn 1s ease-in;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .parent-mode-btn {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .parent-mode-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            color: #333;
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #667eea;
+            text-align: center;
+        }
+
+        .password-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1rem;
+            margin-bottom: 15px;
+        }
+
+        .password-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .difficulty-option {
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .difficulty-option:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .difficulty-option.selected {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.2);
+        }
+
+        .difficulty-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+            color: #667eea;
+        }
+
+        .difficulty-desc {
+            font-size: 0.9rem;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .difficulty-option.hard .difficulty-title {
+            color: #d32f2f;
+        }
+
+        .difficulty-option.medium .difficulty-title {
+            color: #f57c00;
+        }
+
+        .difficulty-option.easy .difficulty-title {
+            color: #388e3c;
+        }
+
+        .level-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .level-card {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .level-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: left 0.5s;
+        }
+
+        .level-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .level-card:hover::before {
+            left: 100%;
+        }
+
+        .level-card.completed {
+            background: rgba(76, 175, 80, 0.3);
+            border-color: #4CAF50;
+        }
+
+        .level-card.locked {
+            background: rgba(0, 0, 0, 0.2);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .level-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .level-content {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+
+        .level-card.locked .level-content::after {
+            content: ' 🔒';
+        }
+
+        .progress-bar {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            height: 20px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #81C784);
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 10px;
+        }
+
+        .game-screen {
+            display: none;
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 20px;
+            animation: slideUp 0.5s ease-out;
+            min-height: 600px;
+        }
+
+        .game-screen.show {
+            display: block;
+        }
+
+        .story-section {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+        }
+
+        .story-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+
+        .story-text {
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        .phase-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .phase-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .phase-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .phase-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .phase-btn:not(.active) {
+            background: rgba(255, 255, 255, 0.8);
+            color: #666;
+        }
+
+        .play-area {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            min-height: 300px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Cat level styles */
+        .cat-prison {
+            background: linear-gradient(135deg, #8B4513, #654321);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px auto;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .prison-bars {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(90deg,
+                    transparent,
+                    transparent 30px,
+                    rgba(255, 255, 255, 0.3) 30px,
+                    rgba(255, 255, 255, 0.3) 35px);
+            pointer-events: none;
+        }
+
+        .cat {
+            font-size: 4rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: catMove 2s infinite;
+        }
+
+        .cat:hover {
+            transform: scale(1.2);
+        }
+
+        @keyframes catMove {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .toy {
+            position: absolute;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: toyFloat 3s infinite;
+        }
+
+        .toy:hover {
+            transform: scale(1.5);
+        }
+
+        @keyframes toyFloat {
+
+            0%,
+            100% {
+                transform: translateY(0) rotate(0deg);
+            }
+
+            50% {
+                transform: translateY(-20px) rotate(5deg);
+            }
+        }
+
+        /* Dog level styles */
+        .beach {
+            background: linear-gradient(135deg, #87CEEB, #98FB98);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px auto;
+            max-width: 500px;
+            position: relative;
+        }
+
+        .sand {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background: #F4A460;
+            border-radius: 0 0 10px 10px;
+        }
+
+        .shell {
+            position: absolute;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: shellShake 2s infinite;
+        }
+
+        .shell:hover {
+            transform: scale(1.3);
+        }
+
+        @keyframes shellShake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-5px);
+            }
+
+            75% {
+                transform: translateX(5px);
+            }
+        }
+
+        .speech-recognition {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .mic-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .mic-btn.recording {
+            background: linear-gradient(135deg, #4CAF50, #81C784);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .recognition-result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .correct {
+            background: #E8F5E8;
+            color: #2E7D32;
+            border: 2px solid #4CAF50;
+        }
+
+        .incorrect {
+            background: #FFEBEE;
+            color: #C62828;
+            border: 2px solid #F44336;
+        }
+
+        .word-display {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .word {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+
+        .pronunciation {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #333;
+            border: 2px solid #dee2e6;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4CAF50, #81C784);
+            color: white;
+        }
+
+        .celebration {
+            text-align: center;
+            color: #4CAF50;
+            font-size: 1.5rem;
+            font-weight: bold;
+            animation: bounce 1s ease infinite alternate;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes bounce {
+            from {
+                transform: translateY(0);
+            }
+
+            to {
+                transform: translateY(-10px);
+            }
+        }
+
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 2s infinite;
+        }
+
+        @keyframes twinkle {
+
+            0%,
+            100% {
+                opacity: 0.3;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.2);
+            }
+        }
+
+        .touch-item:hover {
+            transform: scale(1.1);
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+        }
+
+        .letter-tile:hover {
+            background: #667eea;
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .choice-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        @media (max-width: 600px) {
+            .level-grid {
+                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+                gap: 15px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .word {
+                font-size: 2.5rem;
+            }
+
+            .phase-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .touch-item {
+                font-size: 3rem !important;
+                padding: 15px !important;
+            }
+
+            .letter-tile {
+                width: 40px !important;
+                height: 40px !important;
+                font-size: 1.2rem !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="stars" id="stars"></div>
+
+    <div class="container">
+        <header>
+            <button class="parent-mode-btn" id="parentModeBtn">🔒 家长设置</button>
+            <h1>🌸 奶奶学英语 🌸</h1>
+            <p class="subtitle">Grandma Learns English</p>
+        </header>
+
+        <!-- 首次设置 - 输入儿子名字 -->
+        <div class="modal" id="initialSetupModal">
+            <div class="modal-content">
+                <div class="modal-title">👨‍👩‍👦 首次设置 - 请输入儿子名字</div>
+                <p style="color: #666; margin-bottom: 15px; text-align: center;">
+                    这是首次使用，需要设置身份验证信息
+                </p>
+                <input type="text" id="sonNameInput" class="password-input" placeholder="请输入儿子的名字（用于身份验证）" autofocus>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" id="confirmSonNameBtn" style="flex: 1;">下一步</button>
+                    <button class="btn btn-secondary" id="cancelInitialBtn" style="flex: 1;">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 设置密码模态框 -->
+        <div class="modal" id="setPasswordModal">
+            <div class="modal-content">
+                <div class="modal-title">🔐 设置家长密码</div>
+                <p style="color: #666; margin-bottom: 15px; text-align: center;">
+                    请设置一个密码用于保护家长设置
+                </p>
+                <input type="password" id="newPasswordInput" class="password-input" placeholder="请输入新密码" autofocus>
+                <input type="password" id="confirmPasswordInput" class="password-input" placeholder="请再次输入密码确认"
+                    style="margin-top: 10px;">
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" id="confirmSetPasswordBtn" style="flex: 1;">确认设置</button>
+                    <button class="btn btn-secondary" id="cancelSetPasswordBtn" style="flex: 1;">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 密码输入模态框 -->
+        <div class="modal" id="passwordModal">
+            <div class="modal-content">
+                <div class="modal-title">🔒 家长模式 - 请输入密码</div>
+                <input type="password" id="passwordInput" class="password-input" placeholder="请输入家长密码" autofocus>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" id="confirmPasswordBtn" style="flex: 1;">确认</button>
+                    <button class="btn btn-secondary" id="cancelPasswordBtn" style="flex: 1;">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 修改密码模态框 -->
+        <div class="modal" id="changePasswordModal">
+            <div class="modal-content">
+                <div class="modal-title">🔑 修改密码</div>
+                <p style="color: #666; margin-bottom: 20px; text-align: center;">
+                    请输入原密码和新密码
+                </p>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; color: #333;">原密码：</label>
+                    <input type="password" id="oldPasswordInput" class="password-input" placeholder="请输入原密码" autofocus>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; color: #333;">新密码：</label>
+                    <input type="password" id="newPasswordChangeInput" class="password-input" placeholder="请输入新密码">
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; color: #333;">确认新密码：</label>
+                    <input type="password" id="confirmPasswordChangeInput" class="password-input"
+                        placeholder="请再次输入新密码">
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" id="confirmChangePasswordBtn" style="flex: 1;">确认修改</button>
+                    <button class="btn btn-secondary" id="cancelChangePasswordBtn" style="flex: 1;">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 难度设置模态框 -->
+        <div class="modal" id="difficultyModal">
+            <div class="modal-content">
+                <div class="modal-title">📚 设置发音难度</div>
+                <p style="color: #666; margin-bottom: 20px; text-align: center;">
+                    请选择发音检测的难度等级
+                </p>
+
+                <div class="difficulty-option hard" id="difficultyHard">
+                    <div class="difficulty-title">🔴 最难 - 标准英语发音</div>
+                    <div class="difficulty-desc">
+                        必须使用标准的英语发音，不能有任何中文口音。发音必须清晰、标准，外国人能完全听懂。
+                    </div>
+                </div>
+
+                <div class="difficulty-option medium" id="difficultyMedium">
+                    <div class="difficulty-title">🟠 中等 - 允许混合发音</div>
+                    <div class="difficulty-desc">
+                        可以不是纯英文发音，但不能完全是中文。允许有一些中文口音，但必须能识别出是英语单词。
+                    </div>
+                </div>
+
+                <div class="difficulty-option easy" id="difficultyEasy">
+                    <div class="difficulty-title">🟢 容易 - 允许快速中文发音</div>
+                    <div class="difficulty-desc">
+                        可以读得非常快，允许中文发音方式，但不能完全都是中文。只要包含英语单词的基本音素即可。
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="btn btn-primary" id="saveDifficultyBtn" style="flex: 1;">保存设置</button>
+                    <button class="btn btn-secondary" id="cancelDifficultyBtn" style="flex: 1;">取消</button>
+                </div>
+
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
+                    <button class="btn btn-secondary" id="changePasswordBtn" style="width: 100%;">
+                        🔑 修改密码
+                    </button>
+                </div>
+
+                <div id="currentDifficultyInfo"
+                    style="margin-top: 15px; padding: 10px; background: rgba(102, 126, 234, 0.1); border-radius: 5px; text-align: center; font-size: 0.9rem; color: #666;">
+                </div>
+            </div>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div
+            style="text-align: center; margin-bottom: 10px; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 10px;">
+            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; align-items: center;">
+                <button class="btn btn-secondary" id="resetProgressBtn" style="font-size: 0.8rem; padding: 5px 10px;">
+                    🔄 重置进度
+                </button>
+                <div style="display: flex; gap: 5px; align-items: center;">
+                    <label for="jumpToLevel" style="font-size: 0.8rem; color: white;">跳转到关卡:</label>
+                    <select id="jumpToLevel"
+                        style="padding: 5px 10px; border-radius: 5px; border: 1px solid #ddd; font-size: 0.8rem; background: white; cursor: pointer;">
+                        <option value="">选择关卡...</option>
+                    </select>
+                    <button class="btn btn-secondary" id="jumpBtn" style="font-size: 0.8rem; padding: 5px 10px;">
+                        🚀 跳转
+                    </button>
+                </div>
+            </div>
+            <div id="debugInfo" style="font-size: 0.7rem; color: #666; margin-top: 10px; color: rgba(255,255,255,0.8);">
+            </div>
+        </div>
+
+        <div class="level-grid" id="levelGrid">
+            <!-- Levels will be dynamically generated -->
+        </div>
+
+        <div class="game-screen" id="gameScreen">
+            <div class="story-section">
+                <div class="story-title" id="storyTitle"></div>
+                <div class="story-text" id="storyText"></div>
+            </div>
+
+            <div class="phase-section">
+                <div class="phase-buttons">
+                    <button class="phase-btn active" data-phase="recognize">🎧 认</button>
+                    <button class="phase-btn" data-phase="learn">🎓 学</button>
+                    <button class="phase-btn" data-phase="practice">🎤 读</button>
+                </div>
+            </div>
+
+            <div class="play-area" id="playArea">
+                <!-- Dynamic content based on level and phase -->
+            </div>
+
+            <div class="buttons">
+                <button class="btn btn-secondary" id="backBtn">
+                    ⬅️ 返回关卡选择
+                </button>
+            </div>
+
+            <div class="celebration" id="celebration" style="display: none;">
+                🎉 太棒了！恭喜过关！ 🎉
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game data
+        const levels = [
+            {
+                id: 1,
+                word: 'cat',
+                pronunciation: '/kæt/',
+                storyTitle: '🐱 小猫咪被困住了！',
+                storyText: '一只可爱的小猫咪被关在牢房里，需要你帮助它找到钥匙逃出去。你需要给小猫咪找到它的玩具，它会告诉你"cat"的正确发音。收集足够的玩具，小猫咪就能拿到钥匙逃出去了！',
+                gameType: 'find_toys',
+                requiredInteractions: 5,
+                toys: ['🎾', '🧶', '🐭', '🦴', '🔔']
+            },
+            {
+                id: 2,
+                word: 'dog',
+                pronunciation: '/dɔːg/',
+                storyTitle: '🐶 小狗狗被抓走了！',
+                storyText: '小狗狗被坏人抓走了，藏在海滩的贝壳下面。你需要挖开贝壳救出小狗狗。每挖开一个贝壳，小狗狗都会叫一声"dog"。快来救救小狗狗吧！',
+                gameType: 'dig_shells',
+                requiredInteractions: 6
+            },
+            {
+                id: 3,
+                word: 'car',
+                pronunciation: '/kɑːr/',
+                storyTitle: '🚗 小汽车迷路了！',
+                storyText: '一辆小汽车在停车场迷路了，需要你帮助它找到回家的路。摸摸小汽车，它会发出"car"的声音。',
+                gameType: 'touch_items',
+                requiredInteractions: 4,
+                items: ['🚗', '🚙', '🚌']
+            },
+            {
+                id: 4,
+                word: 'but',
+                pronunciation: '/bʌt/',
+                storyTitle: '🔄 转折词大作战！',
+                storyText: '"But"是一个很重要的转折词，意思是"但是"。让我们一起来练习这个词的发音吧！',
+                gameType: 'choice_question',
+                question: '哪个词的意思是"但是"？',
+                options: ['but', 'and', 'or'],
+                correctAnswer: 0
+            },
+            {
+                id: 5,
+                word: 'apple',
+                pronunciation: '/ˈæpəl/',
+                storyTitle: '🍎 红苹果真诱人！',
+                storyText: '树上挂满了红红的苹果，闻着就想吃。让我们一起学说"apple"吧！',
+                gameType: 'connect_letters',
+                letters: ['a', 'p', 'p', 'l', 'e'],
+                targetWord: 'apple'
+            },
+            {
+                id: 6,
+                word: 'banana',
+                pronunciation: '/bəˈnænə/',
+                storyTitle: '🍌 香蕉真好吃！',
+                storyText: '一根根黄澄澄的香蕉挂在树上，奶奶最喜欢吃了。让我们学说"banana"！',
+                gameType: 'choice_question',
+                question: '哪种水果是黄色的？',
+                options: ['apple', 'banana', 'orange'],
+                correctAnswer: 1
+            },
+            {
+                id: 7,
+                word: 'tap',
+                pronunciation: '/tæp/',
+                storyTitle: '🚰 水龙头滴水啦！',
+                storyText: '水龙头在滴滴答答地滴水，"tap tap tap"，让我们学说"tap"吧！',
+                gameType: 'connect_letters',
+                letters: ['t', 'a', 'p'],
+                targetWord: 'tap'
+            },
+            {
+                id: 8,
+                word: 'pan',
+                pronunciation: '/pæn/',
+                storyTitle: '🍳 平底锅做饭啦！',
+                storyText: '奶奶正在厨房用平底锅煎蛋，"pan pan pan"，让我们学说"pan"！',
+                gameType: 'choice_question',
+                question: '厨具"pan"的中文意思是？',
+                options: ['锅', '铲子', '碗'],
+                correctAnswer: 0
+            },
+            {
+                id: 9,
+                word: '单复数S',
+                pronunciation: 'cats, dogs, cars...',
+                storyTitle: '🔢 学会单复数变化！',
+                storyText: '英文名词有单数和复数，复数通常在词尾加"s"。比如：cat → cats，dog → dogs。让我们一起来练习吧！',
+                gameType: 'plural_practice',
+                examples: [
+                    { singular: 'cat', plural: 'cats' },
+                    { singular: 'dog', plural: 'dogs' },
+                    { singular: 'car', plural: 'cars' },
+                    { singular: 'apple', plural: 'apples' },
+                    { singular: 'banana', plural: 'bananas' }
+                ]
+            },
+            {
+                id: 10,
+                word: 'I like cat, but I don\'t like dog',
+                pronunciation: '/aɪ laɪk kæt, bʌt aɪ doʊnt laɪk dɔːg/',
+                storyTitle: '💬 学会简单对话！',
+                storyText: '奶奶说："我喜欢小猫咪，但我不喜欢小狗狗。"这是一个完整的句子，包含了"like"、"but"、"don\'t"等重要单词。让我们一起来练习吧！',
+                gameType: 'sentence_practice',
+                sentence: 'I like cat, but I don\'t like dog',
+                words: ['I', 'like', 'cat', ',', 'but', 'I', 'don\'t', 'like', 'dog']
+            },
+            {
+                id: 11,
+                word: 'yes',
+                pronunciation: '/jes/',
+                storyTitle: '✅ 是的！',
+                storyText: '"Yes"是"是的"的意思，表示肯定、同意。这是一个非常常用的单词！',
+                gameType: 'choice_question',
+                question: '"是的"用英语怎么说？',
+                options: ['yes', 'no', 'ok'],
+                correctAnswer: 0
+            },
+            {
+                id: 12,
+                word: 'no',
+                pronunciation: '/noʊ/',
+                storyTitle: '❌ 不是！',
+                storyText: '"No"是"不是"的意思，表示否定、拒绝。和"yes"相反！',
+                gameType: 'choice_question',
+                question: '"不是"用英语怎么说？',
+                options: ['yes', 'no', 'not'],
+                correctAnswer: 1
+            },
+            {
+                id: 13,
+                word: 'like',
+                pronunciation: '/laɪk/',
+                storyTitle: '❤️ 喜欢',
+                storyText: '"Like"是"喜欢"的意思，可以表达对某物的喜爱。比如"I like cat"就是"我喜欢猫"！',
+                gameType: 'choice_question',
+                question: '"喜欢"用英语怎么说？',
+                options: ['love', 'like', 'want'],
+                correctAnswer: 1
+            },
+            {
+                id: 14,
+                word: 'red',
+                pronunciation: '/red/',
+                storyTitle: '🔴 红色',
+                storyText: '"Red"是"红色"的意思。红色是非常鲜艳的颜色，比如红苹果就是"red apple"！',
+                gameType: 'choice_question',
+                question: '"红色"用英语怎么说？',
+                options: ['blue', 'red', 'green'],
+                correctAnswer: 1
+            },
+            {
+                id: 15,
+                word: 'cad',
+                pronunciation: '/kæd/',
+                storyTitle: '🚗 学习新单词',
+                storyText: '"Cad"是一个英语单词，让我们一起来学习它的发音和用法吧！',
+                gameType: 'choice_question',
+                question: '请选择正确的单词"cad"',
+                options: ['cat', 'cad', 'car'],
+                correctAnswer: 1
+            },
+            {
+                id: 16,
+                word: '复习总结',
+                pronunciation: 'Review All Words',
+                storyTitle: '🎉 恭喜完成所有学习！',
+                storyText: '你已经学会了很多单词！现在来复习一下你学过的单词，看看你会多少。这是一关特别的复习关：一共300道题，先读英文，再选中文，再拼单词！',
+                gameType: 'summary_review',
+                reviewQuestions: []
+            }
+        ];
+
+        // Generate review questions for level 16（复习总结关，一共300题）
+        function generateReviewQuestions() {
+            const allWords = [
+                { word: 'cat', chinese: '小猫咪', category: '动物' },
+                { word: 'dog', chinese: '小狗狗', category: '动物' },
+                { word: 'car', chinese: '汽车', category: '交通工具' },
+                { word: 'but', chinese: '但是', category: '连词' },
+                { word: 'apple', chinese: '苹果', category: '水果' },
+                { word: 'banana', chinese: '香蕉', category: '水果' },
+                { word: 'tap', chinese: '水龙头', category: '物品' },
+                { word: 'pan', chinese: '平底锅', category: '厨具' },
+                { word: 'milk', chinese: '牛奶', category: '食物' },
+                { word: 'sun', chinese: '太阳', category: '自然' },
+                { word: 'moon', chinese: '月亮', category: '自然' },
+                { word: 'star', chinese: '星星', category: '自然' },
+                { word: 'fish', chinese: '鱼', category: '动物' },
+                { word: 'bird', chinese: '小鸟', category: '动物' },
+                { word: 'tree', chinese: '树', category: '自然' },
+                { word: 'flower', chinese: '花', category: '自然' },
+                { word: 'water', chinese: '水', category: '自然' },
+                { word: 'fire', chinese: '火', category: '自然' },
+                { word: 'wind', chinese: '风', category: '自然' },
+                { word: 'yes', chinese: '是的', category: '常用词' },
+                { word: 'no', chinese: '不是', category: '常用词' },
+                { word: 'like', chinese: '喜欢', category: '动词' },
+                { word: 'red', chinese: '红色', category: '颜色' },
+                { word: 'cad', chinese: 'cad', category: '单词' }
+            ];
+
+            // 为了更符合奶奶的学习节奏，我们按「读英文 → 选中文 → 拼单词」的顺序来生成题目，
+            // 每一部分各100题，总共300题。
+
+            const pronunciationQuestions = [];
+            const choiceQuestions = [];
+            const spellingQuestions = [];
+
+            // ① 先听中文，读英文（100 题）
+            for (let i = 0; i < 100; i++) {
+                const wordIndex = Math.floor(Math.random() * allWords.length);
+                const word = allWords[wordIndex];
+
+                pronunciationQuestions.push({
+                    type: 'pronunciation',
+                    question: '请看下面的中文，把对应的英文单词读出来：',
+                    word: word.word,        // 用来做语音识别的正确英文
+                    chinese: word.chinese,  // 提示用中文
+                    answer: word.word
+                });
+            }
+
+            // ② 英文选择中文意思（100 题）
+            for (let i = 0; i < 100; i++) {
+                const wordIndex = Math.floor(Math.random() * allWords.length);
+                const word = allWords[wordIndex];
+
+                // 从其他词里挑两个错误中文意思
+                const otherWords = allWords.filter(w => w.word !== word.word);
+                const wrongOptions = [];
+                while (wrongOptions.length < 2 && otherWords.length > 0) {
+                    const wrongIndex = Math.floor(Math.random() * otherWords.length);
+                    const wrong = otherWords.splice(wrongIndex, 1)[0];
+                    if (wrong && wrong.chinese !== word.chinese) {
+                        wrongOptions.push(wrong.chinese);
+                    }
+                }
+
+                const options = [word.chinese, ...wrongOptions];
+                // 轻微打乱一下顺序
+                const shuffledOptions = options.sort(() => Math.random() - 0.5);
+                const correctIndex = shuffledOptions.indexOf(word.chinese);
+
+                choiceQuestions.push({
+                    type: 'choice',
+                    question: `单词 "${word.word}" 的中文意思是什么？`,
+                    options: shuffledOptions,
+                    answer: correctIndex,
+                    word: word.word,
+                    chinese: word.chinese
+                });
+            }
+
+            // ③ 根据中文拼写英文单词（100 题）
+            for (let i = 0; i < 100; i++) {
+                const wordIndex = Math.floor(Math.random() * allWords.length);
+                const word = allWords[wordIndex];
+
+                // 先把空格去掉，再打乱字母顺序（后面可以用来做连线玩法）
+                const letters = word.word.replace(/\s+/g, '').split('');
+                const shuffledLetters = letters.sort(() => Math.random() - 0.5);
+
+                spellingQuestions.push({
+                    type: 'spelling',
+                    question: `请拼写"${word.chinese}"对应的英文单词`,
+                    chinese: word.chinese,
+                    answer: word.word,
+                    letters: shuffledLetters
+                });
+            }
+
+            // 按顺序返回：100 题读英文 → 100 题选中文 → 100 题拼写
+            return [...pronunciationQuestions, ...choiceQuestions, ...spellingQuestions];
+        }
+
+        // Initialize review questions for level 11
+        const reviewLevel = levels.find(l => l.id === 16);
+        if (reviewLevel) {
+            reviewLevel.reviewQuestions = generateReviewQuestions();
+        }
+
+        // Game state
+        let currentLevel = 0;
+        let currentPhase = 'recognize'; // recognize, learn, practice
+        let completedLevels = JSON.parse(localStorage.getItem('grandmaEnglishProgress') || '[]');
+        let interactionCount = 0;
+        let recognition = null;
+
+        // Parent mode state
+        // 密码和儿子名字存储在 localStorage 中
+        let parentPasswordHash = localStorage.getItem('parentPasswordHash');
+        let sonName = localStorage.getItem('sonName') || ''; // 儿子的名字，用于身份验证
+        let phoneNumber = localStorage.getItem('phoneNumber') || ''; // 手机号码
+        let isInitialSetupDone = localStorage.getItem('initialSetupDone') === 'true';
+        let smsVerificationCode = ''; // 当前验证码
+        let smsCodeExpiry = 0; // 验证码过期时间
+
+        let currentDifficulty = localStorage.getItem('pronunciationDifficulty') || 'hard'; // hard, medium, easy
+
+        // 多音字数据库
+        const polyphoneMap = {
+            '长': ['长', '常', '场', '尝'],
+            '中': ['中', '重', '钟', '忠'],
+            '行': ['行', '形', '型', '星'],
+            '发': ['发', '法', '罚'],
+            '会': ['会', '回', '灰', '挥'],
+            '了': ['了', '乐', '勒'],
+            '着': ['着', '招', '找'],
+            '地': ['地', '的', '第'],
+            '得': ['得', '的', '德'],
+            '为': ['为', '围', '伟'],
+            '重': ['重', '中', '种'],
+            '相': ['相', '想', '向'],
+            '应': ['应', '英', '影'],
+            '正': ['正', '争', '征'],
+            '还': ['还', '换', '环'],
+            '没': ['没', '每', '梅'],
+            '和': ['和', '何', '合'],
+            '了': ['了', '乐'],
+            '都': ['都', '斗', '豆'],
+            '看': ['看', '砍', '看']
+        };
+
+        // Simple hash function (for basic obfuscation, not real security)
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; // Convert to 32bit integer
+            }
+            return Math.abs(hash).toString(16);
+        }
+
+        // 生成6位数字验证码
+        function generateSmsCode() {
+            return Math.floor(100000 + Math.random() * 900000).toString();
+        }
+
+        // Clean up invalid completed levels (in case of old data)
+        const validLevelIds = levels.map(level => level.id);
+        completedLevels = completedLevels.filter(id => validLevelIds.includes(id));
+
+        // DOM elements
+        const levelGrid = document.getElementById('levelGrid');
+        const gameScreen = document.getElementById('gameScreen');
+        const progressFill = document.getElementById('progressFill');
+        const storyTitle = document.getElementById('storyTitle');
+        const storyText = document.getElementById('storyText');
+        const playArea = document.getElementById('playArea');
+        const backBtn = document.getElementById('backBtn');
+        const celebration = document.getElementById('celebration');
+
+        // Initialize stars background
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            for (let i = 0; i < 50; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.width = Math.random() * 3 + 2 + 'px';
+                star.style.height = star.style.width;
+                star.style.animationDelay = Math.random() * 2 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+
+        // Create level cards
+        function createLevelCards() {
+            levelGrid.innerHTML = '';
+            levels.forEach((level, index) => {
+                const card = document.createElement('div');
+                card.className = 'level-card';
+
+                // Debug logging
+                console.log(`Level ${level.id} (${level.word}): completed=${completedLevels.includes(level.id)}, index=${index}, prevCompleted=${index > 0 ? completedLevels.includes(levels[index - 1].id) : 'N/A'}`);
+
+                if (completedLevels.includes(level.id)) {
+                    card.classList.add('completed');
+                    card.onclick = () => startLevel(index);
+                } else if (index > 0 && !completedLevels.includes(levels[index - 1].id)) {
+                    card.classList.add('locked');
+                    card.onclick = null;
+                    console.log(`Level ${level.id} is LOCKED`);
+                } else {
+                    card.onclick = () => {
+                        console.log(`Starting level ${level.id}`);
+                        startLevel(index);
+                    };
+                }
+
+                card.innerHTML = `
+                    <div class="level-number">${level.id}</div>
+                    <div class="level-content">${level.word}</div>
+                `;
+                levelGrid.appendChild(card);
+            });
+        }
+
+        // Update progress bar
+        function updateProgress() {
+            const progress = (completedLevels.length / levels.length) * 100;
+            progressFill.style.width = progress + '%';
+        }
+
+        // Update debug info
+        function updateDebugInfo() {
+            const debugInfo = document.getElementById('debugInfo');
+            debugInfo.textContent = `已完成: ${completedLevels.length}/${levels.length} 关卡 | 进度: ${completedLevels.join(', ') || '无'}`;
+        }
+
+        // Start a level
+        function startLevel(levelIndex) {
+            currentLevel = levelIndex;
+            currentPhase = 'recognize';
+            interactionCount = 0;
+
+            const level = levels[levelIndex];
+            storyTitle.textContent = level.storyTitle;
+            storyText.textContent = level.storyText;
+
+            // Hide level grid, show game screen
+            document.querySelector('.level-grid').style.display = 'none';
+            gameScreen.classList.add('show');
+            celebration.style.display = 'none';
+
+            updatePhaseButtons();
+            renderPlayArea();
+        }
+
+        // Update phase buttons
+        function updatePhaseButtons() {
+            document.querySelectorAll('.phase-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.phase === currentPhase) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        // Render play area based on level and phase
+        function renderPlayArea() {
+            const level = levels[currentLevel];
+            playArea.innerHTML = '';
+
+            if (currentPhase === 'recognize') {
+                renderRecognizePhase(level);
+            } else if (currentPhase === 'learn') {
+                renderLearnPhase(level);
+            } else if (currentPhase === 'practice') {
+                renderPracticePhase(level);
+            }
+        }
+
+        // Recognize phase - listen to correct pronunciation
+        function renderRecognizePhase(level) {
+            playArea.innerHTML = `
+                <div class="word-display">
+                    <div class="word">${level.word}</div>
+                    <div class="pronunciation">${level.pronunciation}</div>
+                    <p style="color: #666; margin-top: 15px;">点击喇叭收听正确发音</p>
+                </div>
+                <div style="text-align: center;">
+                    <button class="btn btn-primary" id="listenBtn" style="font-size: 2rem; padding: 20px 40px;">
+                        🔊
+                    </button>
+                </div>
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="btn btn-success" id="nextPhaseBtn">我听懂了，下一步</button>
+                </div>
+            `;
+
+            document.getElementById('listenBtn').addEventListener('click', () => playAudio(level.word));
+            document.getElementById('nextPhaseBtn').addEventListener('click', () => changePhase('learn'));
+        }
+
+        // Learn phase - interactive learning
+        function renderLearnPhase(level) {
+            switch (level.gameType) {
+                case 'find_toys':
+                    renderFindToysLevel(level);
+                    break;
+                case 'dig_shells':
+                    renderDigShellsLevel(level);
+                    break;
+                case 'touch_items':
+                    renderTouchItemsLevel(level);
+                    break;
+                case 'choice_question':
+                    renderChoiceQuestionLevel(level);
+                    break;
+                case 'connect_letters':
+                    renderConnectLettersLevel(level);
+                    break;
+                case 'plural_practice':
+                    renderPluralPracticeLevel(level);
+                    break;
+                case 'sentence_practice':
+                    renderSentencePracticeLevel(level);
+                    break;
+                case 'summary_review':
+                    renderSummaryReviewLevel(level);
+                    break;
+                default:
+                    renderGenericLearnLevel(level);
+            }
+        }
+
+        // Find toys level (猫咪找玩具)
+        function renderFindToysLevel(level) {
+            playArea.innerHTML = `
+                <div class="cat-prison">
+                    <div class="prison-bars"></div>
+                    <div class="cat" id="cat">🐱</div>
+                    <p style="color: white; margin-top: 10px;">给小猫咪找到它的玩具吧！</p>
+                    <p style="color: yellow; font-size: 0.9rem;">收集${level.requiredInteractions}个玩具就能拿到钥匙！</p>
+                    <div style="position: relative; height: 200px;">
+                        ${level.toys.map((toy, index) =>
+                `<div class="toy" id="toy${index}" style="top: ${50 + index * 20}px; left: ${50 + index * 30}px;">${toy}</div>`
+            ).join('')}
+                    </div>
+                    <div style="background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; margin-top: 10px;">
+                        <p style="color: white;">收集进度: <span id="toyProgress">0</span>/${level.requiredInteractions}</p>
+                    </div>
+                </div>
+            `;
+
+            // Add event listeners for toys
+            level.toys.forEach((toy, index) => {
+                const toyId = `toy${index}`;
+                document.getElementById(toyId).addEventListener('click', () => {
+                    playAudio(level.word);
+                    interactionCount++;
+                    document.getElementById('toyProgress').textContent = interactionCount;
+
+                    // Hide the toy after interaction
+                    document.getElementById(toyId).style.display = 'none';
+
+                    if (interactionCount >= level.requiredInteractions) {
+                        setTimeout(() => {
+                            playArea.innerHTML = `
+                                <div style="text-align: center; padding: 50px;">
+                                    <div style="font-size: 4rem; margin-bottom: 20px;">🐱🔑</div>
+                                    <h3 style="color: #4CAF50; margin-bottom: 20px;">太棒了！小猫咪拿到钥匙了！</h3>
+                                    <button class="btn btn-success" onclick="changePhase('practice')">准备发音测试</button>
+                                </div>
+                            `;
+                        }, 1000);
+                    }
+                });
+            });
+
+            // Cat interaction
+            document.getElementById('cat').addEventListener('click', () => {
+                playAudio(level.word);
+            });
+        }
+
+        // Dig shells level (挖贝壳救狗狗)
+        function renderDigShellsLevel(level) {
+            playArea.innerHTML = `
+                <div class="beach">
+                    <h3 style="text-align: center; color: #333;">海滩寻宝 - 救出小狗狗！</h3>
+                    <p style="text-align: center; color: #666; margin-bottom: 20px;">点击贝壳挖开它们，救出藏在里面的小狗狗！</p>
+                    <div style="position: relative; height: 300px;">
+                        ${Array.from({ length: level.requiredInteractions }, (_, i) =>
+                `<div class="shell" id="shell${i}" style="top: ${50 + i * 30}px; left: ${50 + (i % 3) * 100}px;">🐚</div>`
+            ).join('')}
+                    </div>
+                    <div class="sand"></div>
+                    <div style="background: rgba(255,255,255,0.8); padding: 10px; border-radius: 5px; margin-top: 10px;">
+                        <p style="text-align: center; color: #333;">救出小狗狗: <span id="shellProgress">0</span>/${level.requiredInteractions}</p>
+                    </div>
+                </div>
+            `;
+
+            // Add event listeners for shells
+            for (let i = 0; i < level.requiredInteractions; i++) {
+                const shellId = `shell${i}`;
+                document.getElementById(shellId).addEventListener('click', () => {
+                    playAudio(level.word);
+                    interactionCount++;
+                    document.getElementById('shellProgress').textContent = interactionCount;
+
+                    // Hide the shell after interaction
+                    document.getElementById(shellId).style.display = 'none';
+
+                    if (interactionCount >= level.requiredInteractions) {
+                        setTimeout(() => {
+                            playArea.innerHTML = `
+                                <div style="text-align: center; padding: 50px;">
+                                    <div style="font-size: 4rem; margin-bottom: 20px;">🐶✨</div>
+                                    <h3 style="color: #4CAF50; margin-bottom: 20px;">太棒了！小狗狗被救出来了！</h3>
+                                    <button class="btn btn-success" onclick="changePhase('practice')">准备发音测试</button>
+                                </div>
+                            `;
+                        }, 1000);
+                    }
+                });
+            }
+        }
+
+        // Touch items level (触摸物品)
+        function renderTouchItemsLevel(level) {
+            playArea.innerHTML = `
+                <div style="text-align: center; padding: 50px;">
+                    <h3 style="margin-bottom: 20px; color: #667eea;">触摸这些物品吧！</h3>
+                    <p style="color: #666; margin-bottom: 30px;">每触摸一个物品，就会听到"${level.word}"的发音</p>
+                    <div style="display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; margin-bottom: 30px;">
+                        ${level.items.map((item, index) =>
+                `<div class="touch-item" id="item${index}" style="font-size: 4rem; cursor: pointer; transition: all 0.3s ease; padding: 20px;">${item}</div>`
+            ).join('')}
+                    </div>
+                    <div style="background: rgba(255,255,255,0.8); padding: 15px; border-radius: 10px; display: inline-block;">
+                        <p style="color: #333; margin: 0;">触摸进度: <span id="touchProgress">0</span>/${level.requiredInteractions}</p>
+                    </div>
+                </div>
+            `;
+
+            // Add event listeners for items
+            level.items.forEach((item, index) => {
+                const itemId = `item${index}`;
+                document.getElementById(itemId).addEventListener('click', () => {
+                    playAudio(level.word);
+                    interactionCount++;
+                    document.getElementById('touchProgress').textContent = interactionCount;
+
+                    // Add animation effect
+                    document.getElementById(itemId).style.transform = 'scale(1.2)';
+                    setTimeout(() => {
+                        document.getElementById(itemId).style.transform = 'scale(1)';
+                    }, 300);
+
+                    if (interactionCount >= level.requiredInteractions) {
+                        setTimeout(() => {
+                            playArea.innerHTML = `
+                                <div style="text-align: center; padding: 50px;">
+                                    <div style="font-size: 4rem; margin-bottom: 20px;">${level.items[0]}✨</div>
+                                    <h3 style="color: #4CAF50; margin-bottom: 20px;">太棒了！你学会了"${level.word}"！</h3>
+                                    <button class="btn btn-success" onclick="changePhase('practice')">准备发音测试</button>
+                                </div>
+                            `;
+                        }, 1000);
+                    }
+                });
+            });
+        }
+
+        // Choice question level (选择题)
+        function renderChoiceQuestionLevel(level) {
+            playArea.innerHTML = `
+                <div style="text-align: center; padding: 50px;">
+                    <div style="margin-bottom: 30px;">
+                        <button class="btn btn-primary" id="playQuestionAudio" style="margin-bottom: 20px;">
+                            🔊 播放问题音频
+                        </button>
+                        <p style="font-size: 1.2rem; color: #333; margin: 20px 0;">${level.question}</p>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 15px; align-items: center;">
+                        ${level.options.map((option, index) =>
+                `<button class="choice-btn" data-index="${index}" style="padding: 15px 30px; font-size: 1.1rem; border: 2px solid #ddd; border-radius: 10px; background: white; cursor: pointer; transition: all 0.3s ease; min-width: 200px;">${option}</button>`
+            ).join('')}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('playQuestionAudio').addEventListener('click', () => {
+                playAudio(level.word);
+            });
+
+            // Add event listeners for choice buttons
+            document.querySelectorAll('.choice-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const selectedIndex = parseInt(btn.dataset.index);
+                    const isCorrect = selectedIndex === level.correctAnswer;
+
+                    if (isCorrect) {
+                        btn.style.background = '#4CAF50';
+                        btn.style.color = 'white';
+                        btn.style.borderColor = '#4CAF50';
+                        setTimeout(() => {
+                            playArea.innerHTML = `
+                                <div style="text-align: center; padding: 50px;">
+                                    <div style="font-size: 4rem; margin-bottom: 20px;">✅✨</div>
+                                    <h3 style="color: #4CAF50; margin-bottom: 20px;">回答正确！太棒了！</h3>
+                                    <button class="btn btn-success" onclick="changePhase('practice')">准备发音测试</button>
+                                </div>
+                            `;
+                        }, 1500);
+                    } else {
+                        btn.style.background = '#F44336';
+                        btn.style.color = 'white';
+                        btn.style.borderColor = '#F44336';
+                        setTimeout(() => {
+                            alert('不对哦，再试试看！');
+                            btn.style.background = 'white';
+                            btn.style.color = 'black';
+                            btn.style.borderColor = '#ddd';
+                        }, 1000);
+                    }
+                });
+            });
+        }
+
+        // Connect letters level (连线字母)
+        function renderConnectLettersLevel(level) {
+            let connectedLetters = [];
+            let availableLetters = [...level.letters];
+
+            playArea.innerHTML = `
+                <div style="text-align: center; padding: 50px;">
+                    <h3 style="margin-bottom: 20px; color: #667eea;">把字母连起来组成单词！</h3>
+                    <p style="color: #666; margin-bottom: 20px;">目标单词: <strong style="font-size: 1.5rem; color: #667eea;">${level.targetWord}</strong></p>
+
+                    <div style="background: #E8F5E8; border: 2px solid #4CAF50; border-radius: 10px; padding: 15px; margin-bottom: 20px;">
+                        <h4 style="color: #2E7D32; margin-bottom: 10px;">📝 拼读示范</h4>
+                        <p style="color: #2E7D32; margin: 0; font-size: 1.1rem;">
+                            请读成: <strong>"${level.letters.join('-')}"</strong><br>
+                            例如慢慢地说: "${level.letters.join('...')}..."
+                        </p>
+                    </div>
+
+                    <div style="margin-bottom: 30px;">
+                        <button class="btn btn-secondary" id="playWordAudio">🔊 播放单词发音</button>
+                    </div>
+
+                    <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-bottom: 30px;">
+                        ${availableLetters.map((letter, index) =>
+                `<div class="letter-tile" data-letter="${letter}" data-index="${index}" style="width: 50px; height: 50px; border: 2px solid #667eea; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; background: white; cursor: pointer; transition: all 0.3s ease;">${letter}</div>`
+            ).join('')}
+                    </div>
+
+                    <div style="background: rgba(255,255,255,0.8); padding: 15px; border-radius: 10px; min-height: 50px;">
+                        <p style="color: #333; margin: 0;">已连接: <span id="connectedWord" style="font-size: 1.2rem; font-weight: bold;"></span></p>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('playWordAudio').addEventListener('click', () => {
+                playAudio(level.targetWord);
+            });
+
+            // Add event listeners for letter tiles
+            document.querySelectorAll('.letter-tile').forEach(tile => {
+                tile.addEventListener('click', () => {
+                    const letter = tile.dataset.letter;
+                    const index = parseInt(tile.dataset.index);
+
+                    // Add letter to connected word
+                    connectedLetters.push(letter);
+                    updateConnectedWord();
+
+                    // Remove tile
+                    tile.style.display = 'none';
+
+                    // Check if word is complete
+                    if (connectedLetters.join('') === level.targetWord) {
+                        setTimeout(() => {
+                            playArea.innerHTML = `
+                                <div style="text-align: center; padding: 50px;">
+                                    <div style="font-size: 4rem; margin-bottom: 20px;">🔤✨</div>
+                                    <h3 style="color: #4CAF50; margin-bottom: 20px;">太棒了！你成功组成了"${level.targetWord}"！</h3>
+                                    <button class="btn btn-success" onclick="changePhase('practice')">准备发音测试</button>
+                                </div>
+                            `;
+                        }, 1000);
+                    }
+                });
+            });
+
+            function updateConnectedWord() {
+                document.getElementById('connectedWord').textContent = connectedLetters.join('');
+            }
+        }
+
+        // Plural practice level (单复数练习)
+        function renderPluralPracticeLevel(level) {
+            let currentExampleIndex = 0;
+            let correctCount = 0;
+
+            function showNextExample() {
+                if (currentExampleIndex >= level.examples.length) {
+                    // All examples completed
+                    playArea.innerHTML = `
+                        <div style="text-align: center; padding: 50px;">
+                            <div style="font-size: 4rem; margin-bottom: 20px;">🔢✨</div>
+                            <h3 style="color: #4CAF50; margin-bottom: 20px;">太棒了！你学会了单复数变化！</h3>
+                            <p style="font-size: 1.1rem; margin-bottom: 30px;">正确率: ${correctCount}/${level.examples.length} (${Math.round(correctCount / level.examples.length * 100)}%)</p>
+                            <button class="btn btn-success" onclick="changePhase('practice')">准备发音测试</button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const example = level.examples[currentExampleIndex];
+                playArea.innerHTML = `
+                    <div style="text-align: center; padding: 50px;">
+                        <h3 style="margin-bottom: 20px; color: #667eea;">单复数练习 ${currentExampleIndex + 1}/${level.examples.length}</h3>
+
+                        <div style="margin-bottom: 30px;">
+                            <button class="btn btn-primary" id="playPluralAudio">🔊 播放发音</button>
+                        </div>
+
+                        <div style="background: rgba(255,255,255,0.9); padding: 20px; border-radius: 15px; margin-bottom: 30px;">
+                            <p style="font-size: 1.2rem; color: #333; margin-bottom: 15px;">
+                                单数: <strong style="font-size: 1.5rem; color: #667eea;">${example.singular}</strong>
+                            </p>
+                            <p style="font-size: 1.2rem; color: #666;">请写出复数形式:</p>
+                            <input type="text" id="pluralInput" style="padding: 10px; font-size: 1.2rem; border: 2px solid #667eea; border-radius: 10px; width: 200px; text-align: center;" placeholder="输入复数形式">
+                        </div>
+
+                        <button class="btn btn-success" id="checkPluralBtn">检查答案</button>
+
+                        <div style="margin-top: 30px; background: rgba(255,255,255,0.8); padding: 15px; border-radius: 10px;">
+                            <p style="color: #333; margin: 0;">正确数量: <span id="pluralScore">${correctCount}</span>/${level.examples.length}</p>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('playPluralAudio').addEventListener('click', () => {
+                    playAudio(example.plural);
+                });
+
+                document.getElementById('checkPluralBtn').addEventListener('click', () => {
+                    const input = document.getElementById('pluralInput').value.trim().toLowerCase();
+                    const correct = input === example.plural.toLowerCase();
+
+                    if (correct) {
+                        correctCount++;
+                        document.getElementById('pluralScore').textContent = correctCount;
+                        alert(`✅ 正确！${example.singular} → ${example.plural}`);
+                        currentExampleIndex++;
+                        setTimeout(showNextExample, 1000);
+                    } else {
+                        alert(`❌ 不对哦。正確答案是: ${example.plural}\n再试试看！`);
+                        document.getElementById('pluralInput').value = '';
+                        document.getElementById('pluralInput').focus();
+                    }
+                });
+
+                // Auto-focus input
+                setTimeout(() => {
+                    document.getElementById('pluralInput').focus();
+                }, 100);
+            }
+
+            showNextExample();
+        }
+
+        // Sentence practice level (句子练习)
+        function renderSentencePracticeLevel(level) {
+            playArea.innerHTML = `
+                <div style="text-align: center; padding: 50px;">
+                    <h3 style="margin-bottom: 20px; color: #667eea;">句子练习</h3>
+
+                    <div style="margin-bottom: 30px;">
+                        <button class="btn btn-primary" id="playSentenceAudio">🔊 播放完整句子</button>
+                    </div>
+
+                    <div style="background: rgba(255,255,255,0.9); padding: 25px; border-radius: 15px; margin-bottom: 30px;">
+                        <p style="font-size: 1.3rem; color: #333; margin-bottom: 20px; line-height: 1.6;">
+                            <strong>完整句子：</strong><br>
+                            <span style="font-size: 1.5rem; color: #667eea;">"${level.sentence}"</span>
+                        </p>
+
+                        <p style="color: #666; margin-bottom: 15px;">句子包含以下单词：</p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 20px;">
+                            ${level.words.map(word => `<span style="background: #667eea; color: white; padding: 5px 12px; border-radius: 20px; font-weight: bold;">${word}</span>`).join('')}
+                        </div>
+                    </div>
+
+                    <button class="btn btn-success" onclick="changePhase('practice')">准备发音测试</button>
+                </div>
+            `;
+
+            document.getElementById('playSentenceAudio').addEventListener('click', () => {
+                playAudio(level.sentence);
+            });
+        }
+
+        // Summary review level (总结复习 - 20个题目)
+        function renderSummaryReviewLevel(level) {
+            let currentQuestionIndex = 0;
+            let correctCount = 0;
+
+            function showNextQuestion() {
+                if (currentQuestionIndex >= level.reviewQuestions.length) {
+                    // All questions completed
+                    const percentage = Math.round(correctCount / level.reviewQuestions.length * 100);
+                    let gradeMessage = '';
+
+                    if (percentage >= 90) {
+                        gradeMessage = '🎉 优秀！你是英语学习小达人！';
+                    } else if (percentage >= 80) {
+                        gradeMessage = '👍 很好！继续加油！';
+                    } else if (percentage >= 70) {
+                        gradeMessage = '🙂 不错！还需要多练习！';
+                    } else {
+                        gradeMessage = '💪 加油！多复习就会进步！';
+                    }
+
+                    playArea.innerHTML = `
+                        <div style="text-align: center; padding: 50px;">
+                            <div style="font-size: 4rem; margin-bottom: 20px;">🎉🏆</div>
+                            <h2 style="color: #4CAF50; margin-bottom: 10px;">复习完成！</h2>
+                            <p style="font-size: 1.8rem; font-weight: bold; color: #667eea; margin-bottom: 20px;">
+                                得分: ${correctCount}/${level.reviewQuestions.length} (${percentage}%)
+                            </p>
+                            <p style="font-size: 1.2rem; margin-bottom: 30px;">${gradeMessage}</p>
+
+                            <div style="background: rgba(255,255,255,0.9); padding: 20px; border-radius: 15px; margin-bottom: 30px;">
+                                <h3 style="margin-bottom: 15px;">你已经学会的单词：</h3>
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;">
+                                    <span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold;">cat</span>
+                                    <span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold;">dog</span>
+                                    <span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold;">car</span>
+                                    <span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold;">but</span>
+                                    <span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold;">apple</span>
+                                    <span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold;">banana</span>
+                                    <span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold;">tap</span>
+                                    <span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold;">pan</span>
+                                    <span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold;">milk</span>
+                                    <span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold;">sun</span>
+                                    <span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold;">moon</span>
+                                    <span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold;">star</span>
+                                    <span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold;">fish</span>
+                                    <span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold;">bird</span>
+                                    <span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold;">tree</span>
+                                    <span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold;">flower</span>
+                                    <span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold;">water</span>
+                                    <span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold;">fire</span>
+                                    <span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold;">wind</span>
+                                    <span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold;">yes</span>
+                                    <span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold;">no</span>
+                                    <span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold;">like</span>
+                                    <span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold;">red</span>
+                                    <span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold;">cad</span>
+                                </div>
+                            </div>
+                            <button class="btn btn-success" onclick="backToMenu()">返回主菜单</button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const question = level.reviewQuestions[currentQuestionIndex];
+                let questionHTML = '';
+
+                if (question.type === 'choice') {
+                    questionHTML = `
+                        <div style="text-align: center; padding: 50px;">
+                            <h3 style="margin-bottom: 20px; color: #667eea;">选择题 ${currentQuestionIndex + 1}/${level.reviewQuestions.length}</h3>
+                            <p style="font-size: 1.2rem; color: #333; margin-bottom: 30px;">${question.question}</p>
+
+                            <div style="display: flex; flex-direction: column; gap: 15px; align-items: center; margin-bottom: 30px;">
+                                ${question.options.map((option, index) =>
+                        `<button class="choice-btn" data-index="${index}" style="padding: 12px 25px; font-size: 1rem; border: 2px solid #ddd; border-radius: 10px; background: white; cursor: pointer; transition: all 0.3s ease; min-width: 200px;">${option}</button>`
+                    ).join('')}
+                            </div>
+                        </div>
+                    `;
+                } else if (question.type === 'pronunciation') {
+                    questionHTML = `
+                        <div style="text-align: center; padding: 50px;">
+                            <h3 style="margin-bottom: 20px; color: #667eea;">读单词 ${currentQuestionIndex + 1}/${level.reviewQuestions.length}</h3>
+                            <p style="font-size: 1.2rem; color: #333; margin-bottom: 20px;">${question.question}</p>
+                            <p style="font-size: 1.1rem; color: #555; margin-bottom: 10px;">请读出下面这个中文对应的英文单词：</p>
+                            <div style="font-size: 2rem; font-weight: bold; color: #333; margin: 30px 0;">
+                                ${question.chinese}
+                            </div>
+
+                            <button class="mic-btn" id="reviewPronunciationMicBtn" style="width: 80px; height: 80px; font-size: 2rem; margin-bottom: 20px;">🎤</button>
+                            <p style="font-size: 0.9rem; color: #999; margin-bottom: 20px;">
+                                点击麦克风，读出这个单词
+                            </p>
+
+                            <div style="margin-top: 20px;">
+                                <button class="btn btn-secondary" onclick="playAudio('${question.word}')">🔊 听标准发音</button>
+                            </div>
+
+                            <div id="reviewPronunciationResult" style="margin-top: 20px;"></div>
+                        </div>
+                    `;
+                } else if (question.type === 'spelling') {
+                    questionHTML = `
+                        <div style="text-align: center; padding: 50px;">
+                            <h3 style="margin-bottom: 20px; color: #667eea;">拼写题 ${currentQuestionIndex + 1}/${level.reviewQuestions.length}</h3>
+                            <p style="font-size: 1.2rem; color: #333; margin-bottom: 20px;">${question.question}</p>
+                            <p style="color: #666; margin-bottom: 30px; font-size: 1.1rem;">请在键盘上打出这个单词</p>
+
+                            <input type="text" id="spellingInput" style="padding: 15px; font-size: 1.3rem; border: 2px solid #667eea; border-radius: 10px; width: 300px; text-align: center; letter-spacing: 2px;" placeholder="用键盘输入单词" autofocus>
+                            <br><br>
+                            <button class="btn btn-success" id="checkSpellingBtn" style="padding: 12px 30px; font-size: 1.1rem;">检查答案</button>
+                        </div>
+                    `;
+                } else if (question.type === 'plural') {
+                    questionHTML = `
+                        <div style="text-align: center; padding: 50px;">
+                            <h3 style="margin-bottom: 20px; color: #667eea;">复习题 ${currentQuestionIndex + 1}/20</h3>
+                            <p style="font-size: 1.2rem; color: #333; margin-bottom: 20px;">${question.question}</p>
+                            <input type="text" id="pluralReviewInput" style="padding: 10px; font-size: 1.2rem; border: 2px solid #667eea; border-radius: 10px; width: 200px; text-align: center;" placeholder="输入复数形式">
+                            <br><br>
+                            <button class="btn btn-success" id="checkPluralReviewBtn">检查答案</button>
+                        </div>
+                    `;
+                } else if (question.type === 'sentence') {
+                    questionHTML = `
+                        <div style="text-align: center; padding: 50px;">
+                            <h3 style="margin-bottom: 20px; color: #667eea;">复习题 ${currentQuestionIndex + 1}/20</h3>
+                            <p style="font-size: 1.2rem; color: #333; margin-bottom: 20px;">请组合成完整的句子：</p>
+                            <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 20px;">
+                                ${question.parts.map(part => `<span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold;">${part}</span>`).join('')}
+                            </div>
+                            <input type="text" id="sentenceInput" style="padding: 10px; font-size: 1.2rem; border: 2px solid #667eea; border-radius: 10px; width: 300px; text-align: center;" placeholder="输入完整句子">
+                            <br><br>
+                            <button class="btn btn-success" id="checkSentenceBtn">检查答案</button>
+                        </div>
+                    `;
+                } else if (question.type === 'touch') {
+                    questionHTML = `
+                        <div style="text-align: center; padding: 50px;">
+                            <h3 style="margin-bottom: 20px; color: #667eea;">复习题 ${currentQuestionIndex + 1}/20</h3>
+                            <p style="font-size: 1.2rem; color: #333; margin-bottom: 30px;">${question.question}</p>
+                            <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-bottom: 30px;">
+                                ${question.items.map((item, index) =>
+                        `<div class="touch-item" id="reviewItem${index}" style="font-size: 3rem; cursor: pointer; transition: all 0.3s ease; padding: 15px;">${item}</div>`
+                    ).join('')}
+                            </div>
+                            <div style="background: rgba(255,255,255,0.8); padding: 10px; border-radius: 10px;">
+                                <p style="color: #333; margin: 0;">已触摸: <span id="touchCount">0</span>/${question.required}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                playArea.innerHTML = questionHTML;
+
+                // Add event listeners based on question type
+                if (question.type === 'choice') {
+                    document.querySelectorAll('.choice-btn').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const selectedIndex = parseInt(btn.dataset.index);
+                            const isCorrect = selectedIndex === question.answer;
+
+                            if (isCorrect) {
+                                correctCount++;
+                                btn.style.background = '#4CAF50';
+                                btn.style.color = 'white';
+                                btn.style.borderColor = '#4CAF50';
+                                setTimeout(() => {
+                                    currentQuestionIndex++;
+                                    showNextQuestion();
+                                }, 1000);
+                            } else {
+                                btn.style.background = '#F44336';
+                                btn.style.color = 'white';
+                                btn.style.borderColor = '#F44336';
+                                setTimeout(() => {
+                                    btn.style.background = 'white';
+                                    btn.style.color = 'black';
+                                    btn.style.borderColor = '#ddd';
+                                }, 1000);
+                            }
+                        });
+                    });
+                } else if (question.type === 'pronunciation') {
+                    // Initialize speech recognition for pronunciation question
+                    initReviewPronunciationRecognition(question, () => {
+                        correctCount++;
+                        currentQuestionIndex++;
+                        showNextQuestion();
+                    });
+                } else if (question.type === 'spelling') {
+                    document.getElementById('checkSpellingBtn').addEventListener('click', () => {
+                        const input = document.getElementById('spellingInput').value.trim().toLowerCase();
+                        const isCorrect = input === question.answer.toLowerCase();
+
+                        if (isCorrect) {
+                            correctCount++;
+                            alert('✅ 正确！');
+                            currentQuestionIndex++;
+                            showNextQuestion();
+                        } else {
+                            alert(`❌ 不对哦。正確答案是: ${question.answer}`);
+                            document.getElementById('spellingInput').value = '';
+                            document.getElementById('spellingInput').focus();
+                        }
+                    });
+
+                    // Allow Enter key to submit
+                    document.getElementById('spellingInput').addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            document.getElementById('checkSpellingBtn').click();
+                        }
+                    });
+                } else if (question.type === 'plural') {
+                    document.getElementById('checkPluralReviewBtn').addEventListener('click', () => {
+                        const input = document.getElementById('pluralReviewInput').value.trim().toLowerCase();
+                        const isCorrect = input === question.answer.toLowerCase();
+
+                        if (isCorrect) {
+                            correctCount++;
+                            alert('✅ 正确！');
+                            currentQuestionIndex++;
+                            showNextQuestion();
+                        } else {
+                            alert(`❌ 不对哦。正確答案是: ${question.answer}`);
+                            document.getElementById('pluralReviewInput').value = '';
+                            document.getElementById('pluralReviewInput').focus();
+                        }
+                    });
+                } else if (question.type === 'sentence') {
+                    document.getElementById('checkSentenceBtn').addEventListener('click', () => {
+                        const input = document.getElementById('sentenceInput').value.trim().toLowerCase();
+                        const isCorrect = input === question.answer.toLowerCase();
+
+                        if (isCorrect) {
+                            correctCount++;
+                            alert('✅ 正确！');
+                            currentQuestionIndex++;
+                            showNextQuestion();
+                        } else {
+                            alert(`❌ 不对哦。正確答案是: "${question.answer}"`);
+                            document.getElementById('sentenceInput').value = '';
+                            document.getElementById('sentenceInput').focus();
+                        }
+                    });
+                } else if (question.type === 'touch') {
+                    let touchCount = 0;
+                    question.items.forEach((item, index) => {
+                        document.getElementById(`reviewItem${index}`).addEventListener('click', () => {
+                            touchCount++;
+                            document.getElementById('touchCount').textContent = touchCount;
+
+                            if (touchCount >= question.required) {
+                                correctCount++;
+                                setTimeout(() => {
+                                    currentQuestionIndex++;
+                                    showNextQuestion();
+                                }, 1000);
+                            }
+                        });
+                    });
+                }
+            }
+
+            showNextQuestion();
+        }
+
+        // Initialize pronunciation recognition for review questions
+        function initReviewPronunciationRecognition(question, onCorrect) {
+            const micBtn = document.getElementById('reviewPronunciationMicBtn');
+            const resultDiv = document.getElementById('reviewPronunciationResult');
+            let isReviewRecording = false;
+            let reviewTranscripts = [];
+            let reviewRecognition = null;
+
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                resultDiv.innerHTML = '<div class="incorrect">抱歉，您的浏览器不支持语音识别功能。</div>';
+                return;
+            }
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            reviewRecognition = new SpeechRecognition();
+            reviewRecognition.continuous = true;
+            reviewRecognition.interimResults = true;
+            reviewRecognition.lang = 'en-US';
+            reviewRecognition.maxAlternatives = 1;
+
+            reviewRecognition.onstart = () => {
+                isReviewRecording = true;
+                micBtn.classList.add('recording');
+                micBtn.textContent = '🛑';
+                resultDiv.innerHTML = '<p style="color: #666;">正在录音... 请读出这个单词</p>';
+                reviewTranscripts = [];
+            };
+
+            reviewRecognition.onresult = (event) => {
+                reviewTranscripts = [];
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript.trim();
+                    const isFinal = event.results[i].isFinal;
+                    if (transcript) {
+                        reviewTranscripts.push({ transcript: transcript, isFinal: isFinal });
+                        if (isFinal) {
+                            resultDiv.innerHTML = `<p style="color: #666;">听到: "${transcript}"</p>`;
+                        }
+                    }
+                }
+            };
+
+            reviewRecognition.onend = () => {
+                isReviewRecording = false;
+                micBtn.classList.remove('recording');
+                micBtn.textContent = '🎤';
+
+                const finalResults = reviewTranscripts.filter(r => r.isFinal);
+                if (finalResults.length > 0) {
+                    const recognizedWord = finalResults[finalResults.length - 1].transcript.toLowerCase().trim();
+                    checkReviewPronunciation(recognizedWord, question, onCorrect);
+                } else if (reviewTranscripts.length > 0) {
+                    const recognizedWord = reviewTranscripts[reviewTranscripts.length - 1].transcript.toLowerCase().trim();
+                    checkReviewPronunciation(recognizedWord, question, onCorrect);
+                } else {
+                    resultDiv.innerHTML = '<div class="incorrect">没有识别到语音，请重试。</div>';
+                }
+            };
+
+            reviewRecognition.onerror = (event) => {
+                if (event.error !== 'no-speech') {
+                    isReviewRecording = false;
+                    micBtn.classList.remove('recording');
+                    micBtn.textContent = '🎤';
+                    resultDiv.innerHTML = '<div class="incorrect">录音出错，请重试。</div>';
+                }
+            };
+
+            micBtn.onclick = () => {
+                if (!isReviewRecording) {
+                    try {
+                        reviewRecognition.start();
+                    } catch (error) {
+                        if (error.message.includes('already started')) {
+                            reviewRecognition.stop();
+                            setTimeout(() => {
+                                reviewRecognition.start();
+                            }, 100);
+                        }
+                    }
+                } else {
+                    reviewRecognition.stop();
+                }
+            };
+        }
+
+        // Check pronunciation for review question
+        function checkReviewPronunciation(transcript, question, onCorrect) {
+            const resultDiv = document.getElementById('reviewPronunciationResult');
+            const isCorrect = checkPronunciation(transcript, question.answer);
+
+            if (isCorrect) {
+                resultDiv.innerHTML = `
+                    <div class="recognition-result correct">
+                        ✅ 正确！发音标准！<br>
+                        <small>你说的是: "${transcript}"</small>
+                    </div>
+                `;
+                setTimeout(() => {
+                    if (onCorrect) {
+                        onCorrect();
+                    }
+                }, 2000);
+            } else {
+                resultDiv.innerHTML = `
+                    <div class="recognition-result incorrect">
+                        ❌ 发音不正确，请重试！<br>
+                        <small>你说的是: "${transcript}"</small>
+                    </div>
+                `;
+            }
+        }
+
+        // Generic learn level for other words
+        function renderGenericLearnLevel(level) {
+            playArea.innerHTML = `
+                <div style="text-align: center; padding: 50px;">
+                    <div class="word-display">
+                        <div class="word">${level.word}</div>
+                        <div class="pronunciation">${level.pronunciation}</div>
+                    </div>
+                    <p style="color: #666; margin: 20px 0;">让我们多听几遍这个单词的发音吧！</p>
+                    <button class="btn btn-primary" id="repeatListenBtn" style="margin: 10px;">
+                        🔊 再听一遍
+                    </button>
+                    <div style="margin-top: 30px;">
+                        <button class="btn btn-success" onclick="changePhase('practice')">我学会了，准备测试</button>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('repeatListenBtn').addEventListener('click', () => playAudio(level.word));
+        }
+
+        // Practice phase - speech recognition
+        function renderPracticePhase(level) {
+            let instructions = '';
+
+            if (level.gameType === 'connect_letters') {
+                instructions = `
+                    <div style="background: #FFF3CD; border: 2px solid #FFC107; border-radius: 10px; padding: 15px; margin-bottom: 20px;">
+                        <h4 style="color: #856404; margin-bottom: 10px;">📝 拼读要求（严格标准）</h4>
+                        <p style="color: #856404; margin: 0; line-height: 1.6;">
+                            请<strong>一个字母一个字母地慢慢拼读</strong>，不能直接说整个单词！<br>
+                            例如："apple" 要读成 "a-p-p-l-e" 或 "a p p l e"<br>
+                            <strong>发音必须非常标准，速度要慢，不能太快！</strong>
+                        </p>
+                    </div>
+                `;
+            } else {
+                let difficultyInstructions = '';
+                const difficultyStyles = {
+                    'hard': {
+                        bg: '#D1ECF1',
+                        border: '#17A2B8',
+                        color: '#0C5460',
+                        title: '🎯 发音要求（最难 - 标准英语发音）',
+                        text: '请慢慢地、清楚地读出这个单词，<strong>发音必须非常标准</strong>！不能读得太快，要让每个音节都清晰可辨。<strong>注意：中文口音的发音不合格，必须用标准的英语发音！</strong>'
+                    },
+                    'medium': {
+                        bg: '#FFF3CD',
+                        border: '#FFC107',
+                        color: '#856404',
+                        title: '🎯 发音要求（中等 - 允许混合发音）',
+                        text: '可以不是纯英文发音，但不能完全是中文。允许有一些中文口音，但必须能识别出是英语单词。'
+                    },
+                    'easy': {
+                        bg: '#D4EDDA',
+                        border: '#28A745',
+                        color: '#155724',
+                        title: '🎯 发音要求（容易 - 允许快速中文发音）',
+                        text: '可以读得非常快，允许中文发音方式，但不能完全都是中文。只要包含英语单词的基本音素即可。'
+                    }
+                };
+
+                const style = difficultyStyles[currentDifficulty] || difficultyStyles['hard'];
+                instructions = `
+                    <div style="background: ${style.bg}; border: 2px solid ${style.border}; border-radius: 10px; padding: 15px; margin-bottom: 20px;">
+                        <h4 style="color: ${style.color}; margin-bottom: 10px;">${style.title}</h4>
+                        <p style="color: ${style.color}; margin: 0; line-height: 1.6;">
+                            ${style.text}
+                        </p>
+                    </div>
+                `;
+            }
+
+            playArea.innerHTML = `
+                <div class="speech-recognition">
+                    <h3 style="margin-bottom: 20px; color: #667eea;">发音测试时间！</h3>
+
+                    ${instructions}
+
+                    <p style="margin-bottom: 20px; color: #666;">
+                        请看着这个内容，点击麦克风按钮，然后按要求读出来：<br>
+                        <strong style="font-size: 2rem; color: #667eea;">${level.word}</strong>
+                    </p>
+                    <div class="pronunciation" style="margin-bottom: 30px;">${level.pronunciation}</div>
+
+                    <button class="mic-btn" id="micBtn">🎤 点击开始录音</button>
+                    <p style="font-size: 0.9rem; color: #999; margin-top: 10px;">
+                        提示：点击麦克风开始录音，说完后再次点击停止录音
+                    </p>
+
+                    <div id="recognitionResult" style="margin-top: 20px;"></div>
+
+                    <div style="margin-top: 20px;">
+                        <button class="btn btn-secondary" onclick="playAudio('${level.word}')">🔊 听标准发音</button>
+                    </div>
+                </div>
+            `;
+
+            // Initialize speech recognition
+            initSpeechRecognition(level);
+        }
+
+        // Initialize speech recognition
+        let isRecording = false;
+        let recognitionTranscripts = [];
+
+        function initSpeechRecognition(level) {
+            const micBtn = document.getElementById('micBtn');
+            const resultDiv = document.getElementById('recognitionResult');
+            isRecording = false;
+            recognitionTranscripts = [];
+
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                resultDiv.innerHTML = '<div class="incorrect">抱歉，您的浏览器不支持语音识别功能。请使用Chrome浏览器。</div>';
+                return;
+            }
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = true; // 改为连续模式，手动停止
+            recognition.interimResults = true; // 允许显示中间结果
+            recognition.lang = 'en-US';
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = () => {
+                isRecording = true;
+                micBtn.classList.add('recording');
+                micBtn.textContent = '🛑 点击停止录音';
+                resultDiv.innerHTML = '<p style="color: #666;">🎙️ 正在录音中... 请大声说出 "' + level.word + '"<br><small>说完后点击麦克风按钮停止</small></p>';
+                recognitionTranscripts = []; // 清空之前的录音结果
+            };
+
+            recognition.onresult = (event) => {
+                // 收集所有识别结果
+                recognitionTranscripts = [];
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript.toLowerCase().trim();
+                    const isFinal = event.results[i].isFinal;
+
+                    if (transcript) {
+                        recognitionTranscripts.push({
+                            transcript: transcript,
+                            isFinal: isFinal
+                        });
+                    }
+                }
+
+                // 显示实时识别结果（最后一个）
+                if (recognitionTranscripts.length > 0) {
+                    const lastResult = recognitionTranscripts[recognitionTranscripts.length - 1];
+                    if (!lastResult.isFinal) {
+                        resultDiv.innerHTML = '<p style="color: #666;">🎙️ 正在录音中...<br><small style="color: #999;">听到: "' + lastResult.transcript + '"</small></p>';
+                    }
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                if (event.error === 'no-speech') {
+                    // 没有语音输入，继续等待
+                    return;
+                }
+                isRecording = false;
+                micBtn.classList.remove('recording');
+                micBtn.textContent = '🎤 点击开始录音';
+                resultDiv.innerHTML = '<div class="incorrect">录音出错: ' + event.error + '，请重试。</div>';
+            };
+
+            recognition.onend = () => {
+                isRecording = false;
+                micBtn.classList.remove('recording');
+                micBtn.textContent = '🎤 点击开始录音';
+
+                // 处理最终识别结果
+                if (recognitionTranscripts.length > 0) {
+                    // 使用最后一个最终结果
+                    const finalResults = recognitionTranscripts.filter(r => r.isFinal);
+                    const bestTranscript = finalResults.length > 0
+                        ? finalResults[finalResults.length - 1].transcript
+                        : recognitionTranscripts[recognitionTranscripts.length - 1].transcript;
+
+                    console.log('Final transcript:', bestTranscript);
+
+                    // Check if pronunciation is correct
+                    const isCorrect = checkPronunciation(bestTranscript, level.word);
+
+                    if (isCorrect) {
+                        const level = levels[currentLevel];
+                        resultDiv.innerHTML = `
+                            <div class="recognition-result correct">
+                                🎉 太棒了！${level.word}发音完全正确！<br>
+                                <small>你说的是: "${bestTranscript}"</small>
+                            </div>
+                        `;
+                        setTimeout(() => {
+                            completeLevel();
+                        }, 2000);
+                    } else {
+                        const level = levels[currentLevel];
+                        let simpleErrorMessage = '';
+
+                        if (level.gameType === 'connect_letters') {
+                            simpleErrorMessage = '必须一个字母一个字母地拼读！不能直接说整个单词。';
+                        } else {
+                            simpleErrorMessage = '发音标准度不够，请用标准的英语发音重试！';
+                        }
+
+                        resultDiv.innerHTML = `
+                            <div class="recognition-result incorrect">
+                                ❌ 不合格，请重试！<br>
+                                <small>你说的是: "${bestTranscript}"</small><br>
+                                <small style="color: #d32f2f; font-weight: bold;">${simpleErrorMessage}</small>
+                            </div>
+                        `;
+                    }
+                } else {
+                    resultDiv.innerHTML = '<div class="incorrect">没有识别到语音，请重试。</div>';
+                }
+            };
+
+            // 点击麦克风按钮开始/停止录音
+            micBtn.addEventListener('click', () => {
+                if (!isRecording) {
+                    // 开始录音
+                    try {
+                        recognition.start();
+                    } catch (error) {
+                        if (error.message.includes('already started')) {
+                            // 如果已经在运行，先停止再开始
+                            recognition.stop();
+                            setTimeout(() => {
+                                recognition.start();
+                            }, 100);
+                        }
+                    }
+                } else {
+                    // 停止录音
+                    recognition.stop();
+                }
+            });
+        }
+
+        // Check pronunciation（已放宽标准，尽量不气奶奶）
+        function checkPronunciation(transcript, targetWord) {
+            const transcriptClean = transcript.toLowerCase().trim();
+
+            // Remove punctuation and extra spaces
+            const cleanTranscript = transcriptClean.replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
+
+            // Special handling for different game types
+            const level = levels[currentLevel];
+
+            // For connect letters levels, check if they spelled it out letter by letter
+            if (level.gameType === 'connect_letters') {
+                // Check if they spelled the word by saying individual letters
+                const letters = level.letters;
+                const spelledCorrectly = checkSpellingPronunciation(cleanTranscript, targetWord, letters);
+
+                if (!spelledCorrectly) {
+                    return false;
+                }
+            }
+
+            // For choice question levels, they should pronounce the word，但允许比较宽松
+            if (level.gameType === 'choice_question') {
+                return checkWordPronunciation(cleanTranscript, targetWord);
+            }
+
+            // For plural practice levels, check plural forms
+            if (level.gameType === 'plural_practice') {
+                return checkPluralPronunciation(cleanTranscript, targetWord);
+            }
+
+            // For sentence practice levels, check sentence pronunciation
+            if (level.gameType === 'sentence_practice') {
+                return checkSentencePronunciation(cleanTranscript, targetWord);
+            }
+
+            // For其它关卡（包括复习关里的读单词），统一使用「非常宽松」的检查逻辑
+            return checkLenientPronunciation(cleanTranscript, targetWord);
+        }
+
+        // Check if they spelled the word letter by letter
+        function checkSpellingPronunciation(transcript, targetWord, letters) {
+            // Remove spaces and check if they said the letters individually
+            const noSpaces = transcript.replace(/\s/g, '');
+
+            // Check if they spelled it correctly
+            if (noSpaces === letters.join('')) {
+                return true;
+            }
+
+            // Check if they said it with spaces between letters
+            const spacedLetters = letters.join(' ');
+            if (transcript === spacedLetters) {
+                return true;
+            }
+
+            // Check if they said "a-p-p-l-e" style spelling
+            const hyphenated = letters.join('-');
+            if (transcript.replace(/\s/g, '-') === hyphenated) {
+                return true;
+            }
+
+            return false;
+        }
+
+        // 单词发音检查：根据难度调整，但整体放宽
+        function checkWordPronunciation(transcript, targetWord) {
+            const cleanInput = transcript.replace(/[^\w]/g, '').toLowerCase();
+            const cleanTarget = targetWord.toLowerCase();
+
+            // Allow both singular and plural forms
+            const pluralVariants = {
+                'cat': ['cat', 'cats'],
+                'dog': ['dog', 'dogs'],
+                'car': ['car', 'cars'],
+                'apple': ['apple', 'apples'],
+                'banana': ['banana', 'bananas']
+            };
+
+            let acceptableWords = [cleanTarget];
+            if (pluralVariants[cleanTarget]) {
+                acceptableWords = pluralVariants[cleanTarget];
+            }
+
+            // Check if input matches any acceptable variant
+            const isAcceptableWord = acceptableWords.some(word => cleanInput === word);
+
+            if (!isAcceptableWord) {
+                return false;
+            }
+
+            // 直接使用「简单宽松」规则，不再区分 hard/medium/easy
+            return checkLenientPronunciation(transcript, targetWord);
+        }
+
+        // 非常宽松的发音检查：只要大致像就通过，避免 C/H 之类的小错误导致失败
+        function checkLenientPronunciation(transcript, targetWord) {
+            const input = transcript.toLowerCase();
+            const word = targetWord.toLowerCase();
+
+            // 1. 完全中文直接判错（比如只说“猫”）
+            const allChinese = /^[\u4e00-\u9fa5]+$/.test(transcript);
+            if (allChinese) return false;
+
+            // 2. 只要有英文字符，就认为是尝试读英文
+            if (/[a-z]/.test(input)) {
+                // 对很短的词（cat, dog, car, but 等）再宽松一点：
+                // - 只要包含首字母或尾字母就可以
+                if (word.length <= 4) {
+                    const first = word[0];
+                    const last = word[word.length - 1];
+                    if (input.includes(first) || input.includes(last)) {
+                        return true;
+                    }
+                }
+
+                // 对其它单词：只要有一部分连续的字母和目标单词重合即可
+                // 例如 "ca" 也可以算 cat
+                for (let len = Math.min(2, word.length); len <= word.length; len++) {
+                    const part = word.slice(0, len);
+                    if (input.includes(part)) {
+                        return true;
+                    }
+                }
+
+            }
+
+            return false;
+        }
+
+        function checkHardModePronunciation(transcript, targetWord) {
+            // Hard mode: Must be standard English pronunciation
+            const word = targetWord.toLowerCase();
+
+            // Check for Chinese-influenced pronunciations (reject them)
+            const chinesePatterns = {
+                'cat': ['ka', 'te', '凯特'],
+                'dog': ['dou', 'ge', '豆哥'],
+                'car': ['ka', 'er', '卡尔'],
+                'but': ['ba', 'te', '巴特'],
+                'apple': ['po', 'pu', '苹果'],
+                'banana': ['na', '那', '香蕉']
+            };
+
+            if (chinesePatterns[word]) {
+                const patterns = chinesePatterns[word];
+                const transcriptLower = transcript.toLowerCase();
+                // If contains too many Chinese patterns, reject
+                const chineseMatchCount = patterns.filter(pattern => transcriptLower.includes(pattern)).length;
+                if (chineseMatchCount >= 2) {
+                    return false;
+                }
+            }
+
+            // Must contain English-like patterns
+            return transcript.toLowerCase().match(/[a-z]{2,}/) !== null;
+        }
+
+        function checkMediumModePronunciation(transcript, targetWord, cleanInput) {
+            // Medium mode: Can be mixed, but not completely Chinese
+            const word = targetWord.toLowerCase();
+            const transcriptLower = transcript.toLowerCase();
+
+            // Check if it's completely Chinese (reject)
+            const allChineseChars = /^[\u4e00-\u9fa5]+$/.test(transcript);
+            if (allChineseChars) {
+                return false;
+            }
+
+            // Must contain some English letters or recognizable English word pattern
+            const hasEnglishChars = /[a-z]/i.test(transcript);
+            if (!hasEnglishChars) {
+                return false;
+            }
+
+            // Must contain at least part of the target word
+            return transcriptLower.includes(word.substring(0, 2)) || cleanInput.includes(word.substring(0, 2));
+        }
+
+        function checkEasyModePronunciation(transcript, targetWord, cleanInput) {
+            // Easy mode: Allow fast Chinese-style, but can't be completely Chinese
+            const word = targetWord.toLowerCase();
+            const transcriptLower = transcript.toLowerCase();
+
+            // Check if it's completely Chinese (reject)
+            const allChineseChars = /^[\u4e00-\u9fa5]+$/.test(transcript);
+            if (allChineseChars) {
+                return false;
+            }
+
+            // Very lenient: just needs to contain some reference to the word
+            // Check if transcript contains any letters from the target word
+            const wordLetters = word.split('').filter(l => /[a-z]/.test(l));
+            const matchingLetters = wordLetters.filter(letter => transcriptLower.includes(letter)).length;
+
+            // Must have at least 1 matching letter (very lenient)
+            return matchingLetters > 0 || cleanInput.length > 0;
+        }
+
+        // Check plural pronunciation
+        function checkPluralPronunciation(transcript, targetWord) {
+            // For plural practice level (第9关)，用户需要发音复数形式
+            if (targetWord === '单复数S') {
+                const level = levels[currentLevel];
+                const examples = level.examples;
+
+                // Check if transcript contains any of the plural forms correctly
+                for (const example of examples) {
+                    if (transcript.toLowerCase().includes(example.plural.toLowerCase())) {
+                        return true;
+                    }
+                }
+
+                // Check if they said multiple plural forms
+                const pluralWords = ['cats', 'dogs', 'cars', 'apples', 'bananas'];
+                const foundPlurals = pluralWords.filter(word => transcript.toLowerCase().includes(word));
+
+                return foundPlurals.length >= 2; // Must say at least 2 plural forms
+            }
+
+            return false;
+        }
+
+        // Check sentence pronunciation
+        function checkSentencePronunciation(transcript, targetWord) {
+            // For sentence practice, check if they pronounced the key parts correctly
+            const level = levels[currentLevel];
+            const sentence = level.sentence.toLowerCase();
+
+            // Check for key elements in the sentence
+            const hasLike = transcript.includes('like');
+            const hasBut = transcript.includes('but');
+            const hasDont = transcript.includes('don\'t') || transcript.includes('dont');
+            const hasCat = transcript.includes('cat');
+            const hasDog = transcript.includes('dog');
+
+            // Must have most of the key elements
+            const keyElements = [hasLike, hasBut, hasDont, hasCat, hasDog];
+            const presentCount = keyElements.filter(Boolean).length;
+
+            return presentCount >= 4; // Must have at least 4 out of 5 key elements
+        }
+
+        // Strict pronunciation checking for all words
+        function checkStrictPronunciation(transcript, targetWord) {
+            // For simple words, require exact pronunciation
+            const simpleWords = ['tap', 'pan', 'milk', 'sun', 'moon', 'star', 'fish', 'bird', 'tree', 'flower', 'water', 'fire', 'wind'];
+
+            if (simpleWords.includes(targetWord)) {
+                return checkWordPronunciation(transcript, targetWord);
+            }
+
+            // For complex phrases like "I like cat, but I don't like dog"
+            if (targetWord.includes('I like cat, but I don\'t like dog')) {
+                const cleanInput = transcript.toLowerCase().replace(/[^\w\s]/g, '');
+
+                // Must contain all key elements
+                const hasILike = cleanInput.includes('i like') || cleanInput.includes('i love');
+                const hasCat = cleanInput.includes('cat');
+                const hasBut = cleanInput.includes('but') || cleanInput.includes('butt');
+                const hasDont = cleanInput.includes('dont') || cleanInput.includes('don\'t');
+                const hasLikeDog = cleanInput.includes('like dog');
+
+                return hasILike && hasCat && hasBut && hasDont && hasLikeDog;
+            }
+
+            // Default strict checking
+            return checkWordPronunciation(transcript, targetWord);
+        }
+
+        // Change phase
+        function changePhase(phase) {
+            currentPhase = phase;
+            updatePhaseButtons();
+            renderPlayArea();
+        }
+
+        // Play audio using Web Speech API
+        function playAudio(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.7; // Slightly slower for learning
+
+                // Find a good English voice
+                const voices = speechSynthesis.getVoices();
+                const englishVoice = voices.find(voice =>
+                    voice.lang.startsWith('en') && voice.name.toLowerCase().includes('female')
+                ) || voices.find(voice => voice.lang.startsWith('en'));
+
+                if (englishVoice) {
+                    utterance.voice = englishVoice;
+                }
+
+                speechSynthesis.speak(utterance);
+            } else {
+                alert('您的浏览器不支持语音播放功能。请尝试使用Chrome或Safari浏览器。');
+            }
+        }
+
+        // Complete level
+        function completeLevel() {
+            const level = levels[currentLevel];
+
+            // Mark current level as completed
+            if (!completedLevels.includes(level.id)) {
+                completedLevels.push(level.id);
+                localStorage.setItem('grandmaEnglishProgress', JSON.stringify(completedLevels));
+                updateProgress();
+                createLevelCards();
+            }
+
+            // Show celebration
+            celebration.style.display = 'block';
+            setTimeout(() => {
+                celebration.style.display = 'none';
+
+                // Go to next level or back to menu
+                if (currentLevel < levels.length - 1) {
+                    startLevel(currentLevel + 1);
+                } else {
+                    // All levels completed!
+                    backToMenu();
+                    alert('🎉 恭喜奶奶！您已经完成了所有的英语学习关卡！🎉');
+                }
+            }, 3000);
+        }
+
+        // Back to level selection
+        function backToMenu() {
+            gameScreen.classList.remove('show');
+            document.querySelector('.level-grid').style.display = 'grid';
+
+            // Stop speech recognition if active
+            if (recognition) {
+                recognition.stop();
+            }
+        }
+
+        // Phase button event listeners
+        document.querySelectorAll('.phase-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const phase = btn.dataset.phase;
+                changePhase(phase);
+            });
+        });
+
+        // Back button
+        backBtn.addEventListener('click', backToMenu);
+
+        // Initialize jump to level dropdown
+        function initJumpToLevelDropdown() {
+            const jumpSelect = document.getElementById('jumpToLevel');
+            jumpSelect.innerHTML = '<option value="">选择关卡...</option>';
+
+            levels.forEach((level, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `第${level.id}关: ${level.word}`;
+                jumpSelect.appendChild(option);
+            });
+        }
+
+        // Initialize game
+        createStars();
+        createLevelCards();
+        updateProgress();
+        updateDebugInfo();
+        initJumpToLevelDropdown();
+
+        // Reset progress button
+        document.getElementById('resetProgressBtn').addEventListener('click', () => {
+            if (confirm('确定要重置所有游戏进度吗？这将清除所有已完成的关卡！')) {
+                completedLevels = [];
+                localStorage.setItem('grandmaEnglishProgress', JSON.stringify(completedLevels));
+                updateProgress();
+                createLevelCards();
+                updateDebugInfo();
+                initJumpToLevelDropdown();
+                alert('进度已重置！现在可以重新开始游戏了。');
+            }
+        });
+
+        // Jump to level button
+        document.getElementById('jumpBtn').addEventListener('click', () => {
+            const jumpSelect = document.getElementById('jumpToLevel');
+            const selectedLevelIndex = parseInt(jumpSelect.value);
+
+            if (isNaN(selectedLevelIndex) || selectedLevelIndex < 0 || selectedLevelIndex >= levels.length) {
+                alert('请先选择一个关卡！');
+                return;
+            }
+
+            // Temporarily unlock all previous levels for debugging
+            const targetLevel = levels[selectedLevelIndex];
+
+            if (confirm(`确定要跳转到第${targetLevel.id}关 "${targetLevel.word}" 吗？\n（调试模式：将临时解锁该关卡）`)) {
+                // Stop any ongoing recognition
+                if (recognition) {
+                    recognition.stop();
+                }
+
+                // Close game screen if open
+                gameScreen.classList.remove('show');
+                document.querySelector('.level-grid').style.display = 'grid';
+
+                // Start the selected level directly
+                startLevel(selectedLevelIndex);
+            }
+        });
+
+        // Parent mode setup
+        function initParentMode() {
+            // Check if initial setup is needed
+            if (!isInitialSetupDone) {
+                // First time use - show initial setup
+                document.getElementById('initialSetupModal').classList.add('show');
+            }
+
+            updateDifficultyDisplay();
+
+            // Initial setup - son name input
+            document.getElementById('confirmSonNameBtn').addEventListener('click', () => {
+                const sonNameInput = document.getElementById('sonNameInput').value.trim();
+
+                if (!sonNameInput) {
+                    alert('请输入儿子的名字！');
+                    return;
+                }
+
+                sonName = sonNameInput;
+                localStorage.setItem('sonName', sonName);
+
+                document.getElementById('initialSetupModal').classList.remove('show');
+                document.getElementById('setPasswordModal').classList.add('show');
+            });
+
+            document.getElementById('cancelInitialBtn').addEventListener('click', () => {
+                document.getElementById('initialSetupModal').classList.remove('show');
+            });
+
+            // Set password modal events
+            const confirmSetPasswordBtn = document.getElementById('confirmSetPasswordBtn');
+
+            // Remove existing event listeners by cloning the button
+            const newConfirmSetPasswordBtn = confirmSetPasswordBtn.cloneNode(true);
+            confirmSetPasswordBtn.parentNode.replaceChild(newConfirmSetPasswordBtn, confirmSetPasswordBtn);
+
+            newConfirmSetPasswordBtn.addEventListener('click', () => {
+                const newPassword = document.getElementById('newPasswordInput').value;
+                const confirmPassword = document.getElementById('confirmPasswordInput').value;
+
+                if (!newPassword) {
+                    alert('请输入密码！');
+                    return;
+                }
+
+                if (newPassword !== confirmPassword) {
+                    alert('两次输入的密码不一致，请重试！');
+                    document.getElementById('confirmPasswordInput').value = '';
+                    document.getElementById('confirmPasswordInput').focus();
+                    return;
+                }
+
+                parentPasswordHash = simpleHash(newPassword);
+                localStorage.setItem('parentPasswordHash', parentPasswordHash);
+
+                // If this is initial setup
+                if (!isInitialSetupDone) {
+                    localStorage.setItem('initialSetupDone', 'true');
+                    isInitialSetupDone = true;
+                }
+
+                document.getElementById('setPasswordModal').classList.remove('show');
+                document.getElementById('difficultyModal').classList.add('show');
+                updateDifficultySelection();
+                alert('密码设置成功！');
+            });
+
+            document.getElementById('cancelSetPasswordBtn').addEventListener('click', () => {
+                document.getElementById('setPasswordModal').classList.remove('show');
+                document.getElementById('initialSetupModal').classList.add('show');
+            });
+
+            // Parent mode button click
+            document.getElementById('parentModeBtn').addEventListener('click', () => {
+                if (!isInitialSetupDone) {
+                    document.getElementById('initialSetupModal').classList.add('show');
+                    return;
+                }
+                document.getElementById('passwordModal').classList.add('show');
+                document.getElementById('passwordInput').value = '';
+                document.getElementById('passwordInput').focus();
+            });
+
+            // Password modal events
+            document.getElementById('confirmPasswordBtn').addEventListener('click', checkPassword);
+            document.getElementById('cancelPasswordBtn').addEventListener('click', () => {
+                document.getElementById('passwordModal').classList.remove('show');
+            });
+            document.getElementById('passwordInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    checkPassword();
+                }
+            });
+
+            // Change password button (in difficulty modal)
+            document.getElementById('changePasswordBtn').addEventListener('click', () => {
+                document.getElementById('difficultyModal').classList.remove('show');
+                document.getElementById('changePasswordModal').classList.add('show');
+                document.getElementById('oldPasswordInput').value = '';
+                document.getElementById('newPasswordChangeInput').value = '';
+                document.getElementById('confirmPasswordChangeInput').value = '';
+                document.getElementById('oldPasswordInput').focus();
+            });
+
+            // Difficulty selection events
+            ['Hard', 'Medium', 'Easy'].forEach(diff => {
+                document.getElementById(`difficulty${diff}`).addEventListener('click', () => {
+                    document.querySelectorAll('.difficulty-option').forEach(opt => opt.classList.remove('selected'));
+                    document.getElementById(`difficulty${diff}`).classList.add('selected');
+                });
+            });
+
+            // Save difficulty button
+            document.getElementById('saveDifficultyBtn').addEventListener('click', () => {
+                const selected = document.querySelector('.difficulty-option.selected');
+                if (selected) {
+                    const difficulty = selected.id.replace('difficulty', '').toLowerCase();
+                    currentDifficulty = difficulty;
+                    localStorage.setItem('pronunciationDifficulty', difficulty);
+                    updateDifficultyDisplay();
+                    document.getElementById('difficultyModal').classList.remove('show');
+                    alert('难度设置已保存！');
+                } else {
+                    alert('请先选择一个难度等级！');
+                }
+            });
+
+            // Cancel difficulty button
+            document.getElementById('cancelDifficultyBtn').addEventListener('click', () => {
+                document.getElementById('difficultyModal').classList.remove('show');
+                updateDifficultySelection();
+            });
+
+            // Change password modal events
+            document.getElementById('confirmChangePasswordBtn').addEventListener('click', () => {
+                const oldPassword = document.getElementById('oldPasswordInput').value;
+                const newPassword = document.getElementById('newPasswordChangeInput').value;
+                const confirmPassword = document.getElementById('confirmPasswordChangeInput').value;
+
+                if (!oldPassword) {
+                    alert('请输入原密码！');
+                    return;
+                }
+
+                // Verify old password
+                const oldPasswordHash = simpleHash(oldPassword);
+                if (oldPasswordHash !== parentPasswordHash) {
+                    alert('原密码错误！请重试。');
+                    document.getElementById('oldPasswordInput').value = '';
+                    document.getElementById('oldPasswordInput').focus();
+                    return;
+                }
+
+                if (!newPassword) {
+                    alert('请输入新密码！');
+                    return;
+                }
+
+                if (newPassword !== confirmPassword) {
+                    alert('两次输入的新密码不一致，请重试！');
+                    document.getElementById('confirmPasswordChangeInput').value = '';
+                    document.getElementById('confirmPasswordChangeInput').focus();
+                    return;
+                }
+
+                // Update password
+                parentPasswordHash = simpleHash(newPassword);
+                localStorage.setItem('parentPasswordHash', parentPasswordHash);
+
+                document.getElementById('changePasswordModal').classList.remove('show');
+                document.getElementById('difficultyModal').classList.add('show');
+                alert('密码修改成功！');
+            });
+
+            document.getElementById('cancelChangePasswordBtn').addEventListener('click', () => {
+                document.getElementById('changePasswordModal').classList.remove('show');
+                document.getElementById('difficultyModal').classList.add('show');
+            });
+
+            // Load saved difficulty on startup
+            updateDifficultySelection();
+        }
+
+        // Send SMS verification code
+        function sendSmsCode() {
+            const phoneInput = document.getElementById('phoneInput').value.trim();
+
+            if (!phoneInput) {
+                alert('请输入手机号码！');
+                return;
+            }
+
+            // Validate phone number format (11 digits starting with 1)
+            if (!/^1[3-9]\d{9}$/.test(phoneInput)) {
+                alert('请输入正确的手机号码格式（11位数字）！');
+                return;
+            }
+
+            // Generate and store verification code
+            smsVerificationCode = generateSmsCode();
+            smsCodeExpiry = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+            // Save phone number
+            phoneNumber = phoneInput;
+            localStorage.setItem('phoneNumber', phoneNumber);
+
+            // Simulate sending SMS (in real app, this would call SMS service)
+            alert(`验证码已发送到 ${phoneInput}\n（演示模式：验证码是 ${smsVerificationCode}）`);
+
+            // Start countdown
+            let countdown = 60;
+            const sendBtn = document.getElementById('sendSmsBtn');
+            const timerDiv = document.getElementById('smsTimer');
+            sendBtn.disabled = true;
+
+            const timer = setInterval(() => {
+                countdown--;
+                timerDiv.textContent = `${countdown}秒后可重新发送`;
+
+                if (countdown <= 0) {
+                    clearInterval(timer);
+                    sendBtn.disabled = false;
+                    timerDiv.textContent = '';
+                }
+            }, 1000);
+        }
+
+        // Verify SMS code
+        function verifySmsCode() {
+            const codeInput = document.getElementById('smsCodeInput').value.trim();
+            const phoneInput = document.getElementById('phoneInput').value.trim();
+
+            if (!codeInput) {
+                alert('请输入验证码！');
+                return;
+            }
+
+            if (!phoneInput) {
+                alert('请输入手机号码！');
+                return;
+            }
+
+            // Check if code is expired
+            if (Date.now() > smsCodeExpiry) {
+                alert('验证码已过期，请重新获取！');
+                return;
+            }
+
+            // Verify code
+            if (codeInput === smsVerificationCode) {
+                // Verification successful - proceed to password change
+                document.getElementById('smsVerifyModal').classList.remove('show');
+                document.getElementById('setPasswordModal').classList.add('show');
+                document.getElementById('newPasswordInput').value = '';
+                document.getElementById('confirmPasswordInput').value = '';
+                smsVerificationCode = ''; // Clear code after use
+            } else {
+                alert('验证码错误，请重试！');
+                document.getElementById('smsCodeInput').value = '';
+                document.getElementById('smsCodeInput').focus();
+            }
+        }
+
+        function checkPassword() {
+            const input = document.getElementById('passwordInput').value;
+            const inputHash = simpleHash(input);
+
+            if (inputHash === parentPasswordHash) {
+                document.getElementById('passwordModal').classList.remove('show');
+                document.getElementById('difficultyModal').classList.add('show');
+                updateDifficultySelection();
+            } else {
+                alert('密码错误！请重试。');
+                document.getElementById('passwordInput').value = '';
+                document.getElementById('passwordInput').focus();
+            }
+        }
+
+        // Voice verification for password change
+        function initVoiceVerification() {
+            const micBtn = document.getElementById('voiceVerifyMicBtn');
+            const resultDiv = document.getElementById('voiceVerifyResult');
+            let voiceVerifyRecognition = null;
+            let isVoiceRecording = false;
+            let voiceTranscripts = [];
+
+            resultDiv.innerHTML = '';
+
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                resultDiv.innerHTML = '<div class="incorrect">抱歉，您的浏览器不支持语音识别功能。</div>';
+                return;
+            }
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            voiceVerifyRecognition = new SpeechRecognition();
+            voiceVerifyRecognition.continuous = true;
+            voiceVerifyRecognition.interimResults = true;
+            voiceVerifyRecognition.lang = 'zh-CN'; // 使用中文识别儿子的名字
+            voiceVerifyRecognition.maxAlternatives = 1;
+
+            voiceVerifyRecognition.onstart = () => {
+                isVoiceRecording = true;
+                micBtn.classList.add('recording');
+                micBtn.textContent = '🛑';
+                resultDiv.innerHTML = '<p style="color: #666;">正在录音... 请说出儿子的名字</p>';
+                voiceTranscripts = [];
+            };
+
+            voiceVerifyRecognition.onresult = (event) => {
+                voiceTranscripts = [];
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript.trim();
+                    const isFinal = event.results[i].isFinal;
+                    if (transcript) {
+                        voiceTranscripts.push({ transcript: transcript, isFinal: isFinal });
+                        if (isFinal) {
+                            resultDiv.innerHTML = `<p style="color: #666;">听到: "${transcript}"</p>`;
+                        }
+                    }
+                }
+            };
+
+            voiceVerifyRecognition.onend = () => {
+                isVoiceRecording = false;
+                micBtn.classList.remove('recording');
+                micBtn.textContent = '🎤';
+
+                // Get the last final result
+                const finalResults = voiceTranscripts.filter(r => r.isFinal);
+                if (finalResults.length > 0) {
+                    const recognizedName = finalResults[finalResults.length - 1].transcript.trim();
+                    verifySonName(recognizedName);
+                } else if (voiceTranscripts.length > 0) {
+                    const recognizedName = voiceTranscripts[voiceTranscripts.length - 1].transcript.trim();
+                    verifySonName(recognizedName);
+                } else {
+                    resultDiv.innerHTML = '<div class="incorrect">没有识别到语音，请重试。</div>';
+                }
+            };
+
+            voiceVerifyRecognition.onerror = (event) => {
+                if (event.error !== 'no-speech') {
+                    isVoiceRecording = false;
+                    micBtn.classList.remove('recording');
+                    micBtn.textContent = '🎤';
+                    resultDiv.innerHTML = '<div class="incorrect">录音出错: ' + event.error + '，请重试。</div>';
+                }
+            };
+
+            micBtn.onclick = () => {
+                if (!isVoiceRecording) {
+                    try {
+                        voiceVerifyRecognition.start();
+                    } catch (error) {
+                        if (error.message.includes('already started')) {
+                            voiceVerifyRecognition.stop();
+                            setTimeout(() => {
+                                voiceVerifyRecognition.start();
+                            }, 100);
+                        }
+                    }
+                } else {
+                    voiceVerifyRecognition.stop();
+                }
+            };
+        }
+
+        function verifySonName(recognizedName) {
+            // Check for polyphones (多音字)
+            const polyphonesFound = [];
+            const recognizedChars = recognizedName.split('');
+
+            for (let i = 0; i < recognizedChars.length; i++) {
+                const char = recognizedChars[i];
+                if (polyphoneMap[char]) {
+                    polyphonesFound.push({
+                        index: i,
+                        char: char,
+                        options: polyphoneMap[char]
+                    });
+                }
+            }
+
+            // If polyphones found, show selection interface
+            if (polyphonesFound.length > 0) {
+                showPolyphoneSelection(recognizedName, polyphonesFound);
+                return;
+            }
+
+            // Check if recognized name matches stored son name (fuzzy match)
+            const normalizedRecognized = recognizedName.toLowerCase().replace(/\s/g, '');
+            const normalizedStored = sonName.toLowerCase().replace(/\s/g, '');
+
+            if (normalizedRecognized.includes(normalizedStored) || normalizedStored.includes(normalizedRecognized)) {
+                // Verification successful - proceed to SMS verification
+                document.getElementById('voiceVerifyModal').classList.remove('show');
+                document.getElementById('smsVerifyModal').classList.add('show');
+                // Pre-fill phone number if exists
+                if (phoneNumber) {
+                    document.getElementById('phoneInput').value = phoneNumber;
+                }
+            } else {
+                // Show error with correct name
+                document.getElementById('voiceVerifyResult').innerHTML = `
+                    <div class="incorrect">
+                        ❌ 身份验证失败！<br>
+                        <small>听到: "${recognizedName}"</small><br>
+                        <strong style="color: #4CAF50;">正确名字: "${sonName}"</strong><br>
+                        <small style="color: #999;">下次请说出正确的名字</small>
+                    </div>
+                `;
+            }
+        }
+
+        function showPolyphoneSelection(recognizedName, polyphones) {
+            const polyphoneOptions = document.getElementById('polyphoneOptions');
+            polyphoneOptions.innerHTML = '';
+
+            // Show the recognized name for context
+            const contextDiv = document.createElement('div');
+            contextDiv.style.gridColumn = '1 / -1';
+            contextDiv.style.marginBottom = '15px';
+            contextDiv.style.padding = '10px';
+            contextDiv.style.background = 'rgba(102, 126, 234, 0.1)';
+            contextDiv.style.borderRadius = '5px';
+            contextDiv.innerHTML = `<strong>识别到的名字：</strong>${recognizedName}`;
+            polyphoneOptions.appendChild(contextDiv);
+
+            polyphones.forEach((poly, idx) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.style.gridColumn = '1 / -1';
+                itemDiv.style.marginBottom = '15px';
+
+                const label = document.createElement('div');
+                label.style.fontWeight = 'bold';
+                label.style.marginBottom = '8px';
+                label.style.color = '#333';
+                label.textContent = `第${poly.index + 1}个字 "${poly.char}" 的读音：请选择正确的字`;
+                itemDiv.appendChild(label);
+
+                const optionsContainer = document.createElement('div');
+                optionsContainer.style.display = 'flex';
+                optionsContainer.style.gap = '10px';
+                optionsContainer.style.flexWrap = 'wrap';
+
+                poly.options.forEach(option => {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn btn-secondary';
+                    btn.textContent = option;
+                    btn.style.padding = '10px 20px';
+                    btn.style.fontSize = '1.1rem';
+                    btn.onclick = () => {
+                        // Replace character at this position
+                        const chars = recognizedName.split('');
+                        chars[poly.index] = option;
+                        const correctedName = chars.join('');
+
+                        // Close polyphone modal and verify again with corrected name
+                        document.getElementById('polyphoneModal').classList.remove('show');
+                        verifySonName(correctedName);
+                    };
+                    optionsContainer.appendChild(btn);
+                });
+
+                itemDiv.appendChild(optionsContainer);
+                polyphoneOptions.appendChild(itemDiv);
+            });
+
+            document.getElementById('polyphoneModal').classList.add('show');
+        }
+
+        function updateDifficultySelection() {
+            document.querySelectorAll('.difficulty-option').forEach(opt => opt.classList.remove('selected'));
+            const difficultyMap = { 'hard': 'Hard', 'medium': 'Medium', 'easy': 'Easy' };
+            document.getElementById(`difficulty${difficultyMap[currentDifficulty]}`).classList.add('selected');
+        }
+
+        function updateDifficultyDisplay() {
+            const difficultyNames = {
+                'hard': '🔴 最难 - 标准英语发音',
+                'medium': '🟠 中等 - 允许混合发音',
+                'easy': '🟢 容易 - 允许快速中文发音'
+            };
+            document.getElementById('currentDifficultyInfo').textContent =
+                `当前难度: ${difficultyNames[currentDifficulty]}`;
+        }
+
+        // Initialize parent mode
+        initParentMode();
+
+        // Debug feature: Middle mouse button to restart game
+        document.addEventListener('auxclick', (event) => {
+            if (event.button === 1) { // Middle mouse button
+                event.preventDefault();
+                restartGame();
+            }
+        });
+
+        // Load voices for speech synthesis
+        if ('speechSynthesis' in window) {
+            speechSynthesis.onvoiceschanged = () => {
+                // Voices are loaded
+            };
+        }
+
+        // Restart game function (debug feature)
+        function restartGame() {
+            // Clear all progress
+            completedLevels = [];
+            localStorage.setItem('grandmaEnglishProgress', JSON.stringify(completedLevels));
+
+            // Reset current state
+            currentLevel = 0;
+            currentPhase = 'recognize';
+            interactionCount = 0;
+
+            // Stop any ongoing speech recognition
+            if (recognition) {
+                recognition.stop();
+            }
+
+            // Reset UI
+            updateProgress();
+            createLevelCards();
+            updateDebugInfo();
+            initJumpToLevelDropdown();
+            backToMenu();
+
+            // Show restart message
+            alert('🔄 调试模式：游戏已重新开始！所有进度已重置。');
+        }
+    </script>
+</body>
+
+</html>

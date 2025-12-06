@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>烤面包大师</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: linear-gradient(180deg, #fffef7 0%, #f5ecd8 65%, #e4d2aa 100%);
+            --panel: rgba(255, 255, 255, 0.78);
+            --accent: #f97316;
+            --accent-dark: #ea580c;
+            --text: #422d16;
+            --toast-light: #f6e7c2;
+            --toast-dark: #8b5a2b;
+            --thermo-track: #f3f4f6;
+            --thermo-bar: linear-gradient(180deg, #fdba74 0%, #f97316 100%);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 16px;
+        }
+
+        main {
+            width: min(960px, 100%);
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 280px;
+            gap: 24px;
+            align-items: start;
+        }
+
+        .panel {
+            background: var(--panel);
+            backdrop-filter: blur(6px);
+            box-shadow: 0 18px 40px rgba(66, 45, 22, 0.18);
+            border-radius: 20px;
+            padding: 24px;
+        }
+
+        h1 {
+            margin: 0 0 12px;
+            font-size: clamp(28px, 4vw, 42px);
+            color: var(--accent-dark);
+        }
+
+        .subtitle {
+            margin: 0 0 24px;
+            font-size: 16px;
+            color: rgba(66, 45, 22, 0.72);
+        }
+
+        .play-area {
+            display: grid;
+            gap: 24px;
+        }
+
+        .toast-area {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 70px;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .bread {
+            position: relative;
+            width: 100%;
+            padding-top: 75%;
+            border-radius: 36% 36% 18% 18%;
+            background: radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.8), rgba(255, 240, 210, 0.4) 26%, transparent 70%),
+                linear-gradient(180deg, #f8efcf 0%, #f0dfb1 55%, #e0c28a 100%);
+            box-shadow:
+                inset 0 12px 32px rgba(0, 0, 0, 0.18),
+                inset 0 -6px 14px rgba(0, 0, 0, 0.12),
+                0 18px 32px rgba(0, 0, 0, 0.18);
+            overflow: hidden;
+            transform: translateY(var(--lift, 0));
+            transition: transform 260ms ease, box-shadow 260ms ease, background 260ms ease;
+        }
+
+        .bread::before {
+            content: "";
+            position: absolute;
+            inset: 6%;
+            border-radius: 30% 30% 16% 16%;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(0, 0, 0, 0.04));
+            pointer-events: none;
+        }
+
+        .bread::after {
+            content: "";
+            position: absolute;
+            inset: 10%;
+            border-radius: 28% 30% 18% 18%;
+            background:
+                radial-gradient(220px 160px at 30% 38%, rgba(255, 255, 255, 0.55), transparent 65%),
+                radial-gradient(180px 180px at 68% 42%, rgba(255, 255, 255, 0.35), transparent 58%),
+                radial-gradient(90px 120px at 36% 60%, rgba(138, 100, 58, 0.18), transparent 85%),
+                radial-gradient(140px 100px at 70% 68%, rgba(118, 78, 38, 0.16), transparent 80%);
+            mix-blend-mode: overlay;
+            pointer-events: none;
+        }
+
+        .bread.pop {
+            transform: translateY(calc(var(--lift, 0) - 18px));
+        }
+
+        .bread-texture {
+            position: absolute;
+            inset: 12%;
+            border-radius: 24%;
+            background: radial-gradient(circle at 30% 35%, rgba(255, 255, 255, 0.4), transparent 60%),
+                radial-gradient(circle at 70% 40%, rgba(255, 255, 255, 0.25), transparent 65%);
+            mix-blend-mode: overlay;
+            pointer-events: none;
+        }
+
+        .thermo {
+            position: relative;
+            height: 100%;
+            min-height: 240px;
+            border-radius: 16px;
+            background: var(--thermo-track);
+            box-shadow: inset 0 0 0 2px rgba(66, 45, 22, 0.08);
+            overflow: hidden;
+        }
+
+        .thermo-bar {
+            position: absolute;
+            inset: auto 6px 6px 6px;
+            height: 0%;
+            border-radius: 12px;
+            background: var(--thermo-bar);
+            transition: height 120ms linear;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .btn {
+            appearance: none;
+            border: none;
+            border-radius: 999px;
+            padding: 10px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 140ms ease, box-shadow 140ms ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+            color: #fff;
+            box-shadow: 0 12px 24px rgba(249, 115, 22, 0.4);
+        }
+
+        .btn-secondary {
+            background: #fff;
+            color: var(--text);
+            box-shadow: 0 10px 20px rgba(66, 45, 22, 0.12);
+        }
+
+        .btn:disabled {
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            background: #d4d4d8;
+            color: #6b7280;
+        }
+
+        .btn:not(:disabled):active {
+            transform: translateY(2px);
+            box-shadow: none;
+        }
+
+        .status {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--accent-dark);
+            min-height: 28px;
+        }
+
+        .scoreboard {
+            display: grid;
+            gap: 16px;
+        }
+
+        .score-box {
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 16px;
+            box-shadow: inset 0 2px 6px rgba(66, 45, 22, 0.08);
+            display: grid;
+            gap: 6px;
+        }
+
+        .score-box strong {
+            font-size: 24px;
+            color: var(--accent-dark);
+        }
+
+        .history {
+            max-height: 260px;
+            overflow: auto;
+            padding-right: 4px;
+        }
+
+        .history ul {
+            list-style: none;
+            padding: 0;
+            margin: 8px 0 0;
+            display: grid;
+            gap: 8px;
+        }
+
+        .history li {
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: rgba(249, 115, 22, 0.14);
+            font-size: 14px;
+        }
+
+        .hint {
+            font-size: 14px;
+            color: rgba(66, 45, 22, 0.7);
+        }
+
+        @media (max-width: 860px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+
+            .toast-area {
+                grid-template-columns: 1fr;
+            }
+
+            .thermo {
+                min-height: 200px;
+                height: 240px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <section class="panel play-area" aria-label="烘烤操作区">
+            <header>
+                <h1>烤面包大师</h1>
+                <p class="subtitle">掌控火候，把每一片面包烤到金黄香脆！</p>
+            </header>
+
+            <div class="toast-area">
+                <div class="bread" id="bread" role="img" aria-label="待烘烤的面包">
+                    <div class="bread-texture"></div>
+                </div>
+                <div class="thermo" aria-hidden="true">
+                    <div class="thermo-bar" id="thermoBar"></div>
+                </div>
+            </div>
+
+            <div class="status" id="statusText"></div>
+
+            <div class="controls">
+                <button id="buyBtn" class="btn btn-secondary" type="button">$1 采购面包</button>
+                <button id="loadBtn" class="btn btn-secondary" type="button" disabled>放入烤槽</button>
+                <button id="startBtn" class="btn btn-primary" type="button">开始烘烤</button>
+                <button id="stopBtn" class="btn btn-secondary" type="button" disabled>停止</button>
+                <button id="nextBtn" class="btn btn-secondary" type="button" disabled>换下一片</button>
+                <button id="emptyTrashBtn" class="btn btn-secondary" type="button" disabled>下楼清垃圾</button>
+            </div>
+
+            <p class="hint">提示：温度计只是热度参考，真正的关键是颜色变化。眼到、心到、手到，才能烤出完美风味。</p>
+        </section>
+
+        <section class="panel scoreboard" aria-label="烘烤成绩">
+            <div class="score-box">
+                <div>当前轮次</div>
+                <strong id="roundText">第 1 片</strong>
+            </div>
+            <div class="score-box">
+                <div>烘烤资源</div>
+                <div class="hint">现金：<strong id="cashText">$0</strong></div>
+                <div class="hint">库存面包：<strong id="stockText">1 个</strong></div>
+                <div class="hint">垃圾桶：<strong id="trashText">0 / 5</strong></div>
+            </div>
+            <div class="score-box">
+                <div>累积评分</div>
+                <strong id="scoreText">0 分</strong>
+                <div class="hint" id="bestText">最佳作品：—</div>
+            </div>
+            <div class="history">
+                <div style="font-weight:600;">烘烤记录</div>
+                <ul id="historyList"></ul>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        (() => {
+            const bread = document.getElementById('bread');
+            const thermoBar = document.getElementById('thermoBar');
+            const statusText = document.getElementById('statusText');
+            const buyBtn = document.getElementById('buyBtn');
+            const loadBtn = document.getElementById('loadBtn');
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const emptyTrashBtn = document.getElementById('emptyTrashBtn');
+            const roundText = document.getElementById('roundText');
+            const scoreText = document.getElementById('scoreText');
+            const bestText = document.getElementById('bestText');
+            const historyList = document.getElementById('historyList');
+            const cashText = document.getElementById('cashText');
+            const stockText = document.getElementById('stockText');
+            const trashText = document.getElementById('trashText');
+
+            const state = {
+                level: 0,
+                round: 1,
+                score: 0,
+                bestResult: null,
+                money: 0,
+                stock: 1,
+                trash: 0,
+                trashCap: 5,
+                toasterLoaded: false,
+                finished: false,
+                speed: 0,
+                isToasting: false,
+                rafId: null,
+                lastTs: 0
+            };
+
+            const BASE_SPEED = 13;
+            const LIFT_FACTOR = 0.18;
+
+            function clamp(value, min, max) {
+                return Math.min(max, Math.max(min, value));
+            }
+
+            function updateBreadAppearance() {
+                const effectiveLevel = state.toasterLoaded ? state.level : 0;
+                const t = clamp(effectiveLevel / 160, 0, 1);
+                const start = [246, 231, 194];
+                const end = [139, 90, 43];
+                const r = Math.round(start[0] + (end[0] - start[0]) * t);
+                const g = Math.round(start[1] + (end[1] - start[1]) * t);
+                const b = Math.round(start[2] + (end[2] - start[2]) * t);
+                const crust = `rgba(${Math.max(90, r - 45)}, ${Math.max(60, g - 45)}, ${Math.max(40, b - 45)}, 1)`;
+
+                bread.style.background = `
+                    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, ${0.75 - t * 0.3}), transparent 70%),
+                    linear-gradient(180deg, rgb(${r}, ${g}, ${b}) 0%, rgb(${r - 10}, ${g - 14}, ${b - 16}) 85%)
+                `;
+                bread.style.boxShadow = `
+                    inset 0 12px 32px rgba(0, 0, 0, ${0.18 + t * 0.12}),
+                    inset 0 -6px 14px rgba(0, 0, 0, ${0.12 + t * 0.16}),
+                    0 18px 32px rgba(0, 0, 0, 0.18)
+                `;
+                bread.style.border = `6px solid ${crust}`;
+
+                const lift = state.toasterLoaded ? Math.max(-36, -effectiveLevel * LIFT_FACTOR) : 0;
+                bread.style.setProperty('--lift', `${lift}px`);
+
+                thermoBar.style.height = state.toasterLoaded ? `${clamp(state.level, 0, 100)}%` : '0%';
+            }
+
+            function updateScoreboard() {
+                roundText.textContent = `第 ${state.round} 片`;
+                scoreText.textContent = `${state.score} 分`;
+                bestText.textContent = state.bestResult === null
+                    ? '最佳作品：—'
+                    : `最佳作品：${state.bestResult}`;
+            }
+
+            function updateEconomy() {
+                cashText.textContent = `$${state.money}`;
+                stockText.textContent = `${state.stock} 个`;
+                trashText.textContent = `${state.trash} / ${state.trashCap}`;
+            }
+
+            function updateControls() {
+                buyBtn.disabled = state.isToasting || state.money < 1;
+                loadBtn.disabled = state.isToasting || state.toasterLoaded || state.stock <= 0 || state.trash >= state.trashCap;
+                startBtn.disabled = state.isToasting || !state.toasterLoaded || state.trash >= state.trashCap;
+                stopBtn.disabled = !state.isToasting;
+                nextBtn.disabled = state.isToasting || !state.finished;
+                emptyTrashBtn.disabled = state.trash === 0 || state.isToasting;
+            }
+
+            function pushHistory(entry) {
+                const li = document.createElement('li');
+                li.textContent = entry;
+                historyList.prepend(li);
+                while (historyList.children.length > 12) {
+                    historyList.lastChild.remove();
+                }
+            }
+
+            function setStatus(message, tone = 'neutral') {
+                let color = 'var(--accent-dark)';
+                if (tone === 'success') color = '#16a34a';
+                if (tone === 'warn') color = '#ef4444';
+                statusText.textContent = message;
+                statusText.style.color = color;
+            }
+
+            function prepareLoadedBread() {
+                state.level = 5;
+                state.speed = BASE_SPEED * (0.85 + Math.random() * 0.45);
+                state.lastTs = 0;
+                state.finished = false;
+                state.isToasting = false;
+                bread.classList.remove('pop');
+                updateBreadAppearance();
+                thermoBar.style.height = '5%';
+            }
+
+            function loadBreadIntoToaster() {
+                if (state.stock <= 0) {
+                    setStatus('库存没有面包了，先去采购一些吧。', 'warn');
+                    return;
+                }
+                if (state.trash >= state.trashCap) {
+                    setStatus('垃圾桶已经满了，得先清理干净。', 'warn');
+                    return;
+                }
+                state.stock -= 1;
+                state.toasterLoaded = true;
+                prepareLoadedBread();
+                setStatus('面包已放入烤槽，随时可以开始烘烤。');
+                updateEconomy();
+                updateControls();
+            }
+
+            function evaluateRound(autoBurn = false) {
+                state.isToasting = false;
+                cancelAnimationFrame(state.rafId);
+                state.finished = true;
+                state.toasterLoaded = false;
+
+                let resultText = '';
+                let tone = 'neutral';
+                let points = 0;
+                let earnings = 0;
+
+                if (autoBurn || state.level >= 99) {
+                    resultText = '糟糕，烤糊了！下次早点按下停止键。';
+                    tone = 'warn';
+                    state.trash += 1;
+                } else if (state.level >= 85) {
+                    resultText = '颜色已经很深，表面带焦香，记得及时出炉。';
+                    tone = 'warn';
+                    points = 15;
+                    state.trash += 1;
+                } else if (state.level >= 70) {
+                    resultText = '完美的琥珀色！外脆内软，香气扑鼻。';
+                    tone = 'success';
+                    points = 120;
+                    earnings = 1;
+                } else if (state.level >= 55) {
+                    resultText = '已经金黄微脆，再多一会儿会更香。';
+                    tone = 'neutral';
+                    points = 70;
+                    earnings = 1;
+                } else if (state.level >= 40) {
+                    resultText = '颜色偏浅，口感会比较软。';
+                    tone = 'neutral';
+                    points = 35;
+                    earnings = 1;
+                } else {
+                    resultText = '还太白了，再耐心一点才会出彩。';
+                    tone = 'warn';
+                    state.trash += 1;
+                }
+
+                if (!autoBurn) {
+                    state.score += points;
+                    state.money += earnings;
+                    if (tone === 'success') {
+                        state.bestResult = '完美琥珀色';
+                    } else if (earnings > 0 && state.bestResult === null) {
+                        state.bestResult = resultText;
+                    }
+                }
+
+                if (state.trash >= state.trashCap) {
+                    setStatus('垃圾桶爆满！必须先清理才能继续。', 'warn');
+                } else {
+                    setStatus(resultText, tone);
+                }
+
+                if (autoBurn || (tone === 'warn' && earnings === 0)) {
+                    pushHistory(`第 ${state.round} 片｜${resultText}`);
+                } else {
+                    pushHistory(`第 ${state.round} 片｜${resultText}｜收益 $${earnings}`);
+                    bread.classList.add('pop');
+                    setTimeout(() => bread.classList.remove('pop'), 520);
+                }
+
+                setTimeout(() => {
+                    state.level = 0;
+                    updateBreadAppearance();
+                }, 600);
+
+                updateScoreboard();
+                updateEconomy();
+                updateControls();
+            }
+
+            function loop(ts) {
+                if (!state.isToasting) return;
+                if (!state.lastTs) state.lastTs = ts;
+                const dt = (ts - state.lastTs) / 1000;
+                state.lastTs = ts;
+
+                state.level += state.speed * dt;
+                if (state.level >= 100) {
+                    state.level = 100;
+                    updateBreadAppearance();
+                    evaluateRound(true);
+                    return;
+                }
+
+                updateBreadAppearance();
+                state.rafId = requestAnimationFrame(loop);
+            }
+
+            buyBtn.addEventListener('click', () => {
+                if (state.money < 1) {
+                    setStatus('现金不足，先卖出几片金黄面包再来采购。', 'warn');
+                    return;
+                }
+                state.money -= 1;
+                state.stock += 1;
+                setStatus('采购到一片新鲜面包。');
+                updateEconomy();
+                updateControls();
+            });
+
+            loadBtn.addEventListener('click', loadBreadIntoToaster);
+
+            startBtn.addEventListener('click', () => {
+                if (state.trash >= state.trashCap) {
+                    setStatus('垃圾桶满了，先清理再继续烘烤。', 'warn');
+                    return;
+                }
+                if (!state.toasterLoaded) {
+                    setStatus('先把面包放进烤槽，再按开始。', 'warn');
+                    return;
+                }
+                if (state.isToasting) return;
+                state.isToasting = true;
+                state.finished = false;
+                state.lastTs = 0;
+                setStatus('烤箱升温中，盯紧面包的颜色变化。');
+                state.rafId = requestAnimationFrame(loop);
+                updateControls();
+            });
+
+            stopBtn.addEventListener('click', () => {
+                if (!state.isToasting) return;
+                evaluateRound(false);
+            });
+
+            nextBtn.addEventListener('click', () => {
+                if (!state.finished) return;
+                state.round += 1;
+                state.finished = false;
+                state.level = 0;
+                state.speed = 0;
+                state.toasterLoaded = false;
+                state.lastTs = 0;
+                bread.classList.remove('pop');
+                updateBreadAppearance();
+                updateScoreboard();
+                setStatus('新一片面包待命，记得先采购并放入烤槽。');
+                updateControls();
+            });
+
+            emptyTrashBtn.addEventListener('click', () => {
+                if (state.trash === 0) return;
+                state.trash = 0;
+                setStatus('垃圾已清理干净，烤箱焕然一新。');
+                updateEconomy();
+                updateControls();
+            });
+
+            setStatus('准备营业！先采购面包再装入烤槽。');
+            updateBreadAppearance();
+            updateScoreboard();
+            updateEconomy();
+            updateControls();
+        })();
+    </script>
+</body>
+</html>
+

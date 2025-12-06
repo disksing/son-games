@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <title>数字滚动游戏 - 1到10000</title>
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #game {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .title {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            animation: pulse 2s infinite;
+        }
+
+        .number-display {
+            font-size: 200px;
+            font-weight: 900;
+            text-align: center;
+            margin: 40px 0;
+            text-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+            transition: all 0.1s ease;
+            min-height: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .number-display.rolling {
+            animation: numberRoll 0.05s ease-in-out;
+        }
+
+        .progress-bar {
+            width: 80%;
+            max-width: 600px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b6b, #ffd93d, #6bcf7f, #4d9de0);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+
+        .stats {
+            display: flex;
+            gap: 40px;
+            margin: 20px 0;
+            font-size: 18px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #ffd93d;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        .controls {
+            margin-top: 30px;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.start {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+        }
+
+        .btn.stop {
+            background: linear-gradient(45deg, #f44336, #da190b);
+        }
+
+        .btn.reset {
+            background: linear-gradient(45deg, #ff9800, #f57c00);
+        }
+
+        .speed-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+        }
+
+        .speed-bar {
+            width: 100px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+
+        .speed-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #ffd93d, #f44336);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .completion-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            display: none;
+            backdrop-filter: blur(20px);
+            border: 2px solid #4CAF50;
+        }
+
+        .completion-message.show {
+            display: block;
+            animation: completionPop 0.5s ease-out;
+        }
+
+        .completion-title {
+            font-size: 36px;
+            color: #4CAF50;
+            margin-bottom: 20px;
+        }
+
+        .completion-time {
+            font-size: 24px;
+            color: #ffd93d;
+            margin-bottom: 10px;
+        }
+
+        .completion-speed {
+            font-size: 18px;
+            color: #fff;
+            opacity: 0.8;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes numberRoll {
+            0% {
+                transform: scale(1) rotate(0deg);
+            }
+
+            50% {
+                transform: scale(1.1) rotate(2deg);
+            }
+
+            100% {
+                transform: scale(1) rotate(0deg);
+            }
+        }
+
+        @keyframes completionPop {
+            0% {
+                transform: translate(-50%, -50%) scale(0.5);
+                opacity: 0;
+            }
+
+            50% {
+                transform: translate(-50%, -50%) scale(1.1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #fff;
+            border-radius: 50%;
+            animation: particleFloat 3s linear infinite;
+        }
+
+        @keyframes particleFloat {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(-100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="game">
+        <div class="title">数字滚动游戏</div>
+
+        <div class="number-display" id="numberDisplay">1</div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="currentNumber">1</div>
+                <div class="stat-label">当前数字</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="speed">0</div>
+                <div class="stat-label">速度/秒</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="elapsedTime">0.0</div>
+                <div class="stat-label">用时(秒)</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn start" id="startBtn">开始滚动</button>
+            <button class="btn stop" id="stopBtn" style="display: none;">暂停</button>
+            <button class="btn reset" id="resetBtn">重置</button>
+        </div>
+
+        <div class="speed-indicator">
+            <div>滚动速度</div>
+            <div class="speed-bar">
+                <div class="speed-fill" id="speedFill"></div>
+            </div>
+        </div>
+
+        <div class="completion-message" id="completionMessage">
+            <div class="completion-title">🎉 完成！</div>
+            <div class="completion-time" id="completionTime">用时: 0.0秒</div>
+            <div class="completion-speed" id="completionSpeed">平均速度: 0 数字/秒</div>
+        </div>
+
+        <div class="particles" id="particles"></div>
+    </div>
+
+    <script>
+        class NumberScrollGame {
+            constructor() {
+                this.currentNumber = 1;
+                this.targetNumber = 10000;
+                this.isRunning = false;
+                this.startTime = null;
+                this.lastUpdateTime = null;
+                this.speed = 0;
+                this.intervalId = null;
+                this.baseSpeed = 10; // 基础速度
+                this.speedIncrement = 0.1; // 速度递增
+
+                this.initializeGame();
+            }
+
+            initializeGame() {
+                this.bindEvents();
+                this.updateDisplay();
+            }
+
+            bindEvents() {
+                document.getElementById('startBtn').addEventListener('click', () => this.start());
+                document.getElementById('stopBtn').addEventListener('click', () => this.stop());
+                document.getElementById('resetBtn').addEventListener('click', () => this.reset());
+
+                // 键盘控制
+                document.addEventListener('keydown', (e) => {
+                    if (e.code === 'Space') {
+                        e.preventDefault();
+                        if (this.isRunning) {
+                            this.stop();
+                        } else {
+                            this.start();
+                        }
+                    } else if (e.code === 'KeyR') {
+                        this.reset();
+                    }
+                });
+            }
+
+            start() {
+                if (this.isRunning) return;
+
+                this.isRunning = true;
+                this.startTime = Date.now();
+                this.lastUpdateTime = this.startTime;
+
+                document.getElementById('startBtn').style.display = 'none';
+                document.getElementById('stopBtn').style.display = 'inline-block';
+
+                this.intervalId = setInterval(() => {
+                    this.update();
+                }, 50); // 每50ms更新一次
+
+                this.createParticles();
+            }
+
+            stop() {
+                if (!this.isRunning) return;
+
+                this.isRunning = false;
+                clearInterval(this.intervalId);
+
+                document.getElementById('startBtn').style.display = 'inline-block';
+                document.getElementById('stopBtn').style.display = 'none';
+            }
+
+            reset() {
+                this.stop();
+                this.currentNumber = 1;
+                this.speed = 0;
+                this.startTime = null;
+                this.updateDisplay();
+                this.clearParticles();
+            }
+
+            update() {
+                if (!this.isRunning) return;
+
+                const now = Date.now();
+                const deltaTime = (now - this.lastUpdateTime) / 1000; // 转换为秒
+                this.lastUpdateTime = now;
+
+                // 计算当前速度（逐渐增加）
+                this.speed = this.baseSpeed + (this.currentNumber / this.targetNumber) * 200;
+
+                // 增加数字
+                const increment = this.speed * deltaTime;
+                this.currentNumber += increment;
+
+                // 检查是否完成
+                if (this.currentNumber >= this.targetNumber) {
+                    this.currentNumber = this.targetNumber;
+                    this.complete();
+                    return;
+                }
+
+                this.updateDisplay();
+            }
+
+            updateDisplay() {
+                const display = document.getElementById('numberDisplay');
+                const currentNumberEl = document.getElementById('currentNumber');
+                const speedEl = document.getElementById('speed');
+                const elapsedTimeEl = document.getElementById('elapsedTime');
+                const progressFill = document.getElementById('progressFill');
+                const speedFill = document.getElementById('speedFill');
+
+                // 更新数字显示
+                const displayNumber = Math.floor(this.currentNumber);
+                display.textContent = displayNumber.toLocaleString();
+                currentNumberEl.textContent = displayNumber.toLocaleString();
+
+                // 添加滚动动画
+                display.classList.add('rolling');
+                setTimeout(() => display.classList.remove('rolling'), 100);
+
+                // 更新速度
+                speedEl.textContent = Math.round(this.speed);
+
+                // 更新用时
+                if (this.startTime) {
+                    const elapsed = (Date.now() - this.startTime) / 1000;
+                    elapsedTimeEl.textContent = elapsed.toFixed(1);
+                }
+
+                // 更新进度条
+                const progress = (this.currentNumber / this.targetNumber) * 100;
+                progressFill.style.width = `${Math.min(100, progress)}%`;
+
+                // 更新速度指示器
+                const speedProgress = Math.min(100, (this.speed / 50) * 100);
+                speedFill.style.width = `${speedProgress}%`;
+            }
+
+            complete() {
+                this.stop();
+
+                const totalTime = (Date.now() - this.startTime) / 1000;
+                const averageSpeed = this.targetNumber / totalTime;
+
+                document.getElementById('completionTime').textContent = `用时: ${totalTime.toFixed(1)}秒`;
+                document.getElementById('completionSpeed').textContent = `平均速度: ${Math.round(averageSpeed)} 数字/秒`;
+
+                document.getElementById('completionMessage').classList.add('show');
+
+                // 创建庆祝粒子效果
+                this.createCelebrationParticles();
+
+                // 3秒后自动隐藏完成消息
+                setTimeout(() => {
+                    document.getElementById('completionMessage').classList.remove('show');
+                }, 3000);
+            }
+
+            createParticles() {
+                const particlesContainer = document.getElementById('particles');
+
+                const createParticle = () => {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.left = Math.random() * 100 + '%';
+                    particle.style.animationDelay = Math.random() * 2 + 's';
+                    particle.style.animationDuration = (2 + Math.random() * 2) + 's';
+                    particlesContainer.appendChild(particle);
+
+                    // 动画结束后移除粒子
+                    setTimeout(() => {
+                        if (particle.parentNode) {
+                            particle.parentNode.removeChild(particle);
+                        }
+                    }, 4000);
+                };
+
+                // 定期创建粒子
+                this.particleInterval = setInterval(createParticle, 100);
+            }
+
+            createCelebrationParticles() {
+                const particlesContainer = document.getElementById('particles');
+
+                for (let i = 0; i < 50; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.left = Math.random() * 100 + '%';
+                    particle.style.background = `hsl(${Math.random() * 360}, 70%, 60%)`;
+                    particle.style.width = (4 + Math.random() * 8) + 'px';
+                    particle.style.height = particle.style.width;
+                    particle.style.animationDuration = (1 + Math.random() * 2) + 's';
+                    particlesContainer.appendChild(particle);
+
+                    setTimeout(() => {
+                        if (particle.parentNode) {
+                            particle.parentNode.removeChild(particle);
+                        }
+                    }, 3000);
+                }
+            }
+
+            clearParticles() {
+                const particlesContainer = document.getElementById('particles');
+                particlesContainer.innerHTML = '';
+                if (this.particleInterval) {
+                    clearInterval(this.particleInterval);
+                }
+            }
+        }
+
+        // 启动游戏
+        const game = new NumberScrollGame();
+    </script>
+</body>
+
+</html>

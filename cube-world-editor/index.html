@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>方块世界编辑器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 5px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            gap: 15px;
+            padding: 15px;
+            height: calc(100vh - 100px);
+        }
+
+        .toolbar {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 20px;
+            width: 300px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+        }
+
+        .canvas-container {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        #gameCanvas {
+            border: 3px solid #ff6b6b;
+            border-radius: 15px;
+            background: linear-gradient(135deg, #87CEEB 0%, #98FB98 100%);
+            display: block;
+            cursor: crosshair;
+            flex: 1;
+        }
+
+        .tool-section {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+            border-left: 5px solid #ff6b6b;
+        }
+
+        .tool-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .tool-item {
+            aspect-ratio: 1;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tool-item:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .tool-item.active {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.6);
+        }
+
+        .platform {
+            background: linear-gradient(135deg, #8B4513, #A0522D);
+            color: white;
+        }
+
+        .obstacle {
+            background: linear-gradient(135deg, #696969, #808080);
+            color: white;
+        }
+
+        .trampoline {
+            background: linear-gradient(135deg, #ff69b4, #ff1493);
+            color: white;
+        }
+
+        .conveyor {
+            background: linear-gradient(135deg, #ffa500, #ff8c00);
+            color: white;
+        }
+
+        .spike {
+            background: linear-gradient(135deg, #ff0000, #dc143c);
+            color: white;
+        }
+
+        .checkpoint {
+            background: linear-gradient(135deg, #00ff00, #32cd32);
+            color: white;
+        }
+
+        .finish {
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            color: #333;
+        }
+
+        .decorative {
+            background: linear-gradient(135deg, #9370db, #ba55d3);
+            color: white;
+        }
+
+        .powerup {
+            background: linear-gradient(135deg, #00bfff, #1e90ff);
+            color: white;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .play-btn {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .clear-btn {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+            color: white;
+        }
+
+        .save-btn {
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            color: white;
+        }
+
+        .load-btn {
+            background: linear-gradient(135deg, #FF9800, #F57C00);
+            color: white;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .status-bar {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-size: 16px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .info-panel {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+            padding: 15px;
+            margin-top: 15px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .instructions {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.6;
+            border-left: 5px solid #ffc107;
+        }
+
+        .instructions h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .instructions ul {
+            margin-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 5px;
+            color: #856404;
+        }
+
+        .emoji {
+            font-size: 20px;
+        }
+
+        .game-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        .key-hint {
+            display: inline-block;
+            background: #333;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin: 0 2px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>🎮 方块世界编辑器</h1>
+        <p>创造属于你的方块世界！</p>
+    </div>
+
+    <div class="main-container">
+        <div class="toolbar">
+            <div class="instructions">
+                <h4>🎮 操作说明</h4>
+                <ul>
+                    <li>选择工具后点击画布放置</li>
+                    <li>右键删除元素</li>
+                    <li>可以保存和加载地图</li>
+                    <li>点击"开始游戏"测试地图</li>
+                    <li>游戏模式：WASD移动，空格跳跃</li>
+                </ul>
+            </div>
+
+            <div class="tool-section">
+                <h3>🧱 平台</h3>
+                <div class="tool-grid">
+                    <button class="tool-item platform" data-type="platform">
+                        <div class="emoji">🟫</div>
+                        <div>基础平台</div>
+                    </button>
+                    <button class="tool-item platform" data-type="moving">
+                        <div class="emoji">🟤</div>
+                        <div>移动平台</div>
+                    </button>
+                    <button class="tool-item platform" data-type="disappearing">
+                        <div class="emoji">🟠</div>
+                        <div>消失平台</div>
+                    </button>
+                    <button class="tool-item platform" data-type="bouncy">
+                        <div class="emoji">🟣</div>
+                        <div>弹跳平台</div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <h3>🚧 障碍物</h3>
+                <div class="tool-grid">
+                    <button class="tool-item obstacle" data-type="wall">
+                        <div class="emoji">🧱</div>
+                        <div>墙壁</div>
+                    </button>
+                    <button class="tool-item spike" data-type="spike">
+                        <div class="emoji">⚡</div>
+                        <div>尖刺</div>
+                    </button>
+                    <button class="tool-item obstacle" data-type="rock">
+                        <div class="emoji">🪨</div>
+                        <div>岩石</div>
+                    </button>
+                    <button class="tool-item obstacle" data-type="lava">
+                        <div class="emoji">🌋</div>
+                        <div>岩浆</div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <h3>🎪 机关</h3>
+                <div class="tool-grid">
+                    <button class="tool-item trampoline" data-type="trampoline">
+                        <div class="emoji">🦘</div>
+                        <div>蹦床</div>
+                    </button>
+                    <button class="tool-item conveyor" data-type="conveyor">
+                        <div class="emoji">📦</div>
+                        <div>传送带</div>
+                    </button>
+                    <button class="tool-item obstacle" data-type="door">
+                        <div class="emoji">🚪</div>
+                        <div>门</div>
+                    </button>
+                    <button class="tool-item obstacle" data-type="switch">
+                        <div class="emoji">🔘</div>
+                        <div>开关</div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <h3>🏁 目标点</h3>
+                <div class="tool-grid">
+                    <button class="tool-item checkpoint" data-type="checkpoint">
+                        <div class="emoji">🏃</div>
+                        <div>检查点</div>
+                    </button>
+                    <button class="tool-item finish" data-type="finish">
+                        <div class="emoji">🏆</div>
+                        <div>终点</div>
+                    </button>
+                    <button class="tool-item checkpoint" data-type="start">
+                        <div class="emoji">🚀</div>
+                        <div>起点</div>
+                    </button>
+                    <button class="tool-item checkpoint" data-type="spawn">
+                        <div class="emoji">⭐</div>
+                        <div>重生点</div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <h3>💎 道具</h3>
+                <div class="tool-grid">
+                    <button class="tool-item powerup" data-type="jump">
+                        <div class="emoji">🦘</div>
+                        <div>跳跃增强</div>
+                    </button>
+                    <button class="tool-item powerup" data-type="speed">
+                        <div class="emoji">💨</div>
+                        <div>速度提升</div>
+                    </button>
+                    <button class="tool-item powerup" data-type="shield">
+                        <div class="emoji">🛡️</div>
+                        <div>护盾</div>
+                    </button>
+                    <button class="tool-item powerup" data-type="coin">
+                        <div class="emoji">🪙</div>
+                        <div>金币</div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <h3>🎨 装饰</h3>
+                <div class="tool-grid">
+                    <button class="tool-item decorative" data-type="tree">
+                        <div class="emoji">🌳</div>
+                        <div>树木</div>
+                    </button>
+                    <button class="tool-item decorative" data-type="flower">
+                        <div class="emoji">🌸</div>
+                        <div>花朵</div>
+                    </button>
+                    <button class="tool-item decorative" data-type="cloud">
+                        <div class="emoji">☁️</div>
+                        <div>云朵</div>
+                    </button>
+                    <button class="tool-item decorative" data-type="star">
+                        <div class="emoji">✨</div>
+                        <div>星星</div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="control-btn play-btn" id="playBtn">开始游戏</button>
+                <button class="control-btn clear-btn" id="clearBtn">清空地图</button>
+                <button class="control-btn save-btn" id="saveBtn">保存地图</button>
+                <button class="control-btn load-btn" id="loadBtn">加载地图</button>
+                <input type="file" class="file-input" id="fileInput" accept=".json">
+            </div>
+
+            <div class="info-panel">
+                <h4>📊 地图信息</h4>
+                <p>平台数量: <span id="platformCount">0</span></p>
+                <p>障碍物数量: <span id="obstacleCount">0</span></p>
+                <p>道具数量: <span id="powerupCount">0</span></p>
+                <p>装饰数量: <span id="decorCount">0</span></p>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <div class="game-controls">
+                <div><span class="key-hint">WASD</span> 移动</div>
+                <div><span class="key-hint">空格</span> 跳跃</div>
+                <div><span class="key-hint">ESC</span> 退出游戏</div>
+            </div>
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
+            <div class="status-bar">
+                <span id="statusText">选择工具开始创作</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const statusText = document.getElementById('statusText');
+        const platformCount = document.getElementById('platformCount');
+        const obstacleCount = document.getElementById('obstacleCount');
+        const powerupCount = document.getElementById('powerupCount');
+        const decorCount = document.getElementById('decorCount');
+
+        let currentTool = null;
+        let gameObjects = [];
+        let isPlaying = false;
+        let gameLoop;
+        let player = null;
+        let keys = {};
+
+        class GameObject {
+            constructor(x, y, type, width = 40, height = 40) {
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.width = width;
+                this.height = height;
+                this.id = Math.random().toString(36).substr(2, 9);
+                this.rotation = 0;
+                this.velocityX = 0;
+                this.velocityY = 0;
+                this.isMoving = false;
+                this.moveDirection = 1;
+                this.moveSpeed = 1;
+                this.disappearTimer = 0;
+                this.isDisappearing = false;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+                ctx.rotate(this.rotation);
+
+                switch (this.type) {
+                    case 'platform':
+                        this.drawPlatform();
+                        break;
+                    case 'moving':
+                        this.drawMovingPlatform();
+                        break;
+                    case 'disappearing':
+                        this.drawDisappearingPlatform();
+                        break;
+                    case 'bouncy':
+                        this.drawBouncyPlatform();
+                        break;
+                    case 'wall':
+                        this.drawWall();
+                        break;
+                    case 'spike':
+                        this.drawSpike();
+                        break;
+                    case 'rock':
+                        this.drawRock();
+                        break;
+                    case 'lava':
+                        this.drawLava();
+                        break;
+                    case 'trampoline':
+                        this.drawTrampoline();
+                        break;
+                    case 'conveyor':
+                        this.drawConveyor();
+                        break;
+                    case 'door':
+                        this.drawDoor();
+                        break;
+                    case 'switch':
+                        this.drawSwitch();
+                        break;
+                    case 'checkpoint':
+                        this.drawCheckpoint();
+                        break;
+                    case 'finish':
+                        this.drawFinish();
+                        break;
+                    case 'start':
+                        this.drawStart();
+                        break;
+                    case 'spawn':
+                        this.drawSpawn();
+                        break;
+                    case 'jump':
+                        this.drawJump();
+                        break;
+                    case 'speed':
+                        this.drawSpeed();
+                        break;
+                    case 'shield':
+                        this.drawShield();
+                        break;
+                    case 'coin':
+                        this.drawCoin();
+                        break;
+                    case 'tree':
+                        this.drawTree();
+                        break;
+                    case 'flower':
+                        this.drawFlower();
+                        break;
+                    case 'cloud':
+                        this.drawCloud();
+                        break;
+                    case 'star':
+                        this.drawStar();
+                        break;
+                    case 'player':
+                        this.drawPlayer();
+                        break;
+                }
+                ctx.restore();
+            }
+
+            drawPlatform() {
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(-20, -20, 40, 40);
+                ctx.fillStyle = '#A0522D';
+                ctx.fillRect(-18, -18, 36, 36);
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(-15, -15, 30, 30);
+            }
+
+            drawMovingPlatform() {
+                ctx.fillStyle = '#D2691E';
+                ctx.fillRect(-20, -20, 40, 40);
+                ctx.fillStyle = '#CD853F';
+                ctx.fillRect(-18, -18, 36, 36);
+                ctx.fillStyle = '#FFD700';
+                ctx.fillRect(-10, -5, 20, 10);
+            }
+
+            drawDisappearingPlatform() {
+                const alpha = this.isDisappearing ? 0.3 : 1;
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = '#FF6347';
+                ctx.fillRect(-20, -20, 40, 40);
+                ctx.fillStyle = '#FF7F50';
+                ctx.fillRect(-18, -18, 36, 36);
+                ctx.fillStyle = '#FF4500';
+                ctx.fillRect(-15, -15, 30, 30);
+                ctx.globalAlpha = 1;
+            }
+
+            drawBouncyPlatform() {
+                ctx.fillStyle = '#9C27B0';
+                ctx.fillRect(-20, -20, 40, 40);
+                ctx.fillStyle = '#BA68C8';
+                ctx.fillRect(-18, -18, 36, 36);
+                ctx.fillStyle = '#E1BEE7';
+                ctx.fillRect(-15, -15, 30, 30);
+            }
+
+            drawWall() {
+                ctx.fillStyle = '#696969';
+                ctx.fillRect(-20, -20, 40, 40);
+                ctx.fillStyle = '#808080';
+                ctx.fillRect(-18, -18, 36, 36);
+                ctx.fillStyle = '#A9A9A9';
+                ctx.fillRect(-15, -15, 30, 30);
+            }
+
+            drawSpike() {
+                ctx.fillStyle = '#FF0000';
+                ctx.beginPath();
+                ctx.moveTo(0, -20);
+                ctx.lineTo(-15, 20);
+                ctx.lineTo(15, 20);
+                ctx.closePath();
+                ctx.fill();
+                ctx.fillStyle = '#DC143C';
+                ctx.beginPath();
+                ctx.moveTo(0, -15);
+                ctx.lineTo(-10, 15);
+                ctx.lineTo(10, 15);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            drawRock() {
+                ctx.fillStyle = '#696969';
+                ctx.beginPath();
+                ctx.arc(0, 0, 18, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#808080';
+                ctx.beginPath();
+                ctx.arc(-5, -5, 8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            drawLava() {
+                ctx.fillStyle = '#FF5722';
+                ctx.fillRect(-20, -20, 40, 40);
+                ctx.fillStyle = '#FF9800';
+                ctx.fillRect(-18, -18, 36, 36);
+                ctx.fillStyle = '#D84315';
+                for (let i = -15; i < 15; i += 3) {
+                    for (let j = -15; j < 15; j += 3) {
+                        if (Math.random() > 0.6) {
+                            ctx.fillRect(i, j, 2, 2);
+                        }
+                    }
+                }
+            }
+
+            drawTrampoline() {
+                ctx.fillStyle = '#FF69B4';
+                ctx.fillRect(-20, -20, 40, 40);
+                ctx.fillStyle = '#FF1493';
+                ctx.fillRect(-18, -18, 36, 36);
+                ctx.fillStyle = '#FFB6C1';
+                ctx.fillRect(-15, -15, 30, 30);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('🦘', 0, 5);
+            }
+
+            drawConveyor() {
+                ctx.fillStyle = '#FFA500';
+                ctx.fillRect(-20, -20, 40, 40);
+                ctx.fillStyle = '#FF8C00';
+                ctx.fillRect(-18, -18, 36, 36);
+                ctx.fillStyle = '#FFD700';
+                ctx.fillRect(-15, -10, 30, 20);
+                ctx.fillStyle = '#FF6347';
+                for (let i = -12; i < 12; i += 6) {
+                    ctx.fillRect(i, -5, 3, 10);
+                }
+            }
+
+            drawDoor() {
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(-20, -20, 40, 40);
+                ctx.fillStyle = '#D2691E';
+                ctx.fillRect(-18, -18, 36, 36);
+                ctx.fillStyle = '#FFD700';
+                ctx.fillRect(-15, -15, 30, 30);
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(-5, -15, 10, 30);
+            }
+
+            drawSwitch() {
+                ctx.fillStyle = '#9C27B0';
+                ctx.fillRect(-20, -20, 40, 40);
+                ctx.fillStyle = '#BA68C8';
+                ctx.fillRect(-18, -18, 36, 36);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('🔘', 0, 5);
+            }
+
+            drawCheckpoint() {
+                ctx.fillStyle = '#00FF00';
+                ctx.fillRect(-20, -20, 40, 40);
+                ctx.fillStyle = '#32CD32';
+                ctx.fillRect(-18, -18, 36, 36);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('🏃', 0, 5);
+            }
+
+            drawFinish() {
+                ctx.fillStyle = '#FFD700';
+                ctx.fillRect(-20, -20, 40, 40);
+                ctx.fillStyle = '#FFED4E';
+                ctx.fillRect(-18, -18, 36, 36);
+                ctx.fillStyle = '#FF6347';
+                ctx.font = 'bold 20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('🏆', 0, 5);
+            }
+
+            drawStart() {
+                ctx.fillStyle = '#00BFFF';
+                ctx.fillRect(-20, -20, 40, 40);
+                ctx.fillStyle = '#1E90FF';
+                ctx.fillRect(-18, -18, 36, 36);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('🚀', 0, 5);
+            }
+
+            drawSpawn() {
+                ctx.fillStyle = '#4CAF50';
+                ctx.fillRect(-20, -20, 40, 40);
+                ctx.fillStyle = '#66BB6A';
+                ctx.fillRect(-18, -18, 36, 36);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('⭐', 0, 5);
+            }
+
+            drawJump() {
+                ctx.fillStyle = '#00BFFF';
+                ctx.fillRect(-20, -20, 40, 40);
+                ctx.fillStyle = '#1E90FF';
+                ctx.fillRect(-18, -18, 36, 36);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('🦘', 0, 5);
+            }
+
+            drawSpeed() {
+                ctx.fillStyle = '#FF69B4';
+                ctx.fillRect(-20, -20, 40, 40);
+                ctx.fillStyle = '#FF1493';
+                ctx.fillRect(-18, -18, 36, 36);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('💨', 0, 5);
+            }
+
+            drawShield() {
+                ctx.fillStyle = '#9370DB';
+                ctx.fillRect(-20, -20, 40, 40);
+                ctx.fillStyle = '#BA55D3';
+                ctx.fillRect(-18, -18, 36, 36);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('🛡️', 0, 5);
+            }
+
+            drawCoin() {
+                ctx.fillStyle = '#FFD700';
+                ctx.fillRect(-20, -20, 40, 40);
+                ctx.fillStyle = '#FFED4E';
+                ctx.fillRect(-18, -18, 36, 36);
+                ctx.fillStyle = '#FF8F00';
+                ctx.font = 'bold 20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('🪙', 0, 5);
+            }
+
+            drawTree() {
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(-5, -10, 10, 20);
+                ctx.fillStyle = '#228B22';
+                ctx.beginPath();
+                ctx.arc(0, -15, 15, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            drawFlower() {
+                ctx.fillStyle = '#FF69B4';
+                ctx.beginPath();
+                ctx.arc(0, 0, 12, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#FFB6C1';
+                ctx.beginPath();
+                ctx.arc(-8, -8, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(8, -8, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(-8, 8, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(8, 8, 6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            drawCloud() {
+                ctx.fillStyle = '#FFFFFF';
+                ctx.beginPath();
+                ctx.arc(-10, 0, 10, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(0, 0, 12, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(10, 0, 10, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            drawStar() {
+                ctx.fillStyle = '#FFC107';
+                ctx.fillRect(-20, -20, 40, 40);
+                ctx.fillStyle = '#FFD54F';
+                ctx.fillRect(-18, -18, 36, 36);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('✨', 0, 5);
+            }
+
+            drawPlayer() {
+                // 方块角色 - 与蛋仔有5点不同
+                // 1. 形状：方块而不是圆形
+                // 2. 颜色：蓝绿配色而不是粉黄
+                // 3. 眼睛：方形而不是圆形
+                // 4. 嘴巴：直线而不是弧形
+                // 5. 身体：有手臂和腿部结构
+
+                // 头部 - 蓝色方块
+                ctx.fillStyle = '#4A90E2';
+                ctx.fillRect(-12, -15, 24, 24);
+                ctx.fillStyle = '#2E5BBA';
+                ctx.fillRect(-10, -13, 20, 20);
+
+                // 眼睛 - 方形白色
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(-6, -8, 4, 4);
+                ctx.fillRect(2, -8, 4, 4);
+
+                // 嘴巴 - 直线
+                ctx.fillStyle = '#FFD700';
+                ctx.fillRect(-4, 2, 8, 2);
+
+                // 身体 - 绿色方块
+                ctx.fillStyle = '#7ED321';
+                ctx.fillRect(-10, 5, 20, 20);
+                ctx.fillStyle = '#5BA317';
+                ctx.fillRect(-8, 7, 16, 16);
+
+                // 手臂 - 橙色方块
+                ctx.fillStyle = '#F5A623';
+                ctx.fillRect(-15, 8, 8, 12);
+                ctx.fillRect(7, 8, 8, 12);
+
+                // 腿部 - 红色方块
+                ctx.fillStyle = '#D0021B';
+                ctx.fillRect(-8, 20, 6, 8);
+                ctx.fillRect(2, 20, 6, 8);
+
+                // 脚 - 黑色方块
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(-10, 25, 8, 4);
+                ctx.fillRect(2, 25, 8, 4);
+            }
+
+            update() {
+                if (this.type === 'moving') {
+                    this.x += this.moveSpeed * this.moveDirection;
+                    if (this.x <= 0 || this.x >= canvas.width - this.width) {
+                        this.moveDirection *= -1;
+                    }
+                }
+
+                if (this.type === 'disappearing') {
+                    this.disappearTimer++;
+                    if (this.disappearTimer > 180) { // 3秒后开始消失
+                        this.isDisappearing = true;
+                    }
+                }
+            }
+
+            isPointInside(x, y) {
+                return x >= this.x && x <= this.x + this.width &&
+                    y >= this.y && y <= this.y + this.height;
+            }
+        }
+
+        function initEditor() {
+            canvas.addEventListener('click', handleCanvasClick);
+            canvas.addEventListener('contextmenu', handleCanvasRightClick);
+
+            document.querySelectorAll('.tool-item').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.tool-item').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentTool = btn.dataset.type;
+                    statusText.textContent = `已选择: ${btn.textContent}`;
+                });
+            });
+
+            document.getElementById('playBtn').addEventListener('click', togglePlay);
+            document.getElementById('clearBtn').addEventListener('click', clearMap);
+            document.getElementById('saveBtn').addEventListener('click', saveMap);
+            document.getElementById('loadBtn').addEventListener('click', () => document.getElementById('fileInput').click());
+            document.getElementById('fileInput').addEventListener('change', loadMap);
+
+            // 键盘控制
+            document.addEventListener('keydown', (e) => {
+                if (isPlaying) {
+                    keys[e.key.toLowerCase()] = true;
+                    if (e.key === 'Escape') {
+                        togglePlay();
+                    }
+                }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                if (isPlaying) {
+                    keys[e.key.toLowerCase()] = false;
+                }
+            });
+
+            updateCounts();
+            draw();
+        }
+
+        function handleCanvasClick(e) {
+            if (isPlaying) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            if (currentTool) {
+                const width = 40;
+                const height = 40;
+                gameObjects.push(new GameObject(x - width / 2, y - height / 2, currentTool, width, height));
+                updateCounts();
+                draw();
+            }
+        }
+
+        function handleCanvasRightClick(e) {
+            e.preventDefault();
+            if (isPlaying) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            for (let i = gameObjects.length - 1; i >= 0; i--) {
+                if (gameObjects[i].isPointInside(x, y)) {
+                    gameObjects.splice(i, 1);
+                    updateCounts();
+                    draw();
+                    break;
+                }
+            }
+        }
+
+        function updateCounts() {
+            const platforms = gameObjects.filter(obj => ['platform', 'moving', 'disappearing', 'bouncy'].includes(obj.type)).length;
+            const obstacles = gameObjects.filter(obj => ['wall', 'spike', 'rock', 'lava'].includes(obj.type)).length;
+            const powerups = gameObjects.filter(obj => ['jump', 'speed', 'shield', 'coin'].includes(obj.type)).length;
+            const decors = gameObjects.filter(obj => ['tree', 'flower', 'cloud', 'star'].includes(obj.type)).length;
+
+            platformCount.textContent = platforms;
+            obstacleCount.textContent = obstacles;
+            powerupCount.textContent = powerups;
+            decorCount.textContent = decors;
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#87CEEB');
+            gradient.addColorStop(1, '#98FB98');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            gameObjects.forEach(obj => obj.draw());
+        }
+
+        function togglePlay() {
+            if (isPlaying) {
+                isPlaying = false;
+                cancelAnimationFrame(gameLoop);
+                document.getElementById('playBtn').textContent = '开始游戏';
+                statusText.textContent = '编辑模式';
+                draw();
+            } else {
+                isPlaying = true;
+                document.getElementById('playBtn').textContent = '停止游戏';
+                statusText.textContent = '游戏模式 - 方块角色开始冒险！';
+                startGame();
+            }
+        }
+
+        function startGame() {
+            // 创建玩家角色
+            player = new GameObject(50, 50, 'player', 30, 30);
+            player.velocityX = 0;
+            player.velocityY = 0;
+            player.onGround = false;
+
+            gameLoop = requestAnimationFrame(updateGame);
+        }
+
+        function updateGame() {
+            if (!isPlaying) return;
+
+            // 更新所有游戏对象
+            gameObjects.forEach(obj => obj.update());
+
+            // 更新玩家
+            if (player) {
+                // 键盘控制
+                if (keys['a'] || keys['arrowleft']) {
+                    player.velocityX = -3;
+                } else if (keys['d'] || keys['arrowright']) {
+                    player.velocityX = 3;
+                } else {
+                    player.velocityX *= 0.8; // 摩擦力
+                }
+
+                if ((keys['w'] || keys['arrowup'] || keys[' ']) && player.onGround) {
+                    player.velocityY = -8;
+                    player.onGround = false;
+                }
+
+                // 重力
+                player.velocityY += 0.5;
+
+                // 更新位置
+                player.x += player.velocityX;
+                player.y += player.velocityY;
+
+                // 边界检查
+                if (player.x < 0) player.x = 0;
+                if (player.x > canvas.width - player.width) player.x = canvas.width - player.width;
+                if (player.y > canvas.height - player.height) {
+                    player.y = canvas.height - player.height;
+                    player.velocityY = 0;
+                    player.onGround = true;
+                }
+
+                // 碰撞检测
+                gameObjects.forEach(obj => {
+                    if (obj.type !== 'player' && checkCollision(player, obj)) {
+                        if (obj.type.includes('platform') || obj.type === 'wall') {
+                            if (player.velocityY > 0 && player.y < obj.y) {
+                                player.y = obj.y - player.height;
+                                player.velocityY = 0;
+                                player.onGround = true;
+                            }
+                        }
+                    }
+                });
+            }
+
+            draw();
+            if (player) {
+                player.draw();
+            }
+            gameLoop = requestAnimationFrame(updateGame);
+        }
+
+        function checkCollision(obj1, obj2) {
+            return obj1.x < obj2.x + obj2.width &&
+                obj1.x + obj1.width > obj2.x &&
+                obj1.y < obj2.y + obj2.height &&
+                obj1.y + obj1.height > obj2.y;
+        }
+
+        function clearMap() {
+            if (confirm('确定要清空地图吗？')) {
+                gameObjects = [];
+                updateCounts();
+                draw();
+                statusText.textContent = '地图已清空';
+            }
+        }
+
+        function saveMap() {
+            const mapData = {
+                objects: gameObjects.map(obj => ({
+                    x: obj.x,
+                    y: obj.y,
+                    type: obj.type,
+                    width: obj.width,
+                    height: obj.height,
+                    rotation: obj.rotation
+                }))
+            };
+
+            const blob = new Blob([JSON.stringify(mapData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '方块世界地图.json';
+            a.click();
+            URL.revokeObjectURL(url);
+
+            statusText.textContent = '地图已保存';
+        }
+
+        function loadMap(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const mapData = JSON.parse(e.target.result);
+                    gameObjects = mapData.objects.map(obj => {
+                        const newObj = new GameObject(obj.x, obj.y, obj.type, obj.width, obj.height);
+                        newObj.rotation = obj.rotation || 0;
+                        return newObj;
+                    });
+                    updateCounts();
+                    draw();
+                    statusText.textContent = '地图已加载';
+                } catch (error) {
+                    alert('文件格式错误！');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        initEditor();
+    </script>
+</body>
+
+</html>

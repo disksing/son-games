@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>接球进篮</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        .game-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            max-width: 600px;
+            width: 95%;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 42px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5);
+            letter-spacing: 2px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 12px 20px;
+            border-radius: 12px;
+            text-align: center;
+            flex: 1;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        canvas {
+            display: block;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .instructions {
+            margin-top: 15px;
+            text-align: center;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .game-over {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .game-over.show {
+            display: flex;
+        }
+
+        .game-over-content {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            padding: 50px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .game-over h2 {
+            font-size: 36px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .final-score {
+            font-size: 52px;
+            font-weight: bold;
+            margin: 30px 0;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5);
+            color: #FFD700;
+        }
+
+        .paused {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 30px 50px;
+            border-radius: 15px;
+            font-size: 32px;
+            font-weight: bold;
+            display: none;
+            z-index: 100;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .paused.show {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>🏀 接球进篮 🏀</h1>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-label">分数</div>
+                <div class="stat-value" id="score">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">时间</div>
+                <div class="stat-value" id="time">180</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">生命</div>
+                <div class="stat-value" id="lives">3</div>
+            </div>
+        </div>
+
+        <div style="position: relative; display: inline-block;">
+            <canvas id="gameCanvas" width="540" height="600"></canvas>
+            <div class="paused" id="paused">暂停</div>
+        </div>
+
+        <div class="instructions">
+            ← → 键或鼠标移动挡板 | 空格键暂停/继续 | 把球弹进上方篮子得10分
+        </div>
+
+        <div class="controls">
+            <button id="startBtn">开始游戏</button>
+            <button id="pauseBtn">暂停</button>
+            <button id="newGameBtn">新游戏</button>
+        </div>
+    </div>
+
+    <div class="game-over" id="gameOver">
+        <div class="game-over-content">
+            <h2 id="gameOverTitle">游戏结束</h2>
+            <div class="final-score" id="finalScore">0</div>
+            <div style="margin-bottom: 20px; font-size: 18px;" id="gameOverMsg"></div>
+            <button id="restartBtn">再玩一次</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 游戏状态
+        let gameState = 'ready'; // ready, playing, paused, gameover
+        let score = 0;
+        let timeLeft = 180; // 3分钟 = 180秒
+        let lives = 3;
+        const BALL_SPEED = 3; // 固定球速，永远不变
+        const INITIAL_PADDLE_WIDTH = 100;
+        const INITIAL_PADDLE_SPEED = 4;
+
+        let paddle = { x: 0, y: 0, width: INITIAL_PADDLE_WIDTH, height: 15, speed: INITIAL_PADDLE_SPEED };
+        let ball = { x: 0, y: 0, radius: 10, dx: 0, dy: 0 };
+        let targetPaddleX = 0; // 鼠标目标位置
+        let keys = { left: false, right: false };
+        let lastTime = 0;
+        let timerId = null;
+        let hasHitPaddle = false; // 标记球是否碰过挡板（只有碰过挡板后才能进篮）
+
+        // 篮子参数（上方）
+        const basket = {
+            x: 0,
+            y: 30,
+            width: 80,
+            height: 60,
+            rimHeight: 10,
+            dx: 0, // 篮子移动速度x
+            dy: 0, // 篮子移动速度y
+            angle: 0, // 转圈角度（用于转圈模式）
+            centerX: 0, // 转圈中心x
+            centerY: 0, // 转圈中心y
+            radius: 0 // 转圈半径
+        };
+        let basketMode = 'static'; // static, slow, medium, fast, circle, random
+        let successfulBaskets = 0; // 成功进篮次数
+        let isPreviewMode = false; // 预览模式
+        let previewLevel = 0; // 预览的关卡（进篮次数）
+        let previewTimer = null; // 预览定时器
+        let isPreviewPaused = false; // 预览模式暂停状态
+        let randomBasketTimer = null; // 随机进球定时器
+        let randomBasketInterval = 10000; // 每10秒随机进球一次
+        let lastRandomBasketTime = 0; // 上次随机进球时间
+        let lastPaddleX = 0; // 上次挡板x位置（用于检测静止）
+        let paddleStillTime = 0; // 挡板静止时间
+        let gameStartTime = 0; // 游戏开始时间
+        let stillWarningCount = 0; // 静止警告次数
+        let stillCheckInterval = 1000; // 每1秒检查一次静止
+        let lastStillCheckTime = 0; // 上次检查静止的时间
+
+        // 更新篮子移动模式（根据进篮次数）
+        function updateBasketMode() {
+            successfulBaskets = Math.floor(score / 10); // 每次进篮得10分
+
+            if (successfulBaskets < 10) {
+                // 0-9次：不移动
+                basketMode = 'static';
+                basket.dx = 0;
+                basket.dy = 0;
+            } else if (successfulBaskets < 20) {
+                // 10-19次：慢速移动
+                basketMode = 'slow';
+                basket.dx = 1;
+                basket.dy = 0;
+            } else if (successfulBaskets < 30) {
+                // 20-29次：中速移动
+                basketMode = 'medium';
+                basket.dx = 2;
+                basket.dy = 0;
+            } else if (successfulBaskets < 40) {
+                // 30-39次：速度特别慢
+                basketMode = 'slow';
+                basket.dx = 0.5;
+                basket.dy = 0;
+            } else if (successfulBaskets < 100) {
+                // 40-99次：转圈圈
+                basketMode = 'circle';
+                if (basket.centerX === 0) {
+                    basket.centerX = canvas.width / 2;
+                    basket.centerY = 30 + basket.height / 2;
+                    basket.radius = Math.min(canvas.width, canvas.height) * 0.3;
+                }
+                basket.angle = 0;
+            } else if (successfulBaskets < 150) {
+                // 100-149次：随机移动（不会太快），可以上下移动
+                basketMode = 'random';
+                if (Math.abs(basket.dx) < 0.5) {
+                    basket.dx = (Math.random() - 0.5) * 1.5;
+                    basket.dy = (Math.random() - 0.5) * 1.5;
+                }
+            } else if (successfulBaskets < 160) {
+                // 150-159次：慢速移动
+                basketMode = 'slow';
+                basket.dx = 1;
+                basket.dy = 0;
+            } else if (successfulBaskets < 170) {
+                // 160-169次：中速移动
+                basketMode = 'medium';
+                basket.dx = 2;
+                basket.dy = 0;
+            } else {
+                // 170+次：快速移动
+                basketMode = 'fast';
+                basket.dx = 3;
+                basket.dy = 0;
+            }
+        }
+
+        // 显示静止警告
+        function showStillWarning() {
+            // 在画布上显示警告信息
+            const warningMsg = document.createElement('div');
+            warningMsg.id = 'stillWarning';
+            warningMsg.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(255, 0, 0, 0.9);
+                color: white;
+                padding: 20px 40px;
+                border-radius: 10px;
+                font-size: 24px;
+                font-weight: bold;
+                z-index: 1000;
+                pointer-events: none;
+                animation: warningPulse 0.5s ease-out;
+            `;
+            warningMsg.textContent = `⚠️ 警告 ${stillWarningCount}/3：请移动挡板！`;
+            document.body.appendChild(warningMsg);
+
+            // 3秒后移除警告
+            setTimeout(() => {
+                if (warningMsg.parentNode) {
+                    warningMsg.parentNode.removeChild(warningMsg);
+                }
+            }, 3000);
+        }
+
+        // 显示扣分惩罚
+        function showStillPenalty() {
+            const penaltyMsg = document.createElement('div');
+            penaltyMsg.id = 'stillPenalty';
+            penaltyMsg.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(255, 100, 0, 0.95);
+                color: white;
+                padding: 25px 50px;
+                border-radius: 10px;
+                font-size: 28px;
+                font-weight: bold;
+                z-index: 1001;
+                pointer-events: none;
+                animation: penaltyShake 0.6s ease-out;
+            `;
+            penaltyMsg.textContent = `❌ 静止惩罚：-100分！`;
+            document.body.appendChild(penaltyMsg);
+
+            // 4秒后移除
+            setTimeout(() => {
+                if (penaltyMsg.parentNode) {
+                    penaltyMsg.parentNode.removeChild(penaltyMsg);
+                }
+            }, 4000);
+        }
+
+        // 添加警告动画CSS
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes warningPulse {
+                0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+                50% { transform: translate(-50%, -50%) scale(1.1); }
+                100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            }
+            @keyframes penaltyShake {
+                0%, 100% { transform: translate(-50%, -50%) translateX(0); }
+                25% { transform: translate(-50%, -50%) translateX(-10px); }
+                75% { transform: translate(-50%, -50%) translateX(10px); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // 随机进球功能
+        function triggerRandomBasket() {
+            if (gameState !== 'playing' || isPreviewMode) return;
+
+            // 随机将球放在玩家不在的位置
+            let ballX, ballY;
+            let attempts = 0;
+            do {
+                // 球随机出现在画布上方区域，避免和挡板重叠
+                ballX = Math.random() * (canvas.width - ball.radius * 2) + ball.radius;
+                ballY = Math.random() * (canvas.height * 0.3) + 50; // 上半部分区域
+                attempts++;
+            } while (
+                attempts < 10 &&
+                (ballX + ball.radius > paddle.x &&
+                    ballX - ball.radius < paddle.x + paddle.width &&
+                    ballY + ball.radius > paddle.y - 50) // 避免和挡板重叠
+            );
+
+            // 设置球的位置
+            ball.x = ballX;
+            ball.y = ballY;
+
+            // 随机方向，但确保球会向上飞向篮子
+            const angle = (Math.random() - 0.5) * Math.PI / 4; // -22.5 到 22.5 度
+            ball.dx = Math.sin(angle) * BALL_SPEED;
+            ball.dy = -Math.abs(Math.cos(angle) * BALL_SPEED); // 向上
+
+            // 标记已经碰过挡板（这样可以直接进篮）
+            hasHitPaddle = true;
+
+            // 篮子也可能随机移动到下方位置
+            if (Math.random() < 0.5 && successfulBaskets >= 30) {
+                // 30次以上才有概率移动到下方
+                const randomY = canvas.height * 0.4 + Math.random() * (canvas.height * 0.3);
+                basket.y = Math.max(50, Math.min(randomY, canvas.height * 0.6));
+            }
+
+            // 添加特效
+            createParticles(ball.x, ball.y, '#FFD700');
+        }
+
+        // 初始化
+        function init() {
+            paddle.x = canvas.width / 2 - paddle.width / 2;
+            paddle.y = canvas.height - 40;
+            targetPaddleX = paddle.x;
+
+            // 篮子居中
+            basket.x = canvas.width / 2 - basket.width / 2;
+            basket.y = 30;
+            basket.dx = 0;
+            basket.dy = 0;
+            basket.centerX = canvas.width / 2;
+            basket.centerY = 30 + basket.height / 2;
+            basket.radius = Math.min(canvas.width, canvas.height) * 0.3;
+            basket.angle = 0;
+
+            resetBall();
+
+            score = 0;
+            timeLeft = 180;
+            lives = 3;
+            successfulBaskets = 0;
+            stillWarningCount = 0; // 重置警告次数
+
+            document.getElementById('score').textContent = score;
+            // 格式化时间为 MM:SS
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            document.getElementById('time').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('lives').textContent = lives;
+
+            updateBasketMode();
+            draw();
+        }
+
+        // 标准化球速：确保速度始终是固定的 BALL_SPEED
+        function normalizeBallSpeed() {
+            const currentSpeed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
+            if (currentSpeed > 0) {
+                // 保持方向，但使用固定速度
+                const scale = BALL_SPEED / currentSpeed;
+                ball.dx *= scale;
+                ball.dy *= scale;
+            }
+        }
+
+        // 重置球（使用固定速度）
+        function resetBall() {
+            // 球重置在挡板上方附近，向下运动
+            ball.x = paddle.x + paddle.width / 2;
+            ball.y = paddle.y - 50; // 在挡板上方50像素
+            // 初始方向随机，但总体向下或斜向下
+            const angle = (Math.random() - 0.5) * Math.PI / 4; // -22.5 到 22.5 度
+            ball.dx = Math.sin(angle) * BALL_SPEED;
+            ball.dy = Math.abs(Math.cos(angle) * BALL_SPEED); // 向下运动
+            hasHitPaddle = false; // 重置标记
+        }
+
+        // 绘制
+        function draw() {
+            // 清空画布
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 绘制网格背景
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < canvas.width; x += 20) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += 20) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // 绘制篮子
+            // 预览模式下显示调试信息
+            if (isPreviewMode) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+                ctx.fillRect(0, 0, canvas.width, 90);
+
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 20px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(`预览模式 - 进篮次数: ${previewLevel}`, canvas.width / 2, 28);
+
+                let modeText = '';
+                if (previewLevel < 10) modeText = '静态（不移动）';
+                else if (previewLevel < 20) modeText = '慢速移动';
+                else if (previewLevel < 30) modeText = '中速移动';
+                else if (previewLevel < 40) modeText = '特别慢移动';
+                else if (previewLevel < 100) modeText = '转圈圈';
+                else if (previewLevel < 150) modeText = '随机移动';
+                else if (previewLevel < 160) modeText = '慢速移动';
+                else if (previewLevel < 170) modeText = '中速移动';
+                else modeText = '快速移动';
+
+                ctx.font = '16px sans-serif';
+                ctx.fillText(`模式: ${modeText}`, canvas.width / 2, 52);
+
+                // 显示暂停状态和提示
+                if (isPreviewPaused) {
+                    ctx.font = 'bold 14px sans-serif';
+                    ctx.fillStyle = '#FFD700';
+                    ctx.fillText('⏸ 已暂停 - 可以仔细查看当前关卡篮子的移动', canvas.width / 2, 72);
+                } else {
+                    ctx.font = '12px sans-serif';
+                    ctx.fillStyle = '#aaa';
+                    ctx.fillText('关卡自动切换中...', canvas.width / 2, 72);
+                }
+
+                ctx.font = '12px sans-serif';
+                ctx.fillStyle = '#fff';
+                ctx.fillText('鼠标左键: 暂停/继续查看 | 中键: 退出预览', canvas.width / 2, 86);
+            }
+
+            // 篮子主体
+            ctx.fillStyle = '#FFA500';
+            ctx.fillRect(basket.x, basket.y, basket.width, basket.height);
+
+            // 篮子边框
+            ctx.strokeStyle = '#FF8C00';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(basket.x, basket.y, basket.width, basket.height);
+
+            // 篮筐（上方边缘）
+            ctx.fillStyle = '#FFD700';
+            ctx.fillRect(basket.x - 5, basket.y, basket.width + 10, basket.rimHeight);
+
+            // 篮筐高光
+            ctx.strokeStyle = '#FFA500';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(basket.x - 5, basket.y, basket.width + 10, basket.rimHeight);
+
+            // 篮子网格线（装饰）
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.lineWidth = 1;
+            for (let i = 1; i < 4; i++) {
+                const y = basket.y + (basket.height / 4) * i;
+                ctx.beginPath();
+                ctx.moveTo(basket.x, y);
+                ctx.lineTo(basket.x + basket.width, y);
+                ctx.stroke();
+            }
+            for (let i = 1; i < 4; i++) {
+                const x = basket.x + (basket.width / 4) * i;
+                ctx.beginPath();
+                ctx.moveTo(x, basket.y);
+                ctx.lineTo(x, basket.y + basket.height);
+                ctx.stroke();
+            }
+
+            // 绘制挡板
+            const gradient = ctx.createLinearGradient(paddle.x, paddle.y, paddle.x + paddle.width, paddle.y);
+            gradient.addColorStop(0, '#6C5CE7');
+            gradient.addColorStop(1, '#A29BFE');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+
+            // 挡板高光
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(paddle.x, paddle.y, paddle.width, paddle.height);
+
+            // 绘制球
+            const ballGradient = ctx.createRadialGradient(
+                ball.x - 3, ball.y - 3, 0,
+                ball.x, ball.y, ball.radius
+            );
+            ballGradient.addColorStop(0, '#fff');
+            ballGradient.addColorStop(1, '#74B9FF');
+            ctx.fillStyle = ballGradient;
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 球的高光
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.beginPath();
+            ctx.arc(ball.x - 3, ball.y - 3, ball.radius / 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 如果游戏未开始，显示提示
+            if (gameState === 'ready') {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 32px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('点击开始游戏', canvas.width / 2, canvas.height / 2);
+            }
+        }
+
+        // 更新篮子位置
+        function updateBasket() {
+            // 预览模式下也更新篮子
+            if (gameState !== 'playing' && !isPreviewMode) return;
+
+            if (isPreviewMode) {
+                // 预览模式：使用预览关卡
+                const tempBaskets = successfulBaskets;
+                successfulBaskets = previewLevel;
+                updateBasketMode();
+                successfulBaskets = tempBaskets;
+            } else {
+                updateBasketMode();
+            }
+
+            if (basketMode === 'static') {
+                // 不移动
+                // 确保篮子居中（仅在预览模式下重置位置）
+                if (isPreviewMode && previewLevel === 0) {
+                    basket.x = canvas.width / 2 - basket.width / 2;
+                    basket.y = 30;
+                }
+                return;
+            } else if (basketMode === 'slow' || basketMode === 'medium' || basketMode === 'fast') {
+                // 水平移动
+                basket.x += basket.dx;
+
+                // 边界反弹
+                if (basket.x <= 0 || basket.x + basket.width >= canvas.width) {
+                    basket.dx = -basket.dx;
+                    basket.x = Math.max(0, Math.min(basket.x, canvas.width - basket.width));
+                }
+            } else if (basketMode === 'circle') {
+                // 转圈圈
+                basket.angle += 0.02;
+                basket.x = basket.centerX + Math.cos(basket.angle) * basket.radius - basket.width / 2;
+                basket.y = basket.centerY + Math.sin(basket.angle) * basket.radius - basket.height / 2;
+
+                // 确保不超出边界
+                basket.x = Math.max(0, Math.min(basket.x, canvas.width - basket.width));
+                basket.y = Math.max(10, Math.min(basket.y, canvas.height / 3));
+            } else if (basketMode === 'random') {
+                // 随机移动（可以上下移动）
+                basket.x += basket.dx;
+                basket.y += basket.dy;
+
+                // 边界反弹并改变方向
+                if (basket.x <= 0 || basket.x + basket.width >= canvas.width) {
+                    basket.dx = -basket.dx;
+                    basket.dx = (Math.random() - 0.5) * 1.5;
+                }
+                // 允许篮子移动到下方，但限制范围
+                if (basket.y <= 10 || basket.y + basket.height >= canvas.height * 0.7) {
+                    basket.dy = -basket.dy;
+                    basket.dy = (Math.random() - 0.5) * 1.5;
+                }
+
+                basket.x = Math.max(0, Math.min(basket.x, canvas.width - basket.width));
+                basket.y = Math.max(10, Math.min(basket.y, canvas.height * 0.7));
+
+                // 偶尔改变方向
+                if (Math.random() < 0.05) {
+                    basket.dx = (Math.random() - 0.5) * 1.5;
+                    basket.dy = (Math.random() - 0.5) * 1.5;
+                }
+            }
+        }
+
+        // 调试预览：展示不同进篮次数的篮子移动
+        function startBasketPreview() {
+            if (isPreviewMode) {
+                // 如果已经在预览，则停止
+                stopBasketPreview();
+                return;
+            }
+
+            isPreviewMode = true;
+            isPreviewPaused = false; // 初始不暂停
+            // 暂停游戏（如果正在游戏）
+            if (gameState === 'playing') {
+                gameState = 'paused';
+                if (timerId) clearInterval(timerId);
+            }
+
+            previewLevel = 0;
+
+            // 重置篮子到初始位置
+            basket.x = canvas.width / 2 - basket.width / 2;
+            basket.y = 30;
+            basket.angle = 0;
+            basket.centerX = canvas.width / 2;
+            basket.centerY = 30 + basket.height / 2;
+            basket.radius = Math.min(canvas.width, canvas.height) * 0.3;
+
+            // 立即更新一次篮子位置
+            updateBasket();
+
+            // 每1秒切换一个关卡（如果未暂停）
+            previewTimer = setInterval(() => {
+                if (!isPreviewPaused) {
+                    previewLevel++;
+                    if (previewLevel > 180) {
+                        previewLevel = 0; // 循环
+                    }
+
+                    // 重置篮子位置，用于预览新关卡
+                    basket.x = canvas.width / 2 - basket.width / 2;
+                    basket.y = 30;
+                    basket.angle = 0;
+
+                    // 更新篮子位置用于预览
+                    updateBasket();
+                }
+            }, 1000);
+        }
+
+        // 预览模式暂停/继续
+        function togglePreviewPause() {
+            if (!isPreviewMode) return;
+            isPreviewPaused = !isPreviewPaused;
+        }
+
+        function stopBasketPreview() {
+            if (!isPreviewMode) return;
+
+            isPreviewMode = false;
+            isPreviewPaused = false;
+            if (previewTimer) {
+                clearInterval(previewTimer);
+                previewTimer = null;
+            }
+
+            // 恢复正常篮子位置
+            updateBasketMode();
+
+            // 如果游戏是暂停状态，恢复暂停状态（但保持暂停）
+            // 如果游戏是进行中，保持进行中
+            if (gameState === 'paused' && !document.getElementById('paused').classList.contains('show')) {
+                document.getElementById('paused').classList.add('show');
+            }
+        }
+
+        // 更新游戏
+        function update(deltaTime) {
+            // 预览模式下只更新篮子，不更新游戏逻辑
+            if (isPreviewMode) {
+                updateBasket();
+                return;
+            }
+
+            if (gameState !== 'playing') return;
+
+            // 更新篮子位置
+            updateBasket();
+
+            // 移动挡板 - 键盘控制
+            let paddleMoved = false; // 标记挡板是否移动
+            if (keys.left && paddle.x > 0) {
+                paddle.x -= paddle.speed;
+                targetPaddleX = paddle.x; // 同步目标位置
+                lastPaddleX = paddle.x; // 更新位置，重置静止时间
+                paddleStillTime = 0;
+                paddleMoved = true;
+            }
+            if (keys.right && paddle.x < canvas.width - paddle.width) {
+                paddle.x += paddle.speed;
+                targetPaddleX = paddle.x; // 同步目标位置
+                lastPaddleX = paddle.x; // 更新位置，重置静止时间
+                paddleStillTime = 0;
+                paddleMoved = true;
+            }
+
+            // 鼠标平滑跟随 - 如果没有按键
+            if (!keys.left && !keys.right) {
+                const diff = targetPaddleX - paddle.x;
+                const speed = Math.abs(diff) * 0.15; // 平滑跟随速度
+                if (Math.abs(diff) > 1) {
+                    paddle.x += diff > 0 ? speed : -speed;
+                    lastPaddleX = paddle.x; // 更新位置，重置静止时间
+                    paddleStillTime = 0;
+                    paddleMoved = true;
+                } else {
+                    paddle.x = targetPaddleX;
+                    // 检查是否静止（位置没有变化）
+                    if (Math.abs(paddle.x - lastPaddleX) < 1) {
+                        paddleStillTime += deltaTime;
+                    } else {
+                        lastPaddleX = paddle.x;
+                        paddleStillTime = 0;
+                        paddleMoved = true;
+                    }
+                }
+                // 限制边界
+                paddle.x = Math.max(0, Math.min(paddle.x, canvas.width - paddle.width));
+            } else {
+                // 有按键时也检查位置变化
+                if (Math.abs(paddle.x - lastPaddleX) < 1 && !paddleMoved) {
+                    paddleStillTime += deltaTime;
+                } else if (!paddleMoved) {
+                    lastPaddleX = paddle.x;
+                    paddleStillTime = 0;
+                }
+            }
+
+            // 检测玩家是否静止不动（游戏开始2秒后才检测）
+            const currentTime = Date.now();
+            const timeSinceStart = currentTime - gameStartTime;
+            if (timeSinceStart > 2000 && gameState === 'playing') { // 开局2秒后才检测
+                // 如果挡板静止超过3秒（连续静止3秒）
+                if (paddleStillTime > 3000) {
+                    // 警告（最多3次）
+                    if (stillWarningCount < 3) {
+                        stillWarningCount++;
+                        showStillWarning();
+                        paddleStillTime = 0; // 重置静止时间，等待下一次完整的3秒静止
+                    } else if (stillWarningCount === 3) {
+                        // 第3次警告后，扣100积分
+                        score = score - 100;
+                        document.getElementById('score').textContent = score;
+
+                        // 检查分数是否为负数
+                        if (score < 0) {
+                            gameOver(); // 立即游戏失败
+                            return;
+                        }
+                        showStillPenalty();
+                        stillWarningCount++; // 标记已扣分，不再继续警告
+                        paddleStillTime = 0;
+                    }
+                }
+            }
+
+            // 移动球
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+
+            // 球碰撞左边界
+            if (ball.x - ball.radius <= 0) {
+                ball.x = ball.radius;
+                ball.dx = -ball.dx;
+                normalizeBallSpeed(); // 确保速度固定
+            }
+
+            // 球碰撞右边界
+            if (ball.x + ball.radius >= canvas.width) {
+                ball.x = canvas.width - ball.radius;
+                ball.dx = -ball.dx;
+                normalizeBallSpeed(); // 确保速度固定
+            }
+
+            // 球碰撞上边界
+            if (ball.y - ball.radius <= 0) {
+                ball.y = ball.radius;
+                ball.dy = -ball.dy;
+                normalizeBallSpeed(); // 确保速度固定
+            }
+
+            // 球碰撞挡板
+            if (ball.y + ball.radius >= paddle.y &&
+                ball.y - ball.radius <= paddle.y + paddle.height &&
+                ball.x + ball.radius >= paddle.x &&
+                ball.x - ball.radius <= paddle.x + paddle.width) {
+
+                // 标记球已碰过挡板
+                hasHitPaddle = true;
+
+                // 根据击中挡板的位置改变反弹角度
+                const hitPos = (ball.x - paddle.x) / paddle.width; // 0 到 1
+                const angle = (hitPos - 0.5) * Math.PI / 3; // -60 到 60 度
+                // 使用固定球速，不根据当前速度
+                ball.dx = Math.sin(angle) * BALL_SPEED;
+                ball.dy = -Math.abs(Math.cos(angle) * BALL_SPEED);
+                // 确保速度正确（虽然已经用了固定速度，但双重保险）
+                normalizeBallSpeed();
+
+                ball.y = paddle.y - ball.radius;
+            }
+
+            // 检查球是否进篮（必须碰过挡板且从上方进入篮子）
+            // 更严格的检测：球必须在篮子内部，且从上方进入
+            const ballInBasketX = ball.x >= basket.x && ball.x <= basket.x + basket.width;
+            const ballInBasketY = ball.y >= basket.y + basket.rimHeight && ball.y <= basket.y + basket.height;
+            const ballEnteringFromTop = ball.dy < 0 && ball.y < basket.y + basket.height * 0.6; // 球的上半部分在篮子上半部分
+
+            if (hasHitPaddle && // 必须碰过挡板
+                ballInBasketX &&
+                ballInBasketY &&
+                ballEnteringFromTop) {
+                // 进篮成功！
+                score += 10;
+                successfulBaskets++;
+                document.getElementById('score').textContent = score;
+
+                // 更新篮子移动模式
+                updateBasketMode();
+
+                // 添加粒子效果
+                createParticles(basket.x + basket.width / 2, basket.y + basket.height / 2, '#FFD700');
+
+                // 重置球
+                resetBall();
+            }
+
+            // 球掉落
+            if (ball.y - ball.radius > canvas.height) {
+                lives--;
+                document.getElementById('lives').textContent = lives;
+
+                if (lives <= 0) {
+                    gameOver();
+                } else {
+                    resetBall();
+                }
+            }
+
+            // 检查时间
+            if (timeLeft <= 0) {
+                gameOver();
+            }
+
+            // 随机进球功能（每10秒随机触发一次）
+            const randomBasketCurrentTime = Date.now();
+            if (randomBasketCurrentTime - lastRandomBasketTime > randomBasketInterval) {
+                if (Math.random() < 0.3) { // 30%的概率触发随机进球
+                    triggerRandomBasket();
+                    lastRandomBasketTime = randomBasketCurrentTime;
+                    // 随机设置下一次触发时间（8-15秒）
+                    randomBasketInterval = 8000 + Math.random() * 7000;
+                } else {
+                    lastRandomBasketTime = randomBasketCurrentTime;
+                }
+            }
+        }
+
+        // 创建粒子效果（简化版）
+        let particles = [];
+        function createParticles(x, y, color) {
+            for (let i = 0; i < 5; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    dx: (Math.random() - 0.5) * 4,
+                    dy: (Math.random() - 0.5) * 4,
+                    life: 20,
+                    color: color
+                });
+            }
+        }
+
+        // 更新和绘制粒子
+        function updateParticles() {
+            particles = particles.filter(p => {
+                p.x += p.dx;
+                p.y += p.dy;
+                p.life--;
+
+                if (p.life > 0) {
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = p.life / 20;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                }
+
+                return p.life > 0;
+            });
+        }
+
+        // 游戏循环
+        function gameLoop(currentTime) {
+            const deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+
+            update(deltaTime);
+            draw();
+            updateParticles();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // 开始游戏
+        function startGame() {
+            gameState = 'playing';
+            document.getElementById('gameOver').classList.remove('show');
+            document.getElementById('paused').classList.remove('show');
+            lastTime = performance.now();
+
+            // 初始化随机进球
+            lastRandomBasketTime = Date.now();
+            randomBasketInterval = 10000;
+
+            // 初始化静止检测
+            gameStartTime = Date.now();
+            lastPaddleX = paddle.x;
+            paddleStillTime = 0;
+            stillWarningCount = 0;
+            lastStillCheckTime = Date.now();
+
+            // 启动计时器
+            if (timerId) clearInterval(timerId);
+            timerId = setInterval(() => {
+                if (gameState === 'playing') {
+                    timeLeft--;
+                    // 格式化时间为 MM:SS
+                    const minutes = Math.floor(timeLeft / 60);
+                    const seconds = timeLeft % 60;
+                    document.getElementById('time').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                    if (timeLeft <= 0) {
+                        gameOver();
+                    }
+                }
+            }, 1000);
+
+            gameLoop(performance.now());
+        }
+
+        // 暂停/继续
+        function togglePause() {
+            if (isPreviewMode) {
+                // 预览模式下不能暂停/继续
+                return;
+            }
+            if (gameState === 'playing') {
+                gameState = 'paused';
+                document.getElementById('paused').classList.add('show');
+                if (timerId) clearInterval(timerId);
+            } else if (gameState === 'paused') {
+                gameState = 'playing';
+                document.getElementById('paused').classList.remove('show');
+                lastTime = performance.now();
+                // 恢复计时器
+                timerId = setInterval(() => {
+                    if (gameState === 'playing') {
+                        timeLeft--;
+                        // 格式化时间为 MM:SS
+                        const minutes = Math.floor(timeLeft / 60);
+                        const seconds = timeLeft % 60;
+                        document.getElementById('time').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                        if (timeLeft <= 0) {
+                            gameOver();
+                        }
+                    }
+                }, 1000);
+            }
+        }
+
+        // 游戏结束
+        function gameOver() {
+            gameState = 'gameover';
+            if (timerId) {
+                clearInterval(timerId);
+                timerId = null;
+            }
+
+            const MIN_SCORE = 700; // 最低要求分数
+            const isScoreNegative = score < 0;
+            const isScoreTooLow = score < MIN_SCORE;
+
+            document.getElementById('finalScore').textContent = score;
+
+            // 判断失败原因
+            if (isScoreNegative) {
+                document.getElementById('gameOverTitle').textContent = '游戏失败';
+                document.getElementById('gameOverMsg').textContent = `分数为负（${score}分）！需要达到700分以上。游戏将重新开始...`;
+            } else if (isScoreTooLow) {
+                document.getElementById('gameOverTitle').textContent = '游戏失败';
+                document.getElementById('gameOverMsg').textContent = `得分不足（${score}分）！需要达到700分以上才能成功。游戏将重新开始...`;
+            } else if (lives <= 0) {
+                document.getElementById('gameOverTitle').textContent = '生命用尽';
+                document.getElementById('gameOverMsg').textContent = `最终得分：${score} 分（达标！）`;
+            } else if (timeLeft <= 0) {
+                document.getElementById('gameOverTitle').textContent = '时间到';
+                document.getElementById('gameOverMsg').textContent = `最终得分：${score} 分（达标！）`;
+            } else {
+                document.getElementById('gameOverTitle').textContent = '游戏成功';
+                document.getElementById('gameOverMsg').textContent = `最终得分：${score} 分（达标！）`;
+            }
+
+            document.getElementById('gameOver').classList.add('show');
+
+            // 如果分数不达标或为负数，3秒后自动重新开始
+            if (isScoreNegative || isScoreTooLow) {
+                setTimeout(() => {
+                    document.getElementById('gameOver').classList.remove('show');
+                    newGame();
+                    startGame();
+                }, 3000);
+            }
+        }
+
+        // 新游戏
+        function newGame() {
+            // 停止预览模式
+            stopBasketPreview();
+
+            gameState = 'ready';
+            if (timerId) {
+                clearInterval(timerId);
+                timerId = null;
+            }
+            init();
+        }
+
+        // 事件监听
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') keys.left = true;
+            if (e.key === 'ArrowRight') keys.right = true;
+            if (e.key === ' ') {
+                e.preventDefault();
+                if (gameState === 'playing' || gameState === 'paused') {
+                    togglePause();
+                }
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft') keys.left = false;
+            if (e.key === 'ArrowRight') keys.right = false;
+        });
+
+        // 鼠标控制挡板 - 设置目标位置，让挡板平滑跟随
+        canvas.addEventListener('mousemove', (e) => {
+            if (gameState === 'playing' && !isPreviewMode) {
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                targetPaddleX = Math.max(0, Math.min(mouseX - paddle.width / 2, canvas.width - paddle.width));
+            }
+        });
+
+        // 鼠标点击事件
+        window.addEventListener('mousedown', (e) => {
+            if (e.button === 1) { // 中键：开启/关闭篮子移动预览
+                e.preventDefault();
+                if (isPreviewMode) {
+                    stopBasketPreview();
+                } else {
+                    startBasketPreview();
+                }
+            } else if (e.button === 0 && isPreviewMode) { // 左键：预览模式下暂停/继续
+                e.preventDefault();
+                togglePreviewPause();
+            }
+        });
+
+        document.getElementById('startBtn').addEventListener('click', startGame);
+        document.getElementById('pauseBtn').addEventListener('click', togglePause);
+        document.getElementById('newGameBtn').addEventListener('click', newGame);
+        document.getElementById('restartBtn').addEventListener('click', () => {
+            newGame();
+            startGame();
+        });
+
+        // 初始化
+        init();
+        gameLoop(performance.now());
+
+        // ========== 背景音乐：打砖块主题（C大调，轻快节奏） ==========
+        let audioContext = null;
+        let musicTimer = null;
+
+        function initAudio() {
+            if (!audioContext) {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) { /* ignore */ }
+            }
+        }
+
+        function createTone(freq, duration, type = 'square', vol = 0.08, delay = 0) {
+            if (!audioContext) return;
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioContext.currentTime + delay);
+            gain.gain.setValueAtTime(0, audioContext.currentTime + delay);
+            gain.gain.linearRampToValueAtTime(vol, audioContext.currentTime + delay + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + delay + duration);
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            osc.start(audioContext.currentTime + delay);
+            osc.stop(audioContext.currentTime + delay + duration);
+        }
+
+        // 打砖块主题音乐：C大调，轻快活泼的节奏
+        function playBreakoutTheme() {
+            // 主旋律：C大调音阶上行和下行，轻快节奏
+            const melody = [523.25, 587.33, 659.25, 698.46, 783.99, 698.46, 659.25, 587.33]; // C5 D5 E5 F5 G5 F5 E5 D5
+            const step = 0.18; // 更快的节奏
+            let t = 0;
+
+            melody.forEach((freq, i) => {
+                // 主旋律使用triangle波形，更柔和
+                createTone(freq, 0.15, 'triangle', 0.07, t);
+                // 添加八度和声
+                if (i % 2 === 0) {
+                    createTone(freq * 2, 0.15, 'sine', 0.03, t + 0.01);
+                }
+                t += step;
+            });
+
+            // 低音节奏：C大调进行，更明快的节奏
+            const bassLine = [130.81, 146.83, 164.81, 174.61]; // C3 D3 E3 F3
+            let bt = 0;
+            bassLine.forEach(root => {
+                // 使用square波形，更有节奏感
+                createTone(root, 0.35, 'square', 0.025, bt);
+                // 添加五度音
+                createTone(root * 1.5, 0.35, 'square', 0.018, bt);
+                bt += 0.7;
+            });
+
+            // 高音装饰：清脆的音符
+            const highNotes = [1046.50, 1174.66, 1318.51]; // C6 D6 E6
+            let ht = 0.2;
+            highNotes.forEach(freq => {
+                createTone(freq, 0.12, 'sine', 0.04, ht);
+                ht += 0.25;
+            });
+        }
+
+        function startBackgroundMusic() {
+            initAudio();
+            if (!audioContext) return;
+            if (musicTimer) return;
+            // 立即播放一次
+            playBreakoutTheme();
+            // 每5.5秒播放一次（比迷宫游戏更频繁，更活泼）
+            musicTimer = setInterval(() => {
+                playBreakoutTheme();
+            }, 5500);
+        }
+
+        function stopBackgroundMusic() {
+            if (musicTimer) {
+                clearInterval(musicTimer);
+                musicTimer = null;
+            }
+        }
+
+        // 修改startGame函数，添加音乐
+        const originalStartGame = startGame;
+        startGame = function () {
+            originalStartGame();
+            startBackgroundMusic();
+        };
+
+        // 修改gameOver函数，停止音乐
+        const originalGameOver = gameOver;
+        gameOver = function () {
+            stopBackgroundMusic();
+            originalGameOver();
+        };
+    </script>
+</body>
+
+</html>

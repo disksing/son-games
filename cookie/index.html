@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cookie Clicker Mini</title>
+    <style>
+        :root {
+            --cookie-size: 320px;
+            --cookie-base: #d9a066;
+            --cookie-deep: #c0833a;
+            --chip: #4b2e17;
+            --text: #2d1f0f;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100dvh;
+            display: grid;
+            place-items: center;
+            background: radial-gradient(1200px 600px at 50% -20%, #fff8e7 0%, #f3ead6 45%, #e9e0cc 100%);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+        }
+
+        .stage {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            align-items: start;
+            gap: 18px;
+        }
+
+        .cookie {
+            position: relative;
+            width: var(--cookie-size);
+            height: var(--cookie-size);
+            border-radius: 50%;
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            background:
+                radial-gradient(circle at 30% 30%, #eaba76 0%, var(--cookie-base) 42%, var(--cookie-deep) 100%);
+            box-shadow:
+                inset 0 12px 24px rgba(0, 0, 0, .18),
+                0 22px 50px rgba(0, 0, 0, .25);
+            transition: transform 60ms ease-out, filter 60ms ease-out;
+            outline: none;
+        }
+
+        .cookie:active,
+        .cookie.pop {
+            transform: scale(0.96);
+            filter: brightness(0.98);
+        }
+
+        .cookie::before {
+            /* glossy + shade */
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background:
+                radial-gradient(40% 35% at 30% 28%, rgba(255, 255, 255, .38), transparent 60%),
+                radial-gradient(60% 50% at 65% 70%, rgba(0, 0, 0, .10), transparent 60%);
+            pointer-events: none;
+        }
+
+        /* chocolate chips */
+        .chip {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: var(--chip);
+            border-radius: 50%;
+            box-shadow: inset 0 2px 2px rgba(255, 255, 255, .15), 0 2px 2px rgba(0, 0, 0, .25);
+            opacity: .95;
+        }
+
+        .counter {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            font-weight: 900;
+            color: var(--text);
+            text-shadow: 0 2px 0 rgba(255, 255, 255, .35), 0 4px 14px rgba(0, 0, 0, .25);
+            font-size: clamp(40px, 10vw, 86px);
+            pointer-events: none;
+        }
+
+        .hint {
+            color: rgba(0, 0, 0, .65);
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* play area to center cookie and hint */
+        .play-area {
+            display: grid;
+            place-items: center;
+            gap: 12px;
+        }
+
+        /* shop sidebar */
+        .shop {
+            width: 280px;
+            max-height: min(70vh, 520px);
+            overflow: auto;
+            padding: 12px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, .75);
+            box-shadow: 0 14px 40px rgba(0, 0, 0, .15), inset 0 2px 0 rgba(255, 255, 255, .6);
+            backdrop-filter: blur(6px);
+        }
+
+        .shop-title {
+            margin: 0 0 8px 0;
+            font-size: 16px;
+            color: #333;
+            font-weight: 700;
+        }
+
+        .item {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px 12px;
+            align-items: center;
+            padding: 10px 10px;
+            border-radius: 10px;
+            background: #f6f7fb;
+            box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .06);
+            margin-bottom: 10px;
+        }
+
+        .item .name {
+            font-weight: 700;
+            color: #222;
+        }
+
+        .item .desc {
+            grid-column: 1 / span 2;
+            font-size: 12px;
+            color: #586174;
+        }
+
+        .item .stat {
+            font-size: 12px;
+            color: #444;
+        }
+
+        .buy-btn {
+            appearance: none;
+            border: 0;
+            border-radius: 8px;
+            padding: 6px 10px;
+            background: #2f6fed;
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 6px 14px rgba(47, 111, 237, .35);
+        }
+
+        .buy-btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .prestige {
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px dashed rgba(0, 0, 0, .15);
+        }
+
+        .prestige-row {
+            font-size: 13px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .upgrades {
+            display: grid;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .upgrade {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 6px 10px;
+            padding: 8px;
+            border-radius: 8px;
+            background: #eef2ff;
+        }
+
+        /* float ascend button (top-right) */
+        .fab {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 30;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        /* hide in-sidebar prestige block; use overlay instead */
+        .shop #prestige {
+            display: none;
+        }
+
+        /* overlay modal for ascend */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .35);
+            display: grid;
+            place-items: center;
+            z-index: 50;
+        }
+
+        .overlay[hidden] {
+            display: none !important;
+        }
+
+        .modal {
+            width: 100vw;
+            height: 100vh;
+            max-height: none;
+            overflow: auto;
+            /* heavenly background */
+            background:
+                radial-gradient(80% 50% at 50% 0%, rgba(255, 255, 255, .85), rgba(255, 255, 255, 0) 60%),
+                linear-gradient(180deg, #f5faff 0%, #e8f2ff 15%, #dbeafe 35%, #cfe0ff 55%, #bfd7ff 75%, #b3d1ff 100%);
+            border-radius: 0;
+            box-shadow: none;
+            padding: 24px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* subtle rays */
+        .modal::before {
+            content: "";
+            position: absolute;
+            inset: -20% -10% auto -10%;
+            height: 60%;
+            background:
+                repeating-conic-gradient(from 0deg, rgba(255, 255, 255, .3) 0deg, rgba(255, 255, 255, 0) 8deg 20deg);
+            filter: blur(6px);
+            pointer-events: none;
+        }
+
+        .ascend-content {
+            width: min(92vw, 720px);
+            margin: 0 auto;
+            background: rgba(255, 255, 255, .85);
+            border-radius: 14px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .12);
+            padding: 16px;
+        }
+
+        .ascend-title {
+            font-size: 22px;
+            margin: 0 0 10px 0;
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .mini-modal {
+            width: min(92vw, 380px);
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, .25);
+            padding: 14px;
+        }
+
+        /* shards HUD (under ascend button) */
+        .shard-hud {
+            width: 220px;
+            background: rgba(255, 255, 255, .9);
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, .12);
+            padding: 8px 10px;
+        }
+
+        .shard-hud .shard-line {
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 6px;
+        }
+
+        .shard-hud .shard-next {
+            font-size: 12px;
+            color: #374151;
+            margin-top: 6px;
+        }
+
+        .tank {
+            position: relative;
+            width: 100%;
+            height: 60px;
+            border-radius: 10px;
+            background: linear-gradient(180deg, #e5f0ff, #dfe7fb);
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, .08);
+        }
+
+        .tank-inner {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 0%;
+            background:
+                radial-gradient(60% 40% at 50% 20%, rgba(255, 255, 255, .45), rgba(255, 255, 255, 0) 60%),
+                linear-gradient(180deg, #7cc0ff 0%, #5aa8ff 60%, #4090ff 100%);
+            transition: height 160ms ease-out;
+        }
+
+        .tank-label {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            font-size: 12px;
+            color: #0f172a;
+            text-shadow: 0 1px 0 rgba(255, 255, 255, .6);
+            pointer-events: none;
+        }
+
+        /* intentionally no controls: manual clicking only */
+
+        .refresh-btn {
+            appearance: none;
+            border: 0;
+            border-radius: 8px;
+            padding: 6px 10px;
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 6px 14px rgba(14, 165, 233, .35);
+        }
+        
+        .refresh-btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        @media (max-width: 760px) {
+            .stage {
+                grid-template-columns: 1fr;
+            }
+
+            .shop {
+                width: min(92vw, 420px);
+                max-height: none;
+            }
+        }
+
+        @media (max-width: 420px) {
+            :root {
+                --cookie-size: 260px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="stage">
+        <div class="play-area">
+            <div id="cookie" class="cookie" role="button" aria-label="Cookie" tabindex="0">
+                <div id="counter" class="counter">0</div>
+
+
+                <!-- decorative chips -->
+                <span class="chip" style="left: 22%; top: 24%; transform: rotate(10deg);"></span>
+                <span class="chip" style="left: 66%; top: 32%; transform: scale(1.2);"></span>
+                <span class="chip" style="left: 40%; top: 60%;"></span>
+                <span class="chip" style="left: 70%; top: 68%; transform: rotate(-15deg);"></span>
+                <span class="chip" style="left: 28%; top: 72%; transform: scale(0.9);"></span>
+            </div>
+            <div class="hint" aria-hidden="true">点击饼干增加数量</div>
+        </div>
+        <aside id="shop" class="shop" aria-label="道具栏">
+            <h3 class="shop-title">道具栏</h3>
+            <div id="shopItems"></div>
+            <div id="prestige" class="prestige">
+                <div class="prestige-row">天堂碎片：<strong id="shardsText">0</strong></div>
+                <div class="prestige-row">全局加成：<strong id="boostText">+0%</strong>（每碎片 +10% CPS）</div>
+                <!-- hidden in sidebar; visible via floating button -->
+                <button id="ascendBtn" class="buy-btn" type="button">飞升（重置换碎片）</button>
+                <div class="upgrades" id="upgrades"></div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- floating ascend shortcut -->
+    <div class="fab">
+        <button id="refreshBtn" class="refresh-btn" type="button">刷新显示</button>
+        <button id="ascendOpen" class="buy-btn" type="button">飞升</button>
+        <div class="shard-hud">
+            <div class="shard-line">天堂碎片：<strong id="hudShards">0</strong></div>
+            <div class="tank">
+                <div id="tankInner" class="tank-inner"></div>
+                <div class="tank-label"><span id="tankLabel">0 / 100</span></div>
+            </div>
+            <div class="shard-next" id="hudNext">下一个碎片：还需 100 饼干（约 ∞ s）</div>
+        </div>
+    </div>
+
+    <!-- ascend overlay -->
+    <div id="ascendOverlay" class="overlay" hidden>
+        <div class="modal">
+            <div class="ascend-content">
+                <h3 class="ascend-title">飞升</h3>
+                <div class="row" style="justify-content: space-between;">
+                    <div>本次可获得碎片：<strong id="ascendGain">0</strong></div>
+                    <div>当前碎片：<strong id="ascendShards">0</strong></div>
+                </div>
+                <div class="row" style="margin:10px 0;">
+                    <button id="ascendConfirm" class="buy-btn" type="button">确认飞升</button>
+                    <button id="ascendCancel" class="buy-btn" type="button">撤回</button>
+                </div>
+                <div style="margin:8px 0 6px 0; font-weight:700;">碎片商店（飞升后可购买）</div>
+                <div class="prestige-row">每 100 饼干 = 1 碎片；每碎片提供全局 +10% 产能</div>
+                <div id="ascendShop"></div>
+                <div class="row" style="justify-content:flex-end; margin-top:10px;">
+                    <button id="ascendDone" class="buy-btn" type="button">完成</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- mini confirm overlay -->
+    <div id="confirmOverlay" class="overlay" hidden>
+        <div class="mini-modal">
+            <div style="font-weight:700; margin-bottom:8px;">要飞升吗？</div>
+            <div class="prestige-row">本次可获得碎片：<strong id="confirmGain">0</strong></div>
+            <div class="row" style="margin-top:10px; justify-content:flex-end; gap:8px;">
+                <button id="confirmCancel" class="buy-btn" type="button">取消</button>
+                <button id="confirmOk" class="buy-btn" type="button">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Minimal cookie clicker
+        (() => {
+            const cookie = document.getElementById('cookie');
+            const counter = document.getElementById('counter');
+            const shopRoot = document.getElementById('shop');
+            const shopItemsRoot = document.getElementById('shopItems');
+            const ascendBtn = document.getElementById('ascendBtn');
+            const shardsText = document.getElementById('shardsText');
+            const boostText = document.getElementById('boostText');
+            const upgradesRoot = document.getElementById('upgrades');
+            const ascendOpen = document.getElementById('ascendOpen');
+            const ascendOverlay = document.getElementById('ascendOverlay');
+            const ascendGainText = document.getElementById('ascendGain');
+            const ascendShardsText = document.getElementById('ascendShards');
+            const ascendConfirm = document.getElementById('ascendConfirm');
+            const ascendCancel = document.getElementById('ascendCancel');
+            const ascendDone = document.getElementById('ascendDone');
+            const ascendShop = document.getElementById('ascendShop');
+            const hudShards = document.getElementById('hudShards');
+            const tankInner = document.getElementById('tankInner');
+            const tankLabel = document.getElementById('tankLabel');
+            const hudNext = document.getElementById('hudNext');
+            const refreshBtn = document.getElementById('refreshBtn');
+
+            const STORAGE_KEY = 'cookieMiniState';
+
+            let count = 0;
+            let lifetimeCookies = 0; // total cookies gained this run
+            let shards = 0;          // prestige currency
+            const boughtUpgrades = new Map(); // id -> times purchased (persists across ascends)
+
+            // Shop data
+            const items = [
+                {
+                    id: 'turtle',
+                    name: '乌龟',
+                    basePrice: 10,
+                    priceMultiplier: 1.75,
+                    cps: 0.1,
+                    count: 0
+                },
+                {
+                    id: 'snail',
+                    name: '蜗牛',
+                    basePrice: 40,
+                    priceMultiplier: 1.25,
+                    cps: 0.2,
+                    count: 0
+                },
+                {
+                    id: 'plane',
+                    name: '飞机',
+                    basePrice: 100,
+                    priceMultiplier: 1.75,
+                    cps: 1,
+                    count: 0
+                },
+                {
+                    id: 'factory',
+                    name: '工厂',
+                    basePrice: 300,
+                    priceMultiplier: 1.15,
+                    cps: 10,
+                    count: 0
+                },
+                {
+                    id: 'rocket',
+                    name: '火箭',
+                    basePrice: 2000,
+                    priceMultiplier: 1.2,
+                    cps: 50,
+                    count: 0
+                }
+            ];
+
+            const upgrades = [
+                { id: 'pack-turtle-5', name: '开局 5 个乌龟', cost: 1, grant: { turtle: 5 } },
+                { id: 'pack-snail-5', name: '开局 5 个蜗牛', cost: 2, grant: { snail: 5 } },
+                { id: 'pack-plane-5', name: '开局 5 个飞机', cost: 3, grant: { plane: 5 } },
+                { id: 'pack-factory-5', name: '开局 5 个工厂', cost: 5, grant: { factory: 5 } },
+                { id: 'pack-rocket-5', name: '开局 5 个火箭', cost: 15, grant: { rocket: 5 } }
+            ];
+
+            function getItemPrice(item) {
+                const price = item.basePrice * Math.pow(item.priceMultiplier, item.count);
+                return Math.max(1, Math.floor(price));
+            }
+
+            // Sound: lightweight click using Web Audio API
+            let audioCtx = null;
+            function getAudioContext() {
+                if (!audioCtx) {
+                    const Ctx = window.AudioContext || window.webkitAudioContext;
+                    if (!Ctx) return null;
+                    audioCtx = new Ctx();
+                }
+                if (audioCtx.state === 'suspended') {
+                    // Ensure playback after user gesture in some browsers
+                    audioCtx.resume();
+                }
+                return audioCtx;
+            }
+
+            function playClick() {
+                const ctx = getAudioContext();
+                if (!ctx) return;
+                const t = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                // Short percussive blip
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(900, t);
+
+                gain.gain.setValueAtTime(0.0001, t);
+                gain.gain.exponentialRampToValueAtTime(0.35, t + 0.008);
+                gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+
+                osc.connect(gain).connect(ctx.destination);
+                osc.start(t);
+                osc.stop(t + 0.1);
+                osc.onended = () => {
+                    try { osc.disconnect(); gain.disconnect(); } catch { }
+                };
+            }
+
+            function formatCount(value) {
+                if (value < 1000) return String(value);
+                const units = ['K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'];
+                let unitIndex = -1;
+                let num = value;
+                while (num >= 1000 && unitIndex < units.length - 1) {
+                    num /= 1000;
+                    unitIndex++;
+                }
+                const formatted = num >= 100
+                    ? num.toFixed(0)
+                    : num >= 10
+                        ? num.toFixed(1)
+                        : num.toFixed(2);
+                return formatted + units[unitIndex];
+            }
+
+            function render() {
+                counter.textContent = formatCount(count);
+            }
+
+            function renderShop() {
+                if (!shopItemsRoot) return;
+                const fragments = document.createDocumentFragment();
+                items.forEach((item) => {
+                    const el = document.createElement('div');
+                    el.className = 'item';
+                    const price = getItemPrice(item);
+                    const affordable = count >= price;
+                    const totalCps = item.count * item.cps;
+                    el.innerHTML = `
+                        <div class="name">${item.name}</div>
+                        <button class="buy-btn" data-action="buy" data-id="${item.id}" ${affordable ? '' : 'disabled'}>购买</button>
+                        <div class="stat">数量：<strong>${item.count}</strong></div>
+                        <div class="stat">价格：<strong>${formatCount(price)}</strong></div>
+                        <div class="desc">生产速度：每个每秒 +${formatCount(item.cps)}，总共每秒 +${formatCount(totalCps)}</div>
+                    `;
+                    fragments.appendChild(el);
+                });
+                shopItemsRoot.replaceChildren(fragments);
+            }
+
+            function renderPrestige() {
+                if (shardsText) shardsText.textContent = String(shards);
+                const boostPct = Math.round(shards * 10);
+                if (boostText) boostText.textContent = `+${boostPct}%`;
+                if (!upgradesRoot) return;
+                const frag = document.createDocumentFragment();
+                upgrades.forEach(up => {
+                    const ownedCount = boughtUpgrades.get(up.id) || 0;
+                    const affordable = shards >= up.cost;
+                    const el = document.createElement('div');
+                    el.className = 'upgrade';
+                    el.innerHTML = `
+                        <div>${up.name}（${up.cost} 碎片）<span style="color:#374151;font-size:12px;margin-left:6px;">已购 ${ownedCount} 次</span></div>
+                        <button class="buy-btn" ${!affordable ? 'disabled' : ''} data-upgrade="${up.id}">购买</button>
+                    `;
+                    frag.appendChild(el);
+                });
+                upgradesRoot.replaceChildren(frag);
+                // HUD
+                renderShardHud();
+            }
+
+            function renderAscendShop() {
+                if (!ascendShop) return;
+                const frag = document.createDocumentFragment();
+                upgrades.forEach(up => {
+                    const ownedCount = boughtUpgrades.get(up.id) || 0;
+                    const affordable = shards >= up.cost;
+                    const el = document.createElement('div');
+                    el.className = 'upgrade';
+                    el.innerHTML = `
+                        <div>${up.name}（${up.cost} 碎片）<span style=\"color:#374151;font-size:12px;margin-left:6px;\">已购 ${ownedCount} 次</span></div>
+                        <button class=\"buy-btn\" ${!affordable ? 'disabled' : ''} data-upgrade=\"${up.id}\">购买</button>
+                    `;
+                    frag.appendChild(el);
+                });
+                ascendShop.replaceChildren(frag);
+            }
+
+            function applyStartingPacks() {
+                boughtUpgrades.forEach((times, id) => {
+                    const up = upgrades.find(u => u.id === id);
+                    if (!up) return;
+                    for (const key in up.grant) {
+                        const qtyPerBuy = up.grant[key];
+                        const totalQty = qtyPerBuy * times;
+                        const item = items.find(i => i.id === key);
+                        if (item) item.count += totalQty;
+                    }
+                });
+            }
+
+            function pop() {
+                cookie.classList.add('pop');
+                setTimeout(() => cookie.classList.remove('pop'), 80);
+            }
+
+            function saveState() {
+                try {
+                    const snapshot = {
+                        count,
+                        lifetimeCookies,
+                        shards,
+                        items: items.map(item => ({ id: item.id, count: item.count })),
+                        upgrades: Array.from(boughtUpgrades.entries())
+                    };
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+                } catch (err) {
+                    console.warn('保存进度失败：', err);
+                }
+            }
+
+            function loadState() {
+                try {
+                    const raw = localStorage.getItem(STORAGE_KEY);
+                    if (!raw) return;
+                    const data = JSON.parse(raw);
+                    if (!data || typeof data !== 'object') return;
+                    if (Number.isFinite(data.count)) count = data.count;
+                    if (Number.isFinite(data.lifetimeCookies)) lifetimeCookies = data.lifetimeCookies;
+                    if (Number.isFinite(data.shards)) shards = data.shards;
+                    if (Array.isArray(data.items)) {
+                        data.items.forEach(saved => {
+                            const item = items.find(i => i.id === saved.id);
+                            if (item && Number.isFinite(saved.count)) item.count = saved.count;
+                        });
+                    }
+                    if (Array.isArray(data.upgrades)) {
+                        boughtUpgrades.clear();
+                        data.upgrades.forEach(([id, times]) => {
+                            if (typeof id === 'string' && Number.isFinite(times)) {
+                                boughtUpgrades.set(id, times);
+                            }
+                        });
+                    }
+                } catch (err) {
+                    console.warn('读取进度失败：', err);
+                    localStorage.removeItem(STORAGE_KEY);
+                }
+            }
+
+            function renderAll() {
+                render();
+                renderShop();
+                renderPrestige();
+                renderAscendShop();
+                renderShardHud();
+            }
+
+            loadState();
+
+            cookie.addEventListener('click', () => {
+                count += 1;
+                lifetimeCookies += 1;
+                render();
+                pop();
+                playClick();
+                renderShop();
+                renderPrestige();
+                saveState();
+            });
+
+            // Debug: middle mouse adds 10 cookies once
+            const supportsAuxClick = 'onauxclick' in window;
+            function addTenCookiesDebug() {
+                count += 10;
+                lifetimeCookies += 10;
+                render();
+                pop();
+                playClick();
+                renderShop();
+                renderPrestige();
+            }
+            if (supportsAuxClick) {
+                cookie.addEventListener('auxclick', (e) => {
+                    if (e.button === 1) {
+                        e.preventDefault();
+                        addTenCookiesDebug();
+                    }
+                });
+            } else {
+                cookie.addEventListener('mousedown', (e) => {
+                    if (e.button === 1) {
+                        e.preventDefault();
+                        addTenCookiesDebug();
+                    }
+                });
+            }
+
+            // Shop interactions
+            if (shopRoot) {
+                shopRoot.addEventListener('click', (e) => {
+                    const target = e.target;
+                    if (!target || !(target instanceof Element)) return;
+                    const btn = target.closest('button[data-action="buy"]');
+                    if (!btn) return;
+                    const id = btn.getAttribute('data-id');
+                    const item = items.find(x => x.id === id);
+                    if (!item) return;
+                    const price = getItemPrice(item);
+                    if (count < price) return;
+                    count -= price;
+                    item.count += 1;
+                    render();
+                    renderShop();
+                    renderPrestige();
+                    saveState();
+                });
+            }
+
+            // Prestige interactions
+            function softResetForAscend() {
+                const gain = Math.floor(lifetimeCookies / 100);
+                shards += gain;
+                // reset production state
+                count = 0;
+                lifetimeCookies = 0;
+                items.forEach(i => i.count = 0);
+                // apply starting packs from bought upgrades
+                applyStartingPacks();
+                render();
+                renderShop();
+                renderPrestige();
+                saveState();
+                // update overlay counters
+                if (ascendGainText) ascendGainText.textContent = '0';
+                if (ascendShardsText) ascendShardsText.textContent = String(shards);
+            }
+
+            if (ascendBtn) {
+                ascendBtn.addEventListener('click', () => {
+                    softResetForAscend();
+                });
+            }
+
+            // Overlay open/close
+            function openAscendOverlay() {
+                if (!ascendOverlay) return;
+                const gain = Math.floor(lifetimeCookies / 100);
+                if (ascendGainText) ascendGainText.textContent = String(gain);
+                if (ascendShardsText) ascendShardsText.textContent = String(shards);
+                ascendOverlay.hidden = false;
+                renderAscendShop();
+            }
+
+            function closeAscendOverlay() {
+                if (!ascendOverlay) return;
+                ascendOverlay.hidden = true;
+            }
+
+            // mini confirm flow before entering full ascend overlay
+            const confirmOverlay = document.getElementById('confirmOverlay');
+            const confirmGain = document.getElementById('confirmGain');
+            const confirmCancel = document.getElementById('confirmCancel');
+            const confirmOk = document.getElementById('confirmOk');
+
+            function openConfirm() {
+                if (!confirmOverlay) return;
+                const gain = Math.floor(lifetimeCookies / 100);
+                if (confirmGain) confirmGain.textContent = String(gain);
+                confirmOverlay.hidden = false;
+            }
+
+            function closeConfirm() {
+                if (!confirmOverlay) return;
+                confirmOverlay.hidden = true;
+            }
+
+            if (ascendOpen) ascendOpen.addEventListener('click', openConfirm);
+            if (confirmCancel) confirmCancel.addEventListener('click', closeConfirm);
+            if (confirmOk) confirmOk.addEventListener('click', () => {
+                closeConfirm();
+                openAscendOverlay();
+            });
+            if (ascendCancel) ascendCancel.addEventListener('click', closeAscendOverlay);
+            if (ascendDone) ascendDone.addEventListener('click', closeAscendOverlay);
+            if (ascendConfirm) ascendConfirm.addEventListener('click', () => {
+                softResetForAscend();
+                // keep overlay open to allow spending shards in ascendShop
+                openAscendOverlay();
+            });
+
+            function handleUpgradePurchase(targetRoot) {
+                targetRoot.addEventListener('click', (e) => {
+                    const t = e.target;
+                    if (!t || !(t instanceof Element)) return;
+                    const btn = t.closest('button[data-upgrade]');
+                    if (!btn) return;
+                    const id = btn.getAttribute('data-upgrade');
+                    const up = upgrades.find(u => u.id === id);
+                    if (!up) return;
+                    if (shards < up.cost) return;
+                    shards -= up.cost;
+                    const prev = boughtUpgrades.get(id) || 0;
+                    boughtUpgrades.set(id, prev + 1);
+                    // grant items now for this purchase
+                    for (const key in up.grant) {
+                        const qtyPerBuy = up.grant[key];
+                        const item = items.find(i => i.id === key);
+                        if (item) item.count += qtyPerBuy;
+                    }
+                    render();
+                    renderShop();
+                    renderPrestige();
+                    renderAscendShop();
+                    saveState();
+                });
+            }
+
+            if (upgradesRoot) handleUpgradePurchase(upgradesRoot);
+            if (ascendShop) handleUpgradePurchase(ascendShop);
+
+            // Auto production loop
+            function getTotalCps() {
+                let total = 0;
+                for (const item of items) total += item.count * item.cps;
+                const boostMultiplier = 1 + shards * 0.1;
+                return total * boostMultiplier;
+            }
+
+            let carry = 0; // fractional cookies carried between frames
+            let lastTs = performance.now();
+            let lastShopRenderTs = lastTs; // throttle shop render to ~1s
+            let lastAutoSave = lastTs;
+            function autoLoop(ts) {
+                const dt = (ts - lastTs) / 1000; // seconds
+                lastTs = ts;
+                const produced = getTotalCps() * dt + carry;
+                const add = Math.floor(produced);
+                carry = produced - add;
+                if (add > 0) {
+                    count += add;
+                    lifetimeCookies += add;
+                    render();
+                }
+                if (ts - lastShopRenderTs >= 1000) {
+                    renderShop();
+                    lastShopRenderTs = ts;
+                }
+                if (ts - lastAutoSave >= 1000) {
+                    saveState();
+                    lastAutoSave = ts;
+                }
+                // update HUD each frame for smooth tank
+                renderShardHud();
+                requestAnimationFrame(autoLoop);
+            }
+            requestAnimationFrame(autoLoop);
+
+            // removed auto clicker: manual clicking only
+
+            cookie.addEventListener('keydown', (e) => {
+                // Keyboard accessibility: Space / Enter to click
+                if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    cookie.click();
+                }
+            });
+
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', () => {
+                    saveState();
+                    window.location.reload();
+                });
+            }
+
+            window.addEventListener('beforeunload', () => {
+                saveState();
+            });
+
+            renderAll();
+
+            function renderShardHud() {
+                if (!hudShards || !tankInner || !tankLabel || !hudNext) return;
+                hudShards.textContent = String(shards);
+                const progress = lifetimeCookies % 100; // cookies towards next shard
+                const pct = Math.max(0, Math.min(100, (progress / 100) * 100));
+                tankInner.style.height = pct + '%';
+                tankLabel.textContent = `${Math.floor(progress)} / 100`;
+                const remaining = 100 - progress;
+                const cps = getTotalCps();
+                const eta = cps > 0 ? (remaining / cps) : Infinity;
+                const etaText = cps > 0 ? `${Math.max(0, eta).toFixed(1)} s` : '∞ s';
+                hudNext.textContent = `下一个碎片：还需 ${Math.floor(remaining)} 饼干（约 ${etaText}）`;
+            }
+        })();
+    </script>
+</body>
+
+</html>

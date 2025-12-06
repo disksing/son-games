@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>游戏编辑器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .editor-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            width: 300px;
+            height: fit-content;
+        }
+
+        .game-canvas-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        #gameCanvas {
+            border: 3px solid #4CAF50;
+            border-radius: 10px;
+            background: #000814;
+            display: block;
+        }
+
+        .tool-section {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 10px;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .tool-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .tool-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .tool-btn {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .tool-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .tool-btn.active {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .enemy-btn {
+            background: #ff9800;
+            color: white;
+        }
+
+        .player-btn {
+            background: #2196F3;
+            color: white;
+        }
+
+        .obstacle-btn {
+            background: #9C27B0;
+            color: white;
+        }
+
+        .powerup-btn {
+            background: #E91E63;
+            color: white;
+        }
+
+        .action-btn {
+            background: #607D8B;
+            color: white;
+        }
+
+        .control-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .control-btn {
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .play-btn {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .clear-btn {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+            color: white;
+        }
+
+        .save-btn {
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            color: white;
+        }
+
+        .load-btn {
+            background: linear-gradient(135deg, #FF9800, #F57C00);
+            color: white;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .info-panel {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .status-bar {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-size: 16px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .instructions {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .instructions h4 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .instructions ul {
+            margin-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>🎮 游戏编辑器</h1>
+        <p>创造属于你的射击游戏关卡！</p>
+    </div>
+
+    <div class="main-container">
+        <div class="editor-panel">
+            <div class="instructions">
+                <h4>📝 使用说明</h4>
+                <ul>
+                    <li>选择工具后点击画布放置元素</li>
+                    <li>右键删除元素</li>
+                    <li>可以保存和加载关卡</li>
+                    <li>点击"开始游戏"测试关卡</li>
+                </ul>
+            </div>
+
+            <div class="tool-section">
+                <h3>🎯 敌人类型</h3>
+                <div class="tool-buttons">
+                    <button class="tool-btn enemy-btn" data-type="enemy1">小蜜蜂 (10分)</button>
+                    <button class="tool-btn enemy-btn" data-type="enemy2">飞碟 (20分)</button>
+                    <button class="tool-btn enemy-btn" data-type="enemy3">大Boss (30分)</button>
+                    <button class="tool-btn enemy-btn" data-type="enemy4">快速敌 (15分)</button>
+                    <button class="tool-btn enemy-btn" data-type="enemy5">自爆敌 (25分)</button>
+                    <button class="tool-btn enemy-btn" data-type="enemy6">分裂敌 (20分)</button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <h3>🚀 玩家元素</h3>
+                <div class="tool-buttons">
+                    <button class="tool-btn player-btn" data-type="player">玩家飞船</button>
+                    <button class="tool-btn player-btn" data-type="spawn">出生点</button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <h3>🛡️ 障碍物</h3>
+                <div class="tool-buttons">
+                    <button class="tool-btn obstacle-btn" data-type="wall">墙壁</button>
+                    <button class="tool-btn obstacle-btn" data-type="rock">岩石</button>
+                    <button class="tool-btn obstacle-btn" data-type="shield">护盾</button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <h3>💎 道具</h3>
+                <div class="tool-buttons">
+                    <button class="tool-btn powerup-btn" data-type="health">生命值</button>
+                    <button class="tool-btn powerup-btn" data-type="speed">加速</button>
+                    <button class="tool-btn powerup-btn" data-type="power">火力增强</button>
+                    <button class="tool-btn powerup-btn" data-type="shield">护盾</button>
+                    <button class="tool-btn powerup-btn" data-type="multishot">多重射击</button>
+                    <button class="tool-btn powerup-btn" data-type="bomb">炸弹</button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <h3>⚙️ 操作</h3>
+                <div class="control-section">
+                    <button class="control-btn play-btn" id="playBtn">开始游戏</button>
+                    <button class="control-btn clear-btn" id="clearBtn">清空画布</button>
+                    <button class="control-btn save-btn" id="saveBtn">保存关卡</button>
+                    <button class="control-btn load-btn" id="loadBtn">加载关卡</button>
+                    <input type="file" class="file-input" id="fileInput" accept=".json">
+                </div>
+            </div>
+
+            <div class="info-panel">
+                <h4>📊 关卡信息</h4>
+                <p>敌人数量: <span id="enemyCount">0</span></p>
+                <p>道具数量: <span id="powerupCount">0</span></p>
+                <p>障碍物数量: <span id="obstacleCount">0</span></p>
+            </div>
+        </div>
+
+        <div class="game-canvas-container">
+            <div class="canvas-wrapper">
+                <canvas id="gameCanvas" width="800" height="600"></canvas>
+            </div>
+            <div class="status-bar">
+                <span id="statusText">选择工具开始编辑</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const statusText = document.getElementById('statusText');
+        const enemyCount = document.getElementById('enemyCount');
+        const powerupCount = document.getElementById('powerupCount');
+        const obstacleCount = document.getElementById('obstacleCount');
+
+        let currentTool = null;
+        let gameObjects = [];
+        let isPlaying = false;
+        let gameLoop;
+
+        class GameObject {
+            constructor(x, y, type, width = 40, height = 30) {
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.width = width;
+                this.height = height;
+                this.id = Math.random().toString(36).substr(2, 9);
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                switch (this.type) {
+                    case 'enemy1':
+                        this.drawEnemy1();
+                        break;
+                    case 'enemy2':
+                        this.drawEnemy2();
+                        break;
+                    case 'enemy3':
+                        this.drawEnemy3();
+                        break;
+                    case 'enemy4':
+                        this.drawEnemy4();
+                        break;
+                    case 'enemy5':
+                        this.drawEnemy5();
+                        break;
+                    case 'enemy6':
+                        this.drawEnemy6();
+                        break;
+                    case 'player':
+                        this.drawPlayer();
+                        break;
+                    case 'spawn':
+                        this.drawSpawn();
+                        break;
+                    case 'wall':
+                        this.drawWall();
+                        break;
+                    case 'rock':
+                        this.drawRock();
+                        break;
+                    case 'shield':
+                        this.drawShield();
+                        break;
+                    case 'health':
+                        this.drawHealth();
+                        break;
+                    case 'speed':
+                        this.drawSpeed();
+                        break;
+                    case 'power':
+                        this.drawPower();
+                        break;
+                    case 'multishot':
+                        this.drawMultishot();
+                        break;
+                    case 'bomb':
+                        this.drawBomb();
+                        break;
+                }
+                ctx.restore();
+            }
+
+            drawEnemy1() {
+                ctx.fillStyle = '#ff00ff';
+                ctx.fillRect(5, 0, 30, 25);
+                ctx.fillRect(0, 10, 5, 15);
+                ctx.fillRect(35, 10, 5, 15);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(10, 8, 6, 6);
+                ctx.fillRect(24, 8, 6, 6);
+            }
+
+            drawEnemy2() {
+                ctx.fillStyle = '#ffff00';
+                ctx.beginPath();
+                ctx.arc(20, 15, 15, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(5, 12, 30, 6);
+            }
+
+            drawEnemy3() {
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(0, 0, 40, 30);
+                ctx.fillStyle = '#ffff00';
+                ctx.fillRect(5, 5, 30, 20);
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(10, 10, 20, 10);
+            }
+
+            drawEnemy4() {
+                ctx.fillStyle = '#00ff00';
+                ctx.fillRect(10, 0, 20, 25);
+                ctx.fillRect(5, 10, 30, 5);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(15, 5, 4, 4);
+                ctx.fillRect(21, 5, 4, 4);
+            }
+
+            drawEnemy5() {
+                ctx.fillStyle = '#ff6600';
+                ctx.fillRect(5, 5, 30, 20);
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(10, 10, 20, 10);
+                ctx.fillStyle = '#ffff00';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('💥', 20, 18);
+            }
+
+            drawEnemy6() {
+                ctx.fillStyle = '#800080';
+                ctx.fillRect(5, 0, 30, 25);
+                ctx.fillStyle = '#ff00ff';
+                ctx.fillRect(10, 5, 20, 15);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('分', 20, 16);
+            }
+
+            drawPlayer() {
+                ctx.fillStyle = '#00ff00';
+                ctx.beginPath();
+                ctx.moveTo(20, 0);
+                ctx.lineTo(0, 30);
+                ctx.lineTo(20, 20);
+                ctx.lineTo(40, 30);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            drawSpawn() {
+                ctx.strokeStyle = '#00ffff';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([5, 5]);
+                ctx.strokeRect(0, 0, 40, 30);
+                ctx.setLineDash([]);
+                ctx.fillStyle = '#00ffff';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('出生', 20, 18);
+            }
+
+            drawWall() {
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(0, 0, 40, 30);
+                ctx.fillStyle = '#A0522D';
+                ctx.fillRect(5, 5, 30, 20);
+            }
+
+            drawRock() {
+                ctx.fillStyle = '#696969';
+                ctx.beginPath();
+                ctx.arc(20, 15, 15, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#808080';
+                ctx.beginPath();
+                ctx.arc(15, 10, 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            drawShield() {
+                ctx.strokeStyle = '#00ffff';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(20, 15, 15, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.fillStyle = 'rgba(0, 255, 255, 0.3)';
+                ctx.fill();
+            }
+
+            drawHealth() {
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(15, 5, 10, 20);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(17, 7, 6, 16);
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(18, 8, 4, 14);
+            }
+
+            drawSpeed() {
+                ctx.fillStyle = '#ffff00';
+                ctx.fillRect(10, 10, 20, 10);
+                ctx.fillStyle = '#ff0000';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('S', 20, 18);
+            }
+
+            drawPower() {
+                ctx.fillStyle = '#ff00ff';
+                ctx.fillRect(10, 5, 20, 20);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('P', 20, 18);
+            }
+
+            drawMultishot() {
+                ctx.fillStyle = '#00ffff';
+                ctx.fillRect(10, 5, 20, 20);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('M', 20, 18);
+            }
+
+            drawBomb() {
+                ctx.fillStyle = '#ff0000';
+                ctx.beginPath();
+                ctx.arc(20, 15, 12, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#ffff00';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('💣', 20, 18);
+            }
+
+            isPointInside(x, y) {
+                return x >= this.x && x <= this.x + this.width &&
+                    y >= this.y && y <= this.y + this.height;
+            }
+        }
+
+        function initEditor() {
+            canvas.addEventListener('click', handleCanvasClick);
+            canvas.addEventListener('contextmenu', handleCanvasRightClick);
+
+            document.querySelectorAll('.tool-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentTool = btn.dataset.type;
+                    statusText.textContent = `已选择: ${btn.textContent}`;
+                });
+            });
+
+            document.getElementById('playBtn').addEventListener('click', togglePlay);
+            document.getElementById('clearBtn').addEventListener('click', clearCanvas);
+            document.getElementById('saveBtn').addEventListener('click', saveLevel);
+            document.getElementById('loadBtn').addEventListener('click', () => document.getElementById('fileInput').click());
+            document.getElementById('fileInput').addEventListener('change', loadLevel);
+
+            updateCounts();
+            draw();
+        }
+
+        function handleCanvasClick(e) {
+            if (isPlaying) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            if (currentTool) {
+                const width = currentTool.includes('enemy') ? 40 : 40;
+                const height = currentTool.includes('enemy') ? 30 : 30;
+                gameObjects.push(new GameObject(x - width / 2, y - height / 2, currentTool, width, height));
+                updateCounts();
+                draw();
+            }
+        }
+
+        function handleCanvasRightClick(e) {
+            e.preventDefault();
+            if (isPlaying) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            for (let i = gameObjects.length - 1; i >= 0; i--) {
+                if (gameObjects[i].isPointInside(x, y)) {
+                    gameObjects.splice(i, 1);
+                    updateCounts();
+                    draw();
+                    break;
+                }
+            }
+        }
+
+        function updateCounts() {
+            const enemies = gameObjects.filter(obj => obj.type.startsWith('enemy')).length;
+            const powerups = gameObjects.filter(obj => ['health', 'speed', 'power', 'shield'].includes(obj.type)).length;
+            const obstacles = gameObjects.filter(obj => ['wall', 'rock'].includes(obj.type)).length;
+
+            enemyCount.textContent = enemies;
+            powerupCount.textContent = powerups;
+            obstacleCount.textContent = obstacles;
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 绘制网格
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < canvas.width; x += 40) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += 30) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // 绘制游戏对象
+            gameObjects.forEach(obj => obj.draw());
+        }
+
+        function togglePlay() {
+            if (isPlaying) {
+                isPlaying = false;
+                cancelAnimationFrame(gameLoop);
+                document.getElementById('playBtn').textContent = '开始游戏';
+                statusText.textContent = '编辑模式';
+                draw();
+            } else {
+                isPlaying = true;
+                document.getElementById('playBtn').textContent = '停止游戏';
+                statusText.textContent = '游戏模式';
+                startGame();
+            }
+        }
+
+        function startGame() {
+            // 这里可以添加游戏逻辑
+            statusText.textContent = '游戏运行中...';
+        }
+
+        function clearCanvas() {
+            if (confirm('确定要清空画布吗？')) {
+                gameObjects = [];
+                updateCounts();
+                draw();
+                statusText.textContent = '画布已清空';
+            }
+        }
+
+        function saveLevel() {
+            const levelData = {
+                objects: gameObjects.map(obj => ({
+                    x: obj.x,
+                    y: obj.y,
+                    type: obj.type,
+                    width: obj.width,
+                    height: obj.height
+                }))
+            };
+
+            const blob = new Blob([JSON.stringify(levelData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'level.json';
+            a.click();
+            URL.revokeObjectURL(url);
+
+            statusText.textContent = '关卡已保存';
+        }
+
+        function loadLevel(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const levelData = JSON.parse(e.target.result);
+                    gameObjects = levelData.objects.map(obj => new GameObject(obj.x, obj.y, obj.type, obj.width, obj.height));
+                    updateCounts();
+                    draw();
+                    statusText.textContent = '关卡已加载';
+                } catch (error) {
+                    alert('文件格式错误！');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        initEditor();
+    </script>
+</body>
+
+</html>

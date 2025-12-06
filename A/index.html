@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>A 农场攻防</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --field-bg: #f3f6e6;
+            --plot-empty: #d6e4b8;
+            --plot-growing: #9ec05d;
+            --plot-ripe: #f4c95d;
+            --plot-withered: #a96a52;
+            --outline: rgba(51, 64, 43, 0.55);
+            --player1: #2563eb;
+            --player2: #f97316;
+            --panel: rgba(255, 255, 255, 0.78);
+            --text: #2f2c1f;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(180deg, #f8faf0 0%, #ecf1df 60%, #d5dfc0 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            color: var(--text);
+        }
+
+        main {
+            width: min(1100px, 100%);
+            display: grid;
+            grid-template-columns: 640px 1fr;
+            gap: 18px;
+            align-items: start;
+        }
+
+        .panel {
+            background: var(--panel);
+            backdrop-filter: blur(6px);
+            border-radius: 18px;
+            box-shadow: 0 16px 40px rgba(41, 49, 31, 0.25);
+            padding: 18px 22px;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: clamp(26px, 4vw, 38px);
+            color: #2f3e19;
+        }
+
+        .subtitle {
+            margin: 0 0 18px;
+            color: rgba(47, 44, 31, 0.7);
+            font-size: 15px;
+        }
+
+        .arena {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 11;
+            border-radius: 18px;
+            background: var(--field-bg);
+            border: 3px solid rgba(56, 74, 33, 0.18);
+            box-shadow: inset 0 0 0 2px rgba(56, 74, 33, 0.12);
+            overflow: hidden;
+            cursor: none;
+        }
+
+        .plots {
+            position: absolute;
+            inset: 10% 8%;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-auto-rows: 1fr;
+            gap: 18px 22px;
+        }
+
+        .plots[data-owner="0"] {
+            top: 10%;
+            bottom: 55%;
+        }
+
+        .plots[data-owner="1"] {
+            top: 55%;
+            bottom: 10%;
+        }
+
+        .plot {
+            position: relative;
+            border-radius: 18px;
+            border: 3px solid var(--outline);
+            background: var(--plot-empty);
+            box-shadow:
+                inset 0 4px 10px rgba(0, 0, 0, 0.18),
+                inset 0 -4px 12px rgba(0, 0, 0, 0.18);
+            transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+        }
+
+        .plot::after {
+            content: attr(data-label);
+            position: absolute;
+            left: 10px;
+            bottom: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: rgba(27, 30, 18, 0.7);
+        }
+
+        .plot .progress {
+            position: absolute;
+            inset: 6% 6%;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.18);
+            display: grid;
+            place-items: center;
+            font-size: 18px;
+            font-weight: 700;
+            color: #2a3120;
+        }
+
+        .plot.growing {
+            background: linear-gradient(180deg, var(--plot-growing) 0%, #7aa848 100%);
+            border-color: rgba(60, 102, 32, 0.7);
+        }
+
+        .plot.ripe {
+            background: linear-gradient(180deg, #fadc7a 0%, var(--plot-ripe) 100%);
+            border-color: rgba(171, 108, 24, 0.8);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .plot.withered {
+            background: linear-gradient(180deg, #c07c5c 0%, var(--plot-withered) 100%);
+            border-color: rgba(97, 44, 20, 0.8);
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+        }
+
+        .player {
+            position: absolute;
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            background: var(--player1);
+            box-shadow:
+                0 10px 18px rgba(29, 78, 216, 0.35),
+                inset 0 4px 8px rgba(255, 255, 255, 0.4);
+            display: grid;
+            place-items: center;
+            color: #fff;
+            font-size: 18px;
+            font-weight: 700;
+            pointer-events: none;
+            transition: transform 60ms linear;
+        }
+
+        .player[data-id="1"] {
+            background: var(--player2);
+            box-shadow:
+                0 10px 18px rgba(249, 115, 22, 0.35),
+                inset 0 4px 8px rgba(255, 255, 255, 0.45);
+        }
+
+        .hud {
+            display: grid;
+            gap: 12px;
+        }
+
+        .stat {
+            border-radius: 14px;
+            padding: 12px 14px;
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: inset 0 2px 8px rgba(41, 49, 31, 0.1);
+        }
+
+        .stat header {
+            font-weight: 700;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .stat p {
+            margin: 4px 0;
+            font-size: 14px;
+        }
+
+        .history {
+            max-height: 200px;
+            overflow: auto;
+            padding-right: 4px;
+        }
+
+        .history ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: grid;
+            gap: 8px;
+        }
+
+        .history li {
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: rgba(47, 75, 24, 0.12);
+            font-size: 13px;
+        }
+
+        .instructions {
+            font-size: 13px;
+            line-height: 1.45;
+        }
+
+        .message {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            background: rgba(0, 0, 0, 0.55);
+            color: #fff;
+            font-weight: 700;
+            font-size: clamp(20px, 4vw, 36px);
+            letter-spacing: 1px;
+            text-align: center;
+        }
+
+        @media (max-width: 960px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+
+            .arena {
+                margin-bottom: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <section class="panel">
+            <h1>A 农场攻防</h1>
+            <p class="subtitle">两名农场主围绕 3 块田展开攻防：1 号玩家用键盘移动，2 号玩家用鼠标滑动移动，抢收、偷菜、防枯萎。</p>
+
+            <div id="arena" class="arena" aria-label="农场战斗场">
+                <div class="plots" data-owner="0">
+                    <div class="plot" data-id="0" data-label="P1-1"><div class="progress"></div></div>
+                    <div class="plot" data-id="1" data-label="P1-2"><div class="progress"></div></div>
+                    <div class="plot" data-id="2" data-label="P1-3"><div class="progress"></div></div>
+                </div>
+                <div class="plots" data-owner="1">
+                    <div class="plot" data-id="3" data-label="P2-1"><div class="progress"></div></div>
+                    <div class="plot" data-id="4" data-label="P2-2"><div class="progress"></div></div>
+                    <div class="plot" data-id="5" data-label="P2-3"><div class="progress"></div></div>
+                </div>
+                <div class="player" data-id="0">①</div>
+                <div class="player" data-id="1">②</div>
+                <div id="message" class="message" hidden></div>
+            </div>
+        </section>
+
+        <section class="panel hud" aria-label="状态与说明">
+            <div class="stat">
+                <header>
+                    <span>共同规则</span>
+                </header>
+                <div class="instructions">
+                    <p>• 种植需支付 $5，成熟需 60 秒；成熟后仅有 5 秒采收时间。</p>
+                    <p>• 收获一株可卖 $7；偷来的菜归自己所有。</p>
+                    <p>• 成熟未及时收获会立刻枯萎，直接判定游戏失败。</p>
+                </div>
+            </div>
+
+            <div class="stat" id="player1HUD">
+                <header>
+                    <span>玩家 ①</span>
+                    <span id="p1Money">$0</span>
+                </header>
+                <p>移动：方向键或 WASD</p>
+                <p>互动：空格键（种植 / 收获 / 偷菜）</p>
+            </div>
+
+            <div class="stat" id="player2HUD">
+                <header>
+                    <span>玩家 ②</span>
+                    <span id="p2Money">$0</span>
+                </header>
+                <p>移动：鼠标在场地内滑动即可跟随</p>
+                <p>互动：鼠标左键（种植 / 收获 / 偷菜）</p>
+            </div>
+
+            <div class="stat history">
+                <header>
+                    <span>事件记录</span>
+                </header>
+                <ul id="logList"></ul>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        (() => {
+            /** 常量 */
+            const GROW_DURATION = 60_000; // 1 分钟成熟
+            const HARVEST_WINDOW = 5_000; // 成熟后 5 秒内必须采收
+            const PLANT_COST = 5;
+            const HARVEST_REWARD = 7;
+            const STARTING_MONEY = 0;
+            const ARENA_PADDING = 30;
+
+            /** DOM 引用 */
+            const arena = document.getElementById('arena');
+            const playerEls = [...document.querySelectorAll('.player')];
+            const plotEls = [...document.querySelectorAll('.plot')];
+            const progressEls = plotEls.map(el => el.querySelector('.progress'));
+            const messageEl = document.getElementById('message');
+            const logList = document.getElementById('logList');
+            const p1MoneyEl = document.getElementById('p1Money');
+            const p2MoneyEl = document.getElementById('p2Money');
+
+            /** 玩家状态 */
+            const players = [
+                {
+                    id: 0,
+                    name: '玩家①',
+                    money: STARTING_MONEY,
+                    x: 120,
+                    y: 120,
+                    radius: 27,
+                    speed: 230, // px per second
+                    controls: { up: false, down: false, left: false, right: false }
+                },
+                {
+                    id: 1,
+                    name: '玩家②',
+                    money: STARTING_MONEY,
+                    x: 480,
+                    y: 320,
+                    radius: 27,
+                    speed: 260,
+                    cursorX: 480,
+                    cursorY: 320
+                }
+            ];
+
+            /** 地块状态 */
+            const plots = plotEls.map((el, index) => {
+                const owner = index < 3 ? 0 : 1;
+                const rect = el.getBoundingClientRect();
+                const arenaRect = arena.getBoundingClientRect();
+                const center = {
+                    x: rect.left - arenaRect.left + rect.width / 2,
+                    y: rect.top - arenaRect.top + rect.height / 2
+                };
+                return {
+                    id: index,
+                    owner,
+                    element: el,
+                    progressEl: progressEls[index],
+                    state: 'empty',
+                    plantedAt: 0,
+                    ripeAt: 0,
+                    witherAt: 0,
+                    plantedBy: null,
+                    center
+                };
+            });
+
+            /** 事件记录 */
+            function logEvent(text) {
+                const li = document.createElement('li');
+                li.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+                logList.prepend(li);
+                while (logList.children.length > 12) {
+                    logList.lastChild.remove();
+                }
+            }
+
+            /** HUD 更新 */
+            function updateHUD() {
+                p1MoneyEl.textContent = `$${players[0].money}`;
+                p2MoneyEl.textContent = `$${players[1].money}`;
+            }
+
+            /** 面板 / 玩家位置渲染 */
+            function renderPlayers() {
+                playerEls.forEach((el, idx) => {
+                    const p = players[idx];
+                    el.style.transform = `translate(${p.x - p.radius}px, ${p.y - p.radius}px)`;
+                });
+            }
+
+            /** 种植 */
+            function plant(plot, player, free = false) {
+                if (plot.state !== 'empty') return false;
+                if (!free && player.money < PLANT_COST) {
+                    setStatus(`${player.name} 现金不足，无法种植。`);
+                    return false;
+                }
+                if (!free) {
+                    player.money -= PLANT_COST;
+                    updateHUD();
+                }
+                const now = performance.now();
+                plot.state = 'growing';
+                plot.plantedAt = now;
+                plot.ripeAt = now + GROW_DURATION;
+                plot.witherAt = plot.ripeAt + HARVEST_WINDOW;
+                plot.plantedBy = player.id;
+                plot.element.classList.remove('ripe', 'withered');
+                plot.element.classList.add('growing');
+                plot.progressEl.textContent = '生长中';
+                logEvent(`${player.name} 在 ${plot.element.dataset.label} 种植了作物。`);
+                return true;
+            }
+
+            /** 收获 / 偷菜 */
+            function harvest(plot, player, isTheft) {
+                plot.state = 'empty';
+                plot.element.classList.remove('growing', 'ripe', 'withered');
+                plot.progressEl.textContent = '';
+                plot.plantedBy = null;
+                plot.plantedAt = 0;
+                plot.ripeAt = 0;
+                plot.witherAt = 0;
+                player.money += HARVEST_REWARD;
+                updateHUD();
+                logEvent(isTheft
+                    ? `${player.name} 偷走了 ${plot.element.dataset.label} 的熟菜，收益 $${HARVEST_REWARD}。`
+                    : `${player.name} 成功收获 ${plot.element.dataset.label}，收益 $${HARVEST_REWARD}。`
+                );
+            }
+
+            /** 枯萎处理 */
+            function handleWither(plot) {
+                plot.state = 'withered';
+                plot.element.classList.remove('growing', 'ripe');
+                plot.element.classList.add('withered');
+                plot.progressEl.textContent = '枯萎';
+                logEvent(`${plot.element.dataset.label} 疏于照看，作物彻底枯死。`);
+                endGame('有作物枯死，农场经营失败！');
+            }
+
+            /** 状态信息 */
+            function setStatus(text) {
+                messageEl.textContent = text;
+                messageEl.hidden = false;
+                setTimeout(() => {
+                    if (!gameOver) messageEl.hidden = true;
+                }, 1800);
+            }
+
+            /** 最近地块 */
+            function nearestPlot(x, y) {
+                let minDist = Infinity;
+                let nearest = null;
+                plots.forEach(plot => {
+                    const dx = plot.center.x - x;
+                    const dy = plot.center.y - y;
+                    const dist = Math.hypot(dx, dy);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        nearest = plot;
+                    }
+                });
+                return { plot: nearest, distance: minDist };
+            }
+
+            /** 玩家与地块距离检测 */
+            function interactNearest(player) {
+                const { plot, distance } = nearestPlot(player.x, player.y);
+                if (!plot || distance > 110) return;
+                if (plot.state === 'empty') {
+                    plant(plot, player);
+                    updateHUD();
+                    return;
+                }
+                if (plot.state === 'growing') {
+                    setStatus('作物还在生长，再等等…');
+                    return;
+                }
+                if (plot.state === 'ripe') {
+                    const isOwner = plot.owner === player.id;
+                    harvest(plot, player, !isOwner);
+                    return;
+                }
+                if (plot.state === 'withered') {
+                    setStatus('枯死的作物已经无法挽回…');
+                }
+            }
+
+            /** 游戏结束 */
+            let gameOver = false;
+            function endGame(text) {
+                if (gameOver) return;
+                gameOver = true;
+                messageEl.textContent = text;
+                messageEl.hidden = false;
+                logEvent(text);
+            }
+
+            /** 玩家初始种植 */
+            (function initStartingCrops() {
+                plant(plots[0], players[0], true);
+                plant(plots[3], players[1], true);
+            })();
+
+            updateHUD();
+            renderPlayers();
+
+            /** 键盘控制 */
+            const keyMap = {
+                ArrowUp: 'up',
+                ArrowDown: 'down',
+                ArrowLeft: 'left',
+                ArrowRight: 'right',
+                w: 'up',
+                s: 'down',
+                a: 'left',
+                d: 'right'
+            };
+
+            window.addEventListener('keydown', (e) => {
+                if (gameOver) return;
+                if (keyMap[e.key] !== undefined) {
+                    players[0].controls[keyMap[e.key]] = true;
+                    e.preventDefault();
+                }
+                if (e.key === ' ') {
+                    e.preventDefault();
+                    interactNearest(players[0]);
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                if (keyMap[e.key] !== undefined) {
+                    players[0].controls[keyMap[e.key]] = false;
+                }
+            });
+
+            /** 鼠标移动控制玩家② */
+            arena.addEventListener('mousemove', (e) => {
+                if (gameOver) return;
+                const rect = arena.getBoundingClientRect();
+                players[1].cursorX = clamp(e.clientX - rect.left, ARENA_PADDING, rect.width - ARENA_PADDING);
+                players[1].cursorY = clamp(e.clientY - rect.top, ARENA_PADDING, rect.height - ARENA_PADDING);
+            });
+
+            arena.addEventListener('mouseleave', () => {
+                // 鼠标离开后保持原地
+            });
+
+            arena.addEventListener('click', (e) => {
+                if (gameOver) return;
+                const rect = arena.getBoundingClientRect();
+                const x = clamp(e.clientX - rect.left, ARENA_PADDING, rect.width - ARENA_PADDING);
+                const y = clamp(e.clientY - rect.top, ARENA_PADDING, rect.height - ARENA_PADDING);
+                const { plot, distance } = nearestPlot(x, y);
+                if (!plot || distance > 110) return;
+                if (plot.state === 'empty') {
+                    plant(plot, players[1]);
+                } else if (plot.state === 'growing') {
+                    setStatus('作物还在生长，再等等…');
+                } else if (plot.state === 'ripe') {
+                    const isOwner = plot.owner === players[1].id;
+                    harvest(plot, players[1], !isOwner);
+                } else {
+                    setStatus('枯死的作物已经无法挽回…');
+                }
+            });
+
+            /** 主更新循环 */
+            let lastTs = performance.now();
+            function loop(ts) {
+                const dt = (ts - lastTs) / 1000;
+                lastTs = ts;
+
+                if (!gameOver) {
+                    // 玩家①移动
+                    const p1 = players[0];
+                    let dx = 0;
+                    let dy = 0;
+                    if (p1.controls.left) dx -= 1;
+                    if (p1.controls.right) dx += 1;
+                    if (p1.controls.up) dy -= 1;
+                    if (p1.controls.down) dy += 1;
+                    if (dx !== 0 || dy !== 0) {
+                        const length = Math.hypot(dx, dy) || 1;
+                        dx /= length;
+                        dy /= length;
+                        p1.x = clamp(p1.x + dx * p1.speed * dt, ARENA_PADDING, arena.clientWidth - ARENA_PADDING);
+                        p1.y = clamp(p1.y + dy * p1.speed * dt, ARENA_PADDING, arena.clientHeight - ARENA_PADDING);
+                    }
+
+                    // 玩家②跟随鼠标
+                    const p2 = players[1];
+                    const dx2 = p2.cursorX - p2.x;
+                    const dy2 = p2.cursorY - p2.y;
+                    const dist2 = Math.hypot(dx2, dy2);
+                    if (dist2 > 1) {
+                        const maxMove = p2.speed * dt;
+                        const ratio = Math.min(1, maxMove / dist2);
+                        p2.x += dx2 * ratio;
+                        p2.y += dy2 * ratio;
+                    }
+
+                    renderPlayers();
+
+                    // 检查地块状态
+                    const now = ts;
+                    plots.forEach(plot => {
+                        if (plot.state === 'growing') {
+                            const remaining = plot.ripeAt - now;
+                            if (remaining <= 0) {
+                                plot.state = 'ripe';
+                                plot.element.classList.remove('growing');
+                                plot.element.classList.add('ripe');
+                                plot.progressEl.textContent = '成熟';
+                                logEvent(`${plot.element.dataset.label} 作物成熟！`);
+                            } else {
+                                plot.progressEl.textContent = `还需 ${Math.ceil(remaining / 1000)} 秒`;
+                            }
+                        } else if (plot.state === 'ripe') {
+                            const left = plot.witherAt - now;
+                            if (left <= 0) {
+                                handleWither(plot);
+                            } else {
+                                plot.progressEl.textContent = `采收倒计时 ${Math.ceil(left / 1000)} 秒`;
+                            }
+                        }
+                    });
+                }
+
+                requestAnimationFrame(loop);
+            }
+
+            requestAnimationFrame(loop);
+        })();
+    </script>
+</body>
+</html>
+

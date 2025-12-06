@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>迷宫游戏（1-100关）</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 0;
+      box-shadow: none;
+      overflow: hidden;
+      backdrop-filter: blur(8px);
+    }
+
+    .topbar {
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      top: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      z-index: 5;
+    }
+
+    .pill {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-weight: 600;
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .canvas-wrap {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: rgba(0, 0, 0, 0.35);
+    }
+
+    canvas {
+      position: absolute;
+      left: 0;
+      top: 0;
+      background: #0b1020;
+      image-rendering: pixelated;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.68);
+      backdrop-filter: blur(6px);
+      border-radius: 12px;
+      text-align: center;
+      padding: 24px;
+    }
+
+    .overlay.show {
+      display: flex;
+    }
+
+    .panel {
+      background: rgba(10, 14, 28, .78);
+      border: 1px solid rgba(255, 255, 255, .18);
+      border-radius: 14px;
+      padding: 18px 20px;
+      width: min(92vw, 520px);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, .45);
+    }
+
+    .title {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .sub {
+      opacity: .9;
+      font-size: 14px;
+    }
+
+    .btns {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 14px;
+    }
+
+    .btn {
+      background: rgba(255, 255, 255, .12);
+      border: 1px solid rgba(255, 255, 255, .2);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .footer {
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      bottom: 10px;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      opacity: .9;
+      z-index: 5;
+    }
+
+    /* 打印样式：只打印迷宫画布，白底黑墙，高对比 */
+    @media print {
+      body {
+        background: #fff !important;
+      }
+
+      .topbar,
+      .footer,
+      #overlay {
+        display: none !important;
+      }
+
+      .canvas-wrap {
+        position: static;
+        inset: auto;
+        background: #fff !important;
+      }
+
+      canvas {
+        position: static;
+        width: 100% !important;
+        height: auto !important;
+        box-shadow: none !important;
+        background: #fff !important;
+      }
+
+      @page {
+        margin: 12mm;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="game-container">
+    <div class="topbar">
+      <div class="pill">关卡 <span id="level">1</span>/100</div>
+      <div class="pill">剩余时间 <span id="time">60</span>s</div>
+      <div class="pill">状态 <span id="status">准备中</span></div>
+      <div class="pill btn" id="printBtn" style="cursor:pointer;">打印本关</div>
+    </div>
+
+    <div class="canvas-wrap">
+      <canvas id="maze"></canvas>
+      <div id="overlay" class="overlay">
+        <div class="panel">
+          <div class="title" id="overlayTitle">提示</div>
+          <div class="sub" id="overlayMessage">...</div>
+          <div class="btns" id="overlayBtns">
+            <button class="btn" id="startBtn">开始游戏</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="pill">操作：← → ↑ ↓ / WASD 移动</div>
+    </div>
+  </div>
+
+  <script>
+    // 配置
+    const MAX_LEVEL = 100;
+    // 根据关卡计算期望单元格尺寸（像素）：关卡越高，单元格越小，迷宫越密集
+    function desiredCellSize(level) {
+      const t = (level - 1) / (MAX_LEVEL - 1);
+      const maxSize = 36; // 第1关较大格子，迷宫简单
+      const minSize = 14; // 第100关较小格子，迷宫复杂
+      return Math.round(maxSize + (minSize - maxSize) * t);
+    }
+
+    // 统一关卡时长：每关固定3分钟（180秒）
+    function levelTimeSeconds(level) {
+      return 180;
+    }
+
+    function nearestOdd(n) { return (n % 2 === 0) ? n - 1 : n; }
+
+    // 估算在当前窗口下、指定关卡的铺满网格数
+    function estimateFullScreenGrid(level) {
+      const cssW = window.innerWidth;
+      const cssH = window.innerHeight;
+      const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      const pixelW = Math.floor(cssW * dpr);
+      const pixelH = Math.floor(cssH * dpr);
+      const cell = Math.max(6, desiredCellSize(level) * dpr);
+      let cols = Math.max(5, Math.floor(pixelW / cell));
+      let rows = Math.max(5, Math.floor(pixelH / cell));
+      cols = nearestOdd(cols);
+      rows = nearestOdd(rows);
+      return { cols, rows };
+    }
+
+    // 失败处理：显示"十分钟后重新开始"，后台等待10秒，重置到第1关
+    const BACKEND_WAIT_MS = 10_000; // 10秒
+
+    const canvas = document.getElementById('maze');
+    const ctx = canvas.getContext('2d');
+    const levelEl = document.getElementById('level');
+    const timeEl = document.getElementById('time');
+    const statusEl = document.getElementById('status');
+    const overlay = document.getElementById('overlay');
+    const overlayTitle = document.getElementById('overlayTitle');
+    const overlayMessage = document.getElementById('overlayMessage');
+    const overlayBtns = document.getElementById('overlayBtns');
+    const startBtn = document.getElementById('startBtn');
+    const printBtn = document.getElementById('printBtn');
+
+    let level = 1;
+    let timeLeft = 60;
+    let timerId = null;
+    let playing = false;
+    let isDebugPreview = false;     // 游览预览模式
+    let previewLevel = 1;
+    let previewTimer = null;
+    let savedLevelForPreview = 1;
+    let isGuidePlayback = false;    // 通关攻略演示模式
+    let guideTimer = null;
+    let savedPlayerForGuide = null;
+    let isGuideAll = false;         // 全程攻略（1-100关）
+    let guideLevelPtr = 1;          // 当前攻略到的关卡
+    let savedLevelForGuideAll = 1;  // 开始攻略前的关卡
+
+    // 迷宫数据
+    let cols = 9, rows = 7;
+    let cellSize = 20;
+    let offsetX = 0, offsetY = 0;
+    let grid = []; // 0:通路, 1:墙
+    let printMode = false;
+
+    // 玩家
+    let player = { c: 1, r: 1 };
+    let goal = { c: 0, r: 0 };
+
+    function showOverlay(title, msg, buttons = []) {
+      overlayTitle.textContent = title;
+      overlayMessage.innerHTML = msg;
+      overlayBtns.innerHTML = '';
+      buttons.forEach(b => {
+        const el = document.createElement('button');
+        el.className = 'btn';
+        el.textContent = b.text;
+        el.onclick = b.onClick;
+        overlayBtns.appendChild(el);
+      });
+      overlay.classList.add('show');
+    }
+
+    function hideOverlay() { overlay.classList.remove('show'); }
+
+    function resetTimer() {
+      if (timerId) cancelAnimationFrame(timerId);
+      timerId = null;
+    }
+
+    function startTimer() {
+      const start = performance.now();
+      let last = start;
+      function tick(now) {
+        const dt = (now - last) / 1000;
+        last = now;
+        if (!playing) return;
+        timeLeft -= dt;
+        timeEl.textContent = Math.max(0, Math.ceil(timeLeft));
+        if (timeLeft <= 0) {
+          // 失败
+          playing = false;
+          statusEl.textContent = '失败';
+          onFail();
+          return;
+        }
+        timerId = requestAnimationFrame(tick);
+      }
+      timerId = requestAnimationFrame(tick);
+    }
+
+    function onFail() {
+      showOverlay('时间到', '未按时逃出，将在稍后重新开始（后台处理中…）');
+      // 后台等待10秒后重置到第一关
+      setTimeout(() => {
+        level = 1;
+        setupLevel(level);
+        showOverlay(
+          '重新开始',
+          '后台处理完成，从第一关重新开始。',
+          [{ text: '开始', onClick: () => { hideOverlay(); startLevel(); } }]
+        );
+      }, BACKEND_WAIT_MS);
+    }
+
+    function onWin() {
+      if (level >= MAX_LEVEL) {
+        playing = false;
+        statusEl.textContent = '通关';
+        showOverlay(
+          '恭喜通关！',
+          `你已经完成第 ${MAX_LEVEL} 关！`,
+          [{ text: '重新从第一关开始', onClick: () => { level = 1; hideOverlay(); setupLevel(level); startLevel(); } }]
+        );
+        return;
+      }
+      level++;
+      setupLevel(level);
+      startLevel();
+    }
+
+    function setupLevel(lv) {
+      resetTimer();
+      statusEl.textContent = '准备中';
+      levelEl.textContent = lv;
+      // 全屏铺满：按关卡期望单元格尺寸，计算可容纳的奇数列/行数以填满画布
+      const gridEst = estimateFullScreenGrid(lv);
+      cols = gridEst.cols;
+      rows = gridEst.rows;
+      cellSize = Math.floor(Math.min(canvas.width / cols, canvas.height / rows));
+      const mazeW = cols * cellSize;
+      const mazeH = rows * cellSize;
+      // 居中（理论上应几乎满屏，可能有1-2px空隙）
+      offsetX = Math.floor((canvas.width - mazeW) / 2);
+      offsetY = Math.floor((canvas.height - mazeH) / 2);
+
+      // 生成迷宫
+      grid = generateMaze(cols, rows);
+      // 增加大量短支路（死胡同），提升迷惑性
+      const spurProb = 0.05 + 0.15 * ((lv - 1) / (MAX_LEVEL - 1)); // 5% -> 20%
+      addDeadEndSpurs(grid, spurProb);
+      // 增加"长通道诱饵"：看起来很通畅，走很远才发现是死路
+      const baitDensity = 0.002 + 0.006 * ((lv - 1) / (MAX_LEVEL - 1)); // 随关卡增加尝试密度
+      addBaitCorridors(grid, baitDensity);
+      player = { c: 1, r: 1 };
+      goal = { c: cols - 2, r: rows - 2 };
+
+      // 时间
+      timeLeft = levelTimeSeconds(lv);
+      timeEl.textContent = Math.ceil(timeLeft);
+
+      draw();
+    }
+
+    function startLevel() {
+      hideOverlay();
+      playing = true;
+      statusEl.textContent = '进行中';
+      startTimer();
+      draw();
+      startBackgroundMusic();
+    }
+
+    // 迷宫生成：递归回溯（网格以墙为奇偶）
+    function generateMaze(w, h) {
+      // 初始化全部为墙
+      const m = Array.from({ length: h }, () => Array.from({ length: w }, () => 1));
+      function inside(c, r) { return c > 0 && c < w - 1 && r > 0 && r < h - 1; }
+
+      // 起点为奇数坐标
+      const stack = [];
+      function carve(c, r) {
+        m[r][c] = 0;
+        const dirs = [[2, 0], [-2, 0], [0, 2], [0, -2]];
+        shuffle(dirs);
+        for (const [dc, dr] of dirs) {
+          const nc = c + dc, nr = r + dr;
+          if (inside(nc, nr) && m[nr][nc] === 1) {
+            m[r + dr / 2 | 0][c + dc / 2 | 0] = 0; // 打通中间墙
+            carve(nc, nr);
+          }
+        }
+      }
+      carve(1, 1);
+
+      // 确保入口/出口
+      m[1][1] = 0;
+      m[h - 2][w - 2] = 0;
+      return m;
+    }
+
+    // 在已有通路上增加“支路”形成更多死胡同
+    // prob: 每个通路格尝试生成支路的概率（0-1）
+    function addDeadEndSpurs(m, prob) {
+      const h = m.length;
+      const w = m[0].length;
+      function inside(c, r) { return c > 0 && c < w - 1 && r > 0 && r < h - 1; }
+      const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+      for (let r = 1; r < h - 1; r++) {
+        for (let c = 1; c < w - 1; c++) {
+          if (m[r][c] !== 0) continue; // 只从通路延伸
+          if (Math.random() > prob) continue;
+          // 随机尝试四个方向，寻找墙→墙的结构以挖出1格支路
+          const order = dirs.slice(); shuffle(order);
+          for (const [dc, dr] of order) {
+            const wc = c + dc;      // 紧邻墙位置
+            const wr = r + dr;
+            const ec = c + dc * 2;  // 结束前的位置（保持为墙）
+            const er = r + dr * 2;
+            if (!inside(ec, er)) continue;
+            if (m[wr][wc] === 1 && m[er][ec] === 1) {
+              // 挖出一个1格“口袋”，形成死胡同
+              m[wr][wc] = 0;
+              // 不继续打通 m[er][ec]，从而保留为尽头
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // 长通道诱饵：从现有通路挖出较长（直线或带一次折返）的“通畅”支路，最终仍然封闭
+    // density：每个单元为起点的尝试概率基线（与关卡挂钩）
+    function addBaitCorridors(m, density) {
+      const h = m.length;
+      const w = m[0].length;
+      function inside(c, r) { return c > 1 && c < w - 2 && r > 1 && r < h - 2; }
+      const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+      for (let r = 1; r < h - 1; r++) {
+        for (let c = 1; c < w - 1; c++) {
+          if (m[r][c] !== 0) continue; // 仅从通路起步
+          if (Math.random() > density) continue;
+
+          // 随机选择方向，要求前方至少两格是墙，避免立即连通
+          const order = dirs.slice(); shuffle(order);
+          let carved = false;
+          for (const [dc, dr] of order) {
+            const c1 = c + dc, r1 = r + dr;
+            const c2 = c + 2 * dc, r2 = r + 2 * dr;
+            if (!inside(c2, r2)) continue;
+            if (m[r1][c1] === 1 && m[r2][c2] === 1) {
+              // 计划长度：与屏幕规模相关，取 6-20 格之间
+              const maxLen = Math.floor(Math.min(w, h) / 2);
+              const targetLen = Math.max(6, Math.min(20, maxLen));
+              let len = 0;
+              let cc = c, rr = r;
+              let sdc = dc, sdr = dr;
+              const turnOnce = Math.random() < 0.4; // 40% 概率在中途折一次
+              const turnAt = turnOnce ? 2 + Math.floor(targetLen * 0.4 * Math.random()) : -1;
+
+              // 逐步挖通：不与其他通路合并，直到达到长度或撞墙/边界
+              while (len < targetLen) {
+                const nc = cc + sdc, nr = rr + sdr;
+                const nnc = nc + sdc, nnr = nr + sdr;
+                if (!inside(nnc, nnr)) break;
+                if (m[nr][nc] !== 1 || m[nnr][nnc] !== 1) break; // 避免并入已有通路
+
+                // 挖下一段
+                m[nr][nc] = 0;
+                cc = nc; rr = nr;
+                len++;
+
+                // 到达折返点：换向成左/右转（优先空白两格都为墙的方向）
+                if (len === turnAt) {
+                  const turns = (sdc !== 0) ? [[0, 1], [0, -1]] : [[1, 0], [-1, 0]];
+                  // 随机尝试两侧
+                  if (Math.random() < 0.5) turns.reverse();
+                  let turned = false;
+                  for (const [tdc, tdr] of turns) {
+                    const tc1 = cc + tdc, tr1 = rr + tdr;
+                    const tc2 = cc + 2 * tdc, tr2 = rr + 2 * tdr;
+                    if (!inside(tc2, tr2)) continue;
+                    if (m[tr1][tc1] === 1 && m[tr2][tc2] === 1) {
+                      sdc = tdc; sdr = tdr;
+                      turned = true; break;
+                    }
+                  }
+                  if (!turned) {
+                    // 如果无法转弯，则继续直走
+                  }
+                }
+              }
+
+              // 不把末端与其它通路相连，这样就是“长死胡同”
+              carved = len > 3; // 至少挖出几步才算成功
+            }
+            if (carved) break;
+          }
+        }
+      }
+    }
+
+    function shuffle(a) {
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // 绘制迷宫
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const x = offsetX + c * cellSize;
+          const y = offsetY + r * cellSize;
+          if (grid[r][c] === 1) {
+            ctx.fillStyle = printMode ? '#000000' : '#1b2645';
+            ctx.fillRect(x, y, cellSize, cellSize);
+          } else {
+            ctx.fillStyle = printMode ? '#ffffff' : '#0f1a33';
+            ctx.fillRect(x, y, cellSize, cellSize);
+          }
+        }
+      }
+      // 终点（打印时用浅灰，不影响路径上色）
+      ctx.fillStyle = printMode ? '#dddddd' : '#2ecc71';
+      ctx.fillRect(offsetX + goal.c * cellSize, offsetY + goal.r * cellSize, cellSize, cellSize);
+      // 玩家（打印时不显示角色块，避免挡住路径）
+      if (!printMode) {
+        ctx.fillStyle = '#ffd93d';
+        const px = offsetX + player.c * cellSize + cellSize * 0.15;
+        const py = offsetY + player.r * cellSize + cellSize * 0.15;
+        const ps = cellSize * 0.7;
+        ctx.fillRect(px, py, ps, ps);
+      }
+    }
+
+    function canMoveTo(c, r) {
+      if (c < 0 || c >= cols || r < 0 || r >= rows) return false;
+      return grid[r][c] === 0;
+    }
+
+    function tryMove(dc, dr) {
+      if (!playing) return;
+      const nc = player.c + dc;
+      const nr = player.r + dr;
+      if (canMoveTo(nc, nr)) {
+        player.c = nc;
+        player.r = nr;
+        draw();
+        // 判断胜利
+        if (player.c === goal.c && player.r === goal.r) {
+          playing = false;
+          statusEl.textContent = '完成';
+          showOverlay(
+            `第 ${level} 关完成`,
+            `下一关将更复杂，时间也会更多。`,
+            [{ text: '继续', onClick: () => { hideOverlay(); onWin(); } }]
+          );
+        }
+      }
+    }
+
+    // 控制
+    window.addEventListener('keydown', (e) => {
+      const key = e.key.toLowerCase();
+      if (key === 'arrowup' || key === 'w') { e.preventDefault(); tryMove(0, -1); }
+      else if (key === 'arrowdown' || key === 's') { e.preventDefault(); tryMove(0, 1); }
+      else if (key === 'arrowleft' || key === 'a') { e.preventDefault(); tryMove(-1, 0); }
+      else if (key === 'arrowright' || key === 'd') { e.preventDefault(); tryMove(1, 0); }
+    });
+
+    // 中键：调试功能二选一（游览预览 / 通关攻略），再次中键可退出当前调试
+    window.addEventListener('mousedown', (e) => {
+      if (e.button === 1) {
+        e.preventDefault();
+        if (isDebugPreview) { exitDebugPreview(); return; }
+        if (isGuidePlayback) { stopGuidePlayback(true); return; }
+        // 弹出调试功能选择
+        showDebugChooser();
+      }
+    });
+
+    function showDebugChooser() {
+      showOverlay('调试功能', '请选择调试模式（再次按中键可退出当前模式）', [
+        { text: '游览预览', onClick: () => { hideOverlay(); enterDebugPreview(); } },
+        { text: '通关攻略（1-100全程）', onClick: () => { hideOverlay(); startGuidePlayback(true); } },
+      ]);
+    }
+
+    function enterDebugPreview() {
+      if (isDebugPreview) return;
+      isDebugPreview = true;
+      // 暂停游戏计时
+      playing = false;
+      resetTimer();
+      savedLevelForPreview = level;
+      previewLevel = 1;
+      statusEl.textContent = '预览';
+      // 循环快速展示所有关卡外观
+      const stepMs = 600; // 每关展示0.6秒
+      const tick = () => {
+        if (!isDebugPreview) return;
+        level = previewLevel;
+        setupLevel(level);
+        statusEl.textContent = `预览 (第 ${level} 关)`;
+        previewLevel = previewLevel % MAX_LEVEL + 1;
+        previewTimer = setTimeout(tick, stepMs);
+      };
+      tick();
+    }
+
+    function exitDebugPreview() {
+      if (!isDebugPreview) return;
+      isDebugPreview = false;
+      if (previewTimer) { clearTimeout(previewTimer); previewTimer = null; }
+      level = savedLevelForPreview;
+      setupLevel(level);
+      showOverlay('预览结束', `已退出调试预览，当前回到第 ${level} 关。`, [
+        { text: '继续', onClick: () => { hideOverlay(); } }
+      ]);
+    }
+
+    // --- 通关攻略：自动寻路并快速演示一遍 ---
+    function startGuidePlayback(allLevels = false) {
+      if (isGuidePlayback) return;
+      // 暂停计时与输入
+      playing = false;
+      resetTimer();
+      isGuidePlayback = true;
+      isGuideAll = !!allLevels;
+      statusEl.textContent = isGuideAll ? '攻略-全程' : '攻略';
+
+      // 保存当前关，用于全程结束后恢复
+      savedLevelForGuideAll = level;
+
+      if (isGuideAll) {
+        guideLevelPtr = 1;
+        playGuideForLevel(guideLevelPtr, true);
+      } else {
+        playGuideForLevel(level, false);
+      }
+    }
+
+    function playGuideForLevel(lv, chaining) {
+      // 切换到目标关卡并生成
+      level = lv;
+      setupLevel(level);
+      // 计算路径
+      const path = findPath(grid, { c: 1, r: 1 }, { c: goal.c, r: goal.r });
+      if (!path || path.length === 0) {
+        if (isGuideAll) {
+          // 路径异常则跳至下一关
+          nextGuideLevelOrFinish();
+        } else {
+          isGuidePlayback = false;
+          showOverlay('提示', '未找到通关路径（请重试或换一关）', [{ text: '确定', onClick: () => { hideOverlay(); } }]);
+        }
+        return;
+      }
+
+      // 播放该关路径
+      savedPlayerForGuide = { c: player.c, r: player.r };
+      let idx = 0;
+      const stepIntervalMsBase = 90;
+      const stepIntervalMs = Math.max(60, stepIntervalMsBase - Math.min(20, Math.floor(path.length / 50)));
+      let lastTs = 0, acc = 0;
+      function step(ts) {
+        if (!isGuidePlayback) return;
+        if (!lastTs) lastTs = ts;
+        acc += ts - lastTs;
+        lastTs = ts;
+        while (acc >= stepIntervalMs && idx < path.length) {
+          const p = path[idx++];
+          player.c = p.c; player.r = p.r;
+          acc -= stepIntervalMs;
+        }
+        draw();
+        if (idx >= path.length) {
+          // 单关完成
+          if (isGuideAll) {
+            nextGuideLevelOrFinish();
+          } else {
+            stopGuidePlayback(false);
+          }
+        } else {
+          guideTimer = requestAnimationFrame(step);
+        }
+      }
+      guideTimer = requestAnimationFrame(step);
+    }
+
+    function nextGuideLevelOrFinish() {
+      if (!isGuidePlayback || !isGuideAll) return;
+      guideLevelPtr++;
+      if (guideLevelPtr > MAX_LEVEL) {
+        // 全程完成
+        stopGuidePlayback(false);
+      } else {
+        playGuideForLevel(guideLevelPtr, true);
+      }
+    }
+
+    function stopGuidePlayback(byUser) {
+      if (!isGuidePlayback) return;
+      isGuidePlayback = false;
+      if (guideTimer) { cancelAnimationFrame(guideTimer); guideTimer = null; }
+      if (savedPlayerForGuide) { player.c = savedPlayerForGuide.c; player.r = savedPlayerForGuide.r; savedPlayerForGuide = null; }
+      // 如果是全程模式，恢复原先的关卡
+      if (isGuideAll) { level = savedLevelForGuideAll; setupLevel(level); }
+      draw();
+      if (byUser) {
+        showOverlay('攻略已退出', '已退出通关攻略演示。', [{ text: '确定', onClick: () => { hideOverlay(); } }]);
+      } else {
+        showOverlay('攻略完成', isGuideAll ? '已完成1-100关全程通关攻略。' : '已快速演示通关路径。', [
+          { text: '开始本关', onClick: () => { hideOverlay(); startLevel(); } }
+        ]);
+      }
+    }
+
+    // BFS 最短路
+    function findPath(m, start, end) {
+      const h = m.length, w = m[0].length;
+      const q = [];
+      const visited = Array.from({ length: h }, () => Array(w).fill(false));
+      const prev = Array.from({ length: h }, () => Array(w).fill(null));
+      function can(c, r) { return c >= 0 && c < w && r >= 0 && r < h && m[r][c] === 0; }
+      q.push(start);
+      visited[start.r][start.c] = true;
+      const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+      while (q.length) {
+        const cur = q.shift();
+        if (cur.c === end.c && cur.r === end.r) break;
+        for (const [dc, dr] of dirs) {
+          const nc = cur.c + dc, nr = cur.r + dr;
+          if (!can(nc, nr) || visited[nr][nc]) continue;
+          visited[nr][nc] = true;
+          prev[nr][nc] = cur;
+          q.push({ c: nc, r: nr });
+        }
+      }
+      if (!visited[end.r][end.c]) return null;
+      const path = [];
+      let cur = end;
+      while (cur) { path.push(cur); cur = prev[cur.r][cur.c]; }
+      path.reverse();
+      return path;
+    }
+
+    // 启动
+    startBtn.onclick = () => { hideOverlay(); startLevel(); };
+    printBtn.onclick = () => { printLevel(); };
+
+    function printLevel() {
+      // 启用打印调色板，重绘后稍等调用打印；打印完成后恢复
+      printMode = true;
+      draw();
+      const restore = () => { printMode = false; draw(); window.removeEventListener('afterprint', restore); };
+      window.addEventListener('afterprint', restore);
+      setTimeout(() => { window.print(); }, 50);
+    }
+
+    function init() {
+      setupLevel(level);
+      showOverlay(
+        '迷宫游戏',
+        '共有100关，越到后面迷宫越复杂，时间也会更多。\n失败后将提示稍后重新开始，并在后台处理完成后从第一关开始。',
+        [{ text: '开始游戏', onClick: () => { hideOverlay(); startLevel(); } }]
+      );
+    }
+
+    // 自适应画布尺寸：铺满全屏并设置为高DPR像素尺寸
+    function fitCanvas() {
+      const cssW = window.innerWidth;
+      const cssH = window.innerHeight;
+      const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      canvas.width = Math.floor(cssW * dpr);
+      canvas.height = Math.floor(cssH * dpr);
+      canvas.style.width = cssW + 'px';
+      canvas.style.height = cssH + 'px';
+    }
+    window.addEventListener('resize', () => {
+      fitCanvas();
+      // 重新按屏幕计算网格，使迷宫继续铺满
+      setupLevel(level);
+      if (playing) draw();
+    });
+
+    fitCanvas();
+    init();
+
+    // 背景音乐（Web Audio 简易旋律，开始游戏后循环播放）
+    let audioContext = null;
+    let musicTimer = null;
+    function initAudio() {
+      if (!audioContext) {
+        try {
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) { /* ignore */ }
+      }
+    }
+    function createTone(freq, duration, type = 'square', vol = 0.07, delay = 0) {
+      if (!audioContext) return;
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, audioContext.currentTime + delay);
+      gain.gain.setValueAtTime(0, audioContext.currentTime + delay);
+      gain.gain.linearRampToValueAtTime(vol, audioContext.currentTime + delay + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + delay + duration);
+      osc.connect(gain);
+      gain.connect(audioContext.destination);
+      osc.start(audioContext.currentTime + delay);
+      osc.stop(audioContext.currentTime + delay + duration);
+    }
+    // 新的背景音乐：暗色迷宫主题（D小调风格），带和弦铺底与主旋律
+    function playMazeTheme() {
+      // 主旋律音符（Hz）与节奏
+      const lead = [587, 659, 698, 659, 587, 523, 587, 494, 523, 587]; // D5 E5 F5 E5 D5 C5 D5 B4 C5 D5
+      const step = 0.28;
+      let t = 0;
+      lead.forEach((freq, i) => {
+        createTone(freq, 0.22, 'triangle', 0.06, t);
+        // 轻微的八度装饰音
+        if (i % 3 === 1) createTone(freq / 2, 0.22, 'sine', 0.025, t + 0.02);
+        t += step;
+      });
+
+      // 和弦铺底（低频脉冲），Dmin → Bb → C → Dmin
+      const chords = [293.66, 233.08, 261.63, 293.66]; // D4, Bb3, C4, D4
+      let ct = 0;
+      chords.forEach(root => {
+        // Root + Fifth + Octave
+        createTone(root, 0.5, 'sawtooth', 0.02, ct);
+        createTone(root * 1.5, 0.5, 'sawtooth', 0.015, ct);
+        createTone(root * 2, 0.5, 'sawtooth', 0.012, ct);
+        ct += 1.0;
+      });
+    }
+    function startBackgroundMusic() {
+      initAudio();
+      if (!audioContext) return;
+      if (musicTimer) return;
+      // 每6秒播放一次新主题，避免过于密集
+      playMazeTheme();
+      musicTimer = setInterval(() => {
+        playMazeTheme();
+      }, 6000);
+    }
+    function stopBackgroundMusic() {
+      if (musicTimer) { clearInterval(musicTimer); musicTimer = null; }
+    }
+  </script>
+</body>
+
+</html>

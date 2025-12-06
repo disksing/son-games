@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>奶奶记忆力大挑战</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 10px;
+        }
+
+        .info-item {
+            text-align: center;
+        }
+
+        .info-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .game-board {
+            display: grid;
+            gap: 8px;
+            margin-bottom: 20px;
+            aspect-ratio: 1;
+        }
+
+        .cell {
+            background: #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5em;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .cell:hover {
+            transform: scale(1.05);
+            border-color: #667eea;
+        }
+
+        .cell.start {
+            background: #4caf50;
+            color: white;
+            font-weight: bold;
+        }
+
+        .cell.end {
+            background: #ff9800;
+            color: white;
+            font-weight: bold;
+        }
+
+        .cell.path {
+            background: #2196f3;
+            color: white;
+        }
+
+        .cell.current {
+            background: #ffeb3b;
+            color: #333;
+            font-weight: bold;
+            animation: pulse 0.5s ease;
+        }
+
+        .cell.wrong {
+            background: #f44336;
+            color: white;
+            animation: shake 0.5s ease;
+        }
+
+        .cell.clicked {
+            background: #9e9e9e;
+            color: white;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-10px);
+            }
+
+            75% {
+                transform: translateX(10px);
+            }
+        }
+
+        .controls {
+            text-align: center;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.1em;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .message {
+            text-align: center;
+            font-size: 1.2em;
+            margin-top: 20px;
+            min-height: 30px;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .message.error {
+            color: #f44336;
+        }
+
+        .message.success {
+            color: #4caf50;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="game-container">
+        <h1>🧠 奶奶记忆力大挑战</h1>
+
+        <div class="game-info">
+            <div class="info-item">
+                <div class="info-label">关卡</div>
+                <div class="info-value" id="level">1</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">分数</div>
+                <div class="info-value" id="score">0</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">生命</div>
+                <div class="info-value" id="lives">3</div>
+            </div>
+        </div>
+
+        <div class="game-board" id="gameBoard"></div>
+
+        <div class="controls">
+            <button id="startBtn" onclick="startGame()">开始游戏</button>
+            <button onclick="resetGame()">重新开始</button>
+        </div>
+
+        <div class="message" id="message"></div>
+    </div>
+
+    <script>
+        let gameState = {
+            level: 1,
+            score: 0,
+            lives: 3,
+            gridSize: 5,
+            path: [],
+            currentPathIndex: 0,
+            gameStarted: false,
+            showingPath: false,
+            gameOver: false
+        };
+
+        function startGame() {
+            if (gameState.gameStarted) return;
+
+            gameState.gameStarted = true;
+            gameState.level = 1;
+            gameState.score = 0;
+            gameState.lives = 3;
+            gameState.gameOver = false;
+            gameState.currentPathIndex       document.getElementById('startBtn').disabled = true;
+            updateDisplay();
+            generateLevel();
+        }
+
+        function resetGame() {
+            gameState.= false;
+            gameState.level = 1;
+            gameState.score = 0;
+            gameState.lives = 3;
+            gameState.path = [];
+            gameState.currentPathIndex = 0;
+            gameState.showingPath = false;
+            gameState.gameOver = false;
+
+            document.getElementById('gameBoard').innerHTML = '';
+            document.getElementById('message').textContent = '';
+            document.getEltartBtn').disabled = false;
+            document.getElementById('message').className = 'message';
+            updateDisplay();
+        }
+
+        function generateLevel() {
+            const board = document.getElementById('gameBoard');
+            board.innerHTML = '';
+            board.style.gridTem = `repeat(${gameState.gridSize}, 1fr)`;
+            board.style.gridTemplateRows = `repeat(${gameState.gridSize}, 1fr)`;
+
+            const totalCells = gameStategameState.gridSize;
+            const pathLength = Math.min(3 + gameState.level, gameState.gridSize * 2);
+
+            // 生成随机路径
+            gameStanerateRandomPath(gameState.gridSize, pathLength);
+            gameState.currentPathIndex = 0;
+
+            // 创建所有格子
+            fo; i < totalCells; i++) {
+               = document.createElement('div');
+                cell.className = 'cell';
+                cell.dataset.index = i;
+                cell.onclick = () => handleCellClick(i);
+                board.appendChil         }
+
+            // 显示路径供玩家记忆
+            showPath();
+        }
+
+        fuateRandomPath(size, length) {
+            const path = [];
+            const visited = new Set();
+            
+            // 随机选择起点
+            const startRow = Math.floor(Math.random() * size);
+            const startCol = Math.floor(Math.random() * size);
+            const startIndex = startRow * size + startCol;
+            
+            path.push(startIndex);
+            visited.add(startIndex);
+            
+            let currentRow = startRow;
+            let currentCol = startCol;
+            
+            // 生成路径
+            for (let i = 1; i < length; i++) {
+                const directions = [
+                    { row: -1, col: 0 }, // 上
+                    { row: 1, col: 0 },  // 下
+                    { r-1 }, // 左
+                    { row: 0, col: 1 }   // 右
+                ];
+                
+                const validMoves = directions.filt                    const newRow = currentRow + dir.row;
+                    consurrentCol + dir.col;
+                    const newIndex = newRow * size + newCol;
+                    return newRow >= 0 && newRow < size && 
+                           newCol >= 0 &ize && 
+                           !visited.has(newIndex);
+                });
+                
+                if (validMoves.length === 0) break;
+                
+                const move = validMoves[Math.floor(Ma* validMoves.length)];
+                currentRow += move.row;
+                currentCol += move.col;
+                const newIndex = currentRow * size + currentCol;
+                
+                path.push(newIndex);
+ isited.add(newIndex);
+            }
+            
+            return path;
+        }
+
+        function showPath() {
+            gameState.showingPath = true;
+            const cells = doctorAll('.cell');
+            
+            // 标记起点
+            cells[gameState.path[0]].classList.add('start');
+            cells[gameState.path[0]].textContent = '起点';
+            
+            // 标记路径
+            for (let i = 1; i < gameState.path.length - 1; i++) {
+     [gameState.path[i]].classList.add('path');
+            }
+            
+            // 标记终点
+            const endIndex = gameState.path[gameState.path.length - 1];
+            cells[endIndex].classList.add('end');
+            cells[endIndex].textContent = '终点';
+            
+            // 禁用点击
+            cells.forEach(cell => {
+                cell.style.pointerEvents = 'no     });
+            
+            // 显示路径的时间（根据关卡增加）
+            const showTime = Math.max(2000, 4000 - gameState.level * 200);
+            
+            setTimeout(() => {
+                // 隐藏路径     cells.forEach(cell => {
+                    cell.classList.remove('start', 'end', 'path');
+                    cell.textContent = ''          cell.style.pointerEvents = 'auto';
+                });
+                
+                // 重新标记起点（玩家需要从这里开始）
+                cells[gameState.path[0]].classList.add('start');
+                cells[gameState.path[0]].textContent = '起点';
+                
+                gameState.showingPath = false;
+                gameState.currentPathIndex = 1; // 从路径的第二个格子开始
+                
+                document.getElementById('message').textContent = '请按照记忆的路径跳到终点！';
+            }, showTime);
+        }
+
+        function handleCellClick(index) {
+            if (gameState.showingPath || gameState.gameOver) return;
+            
+            const expectedIndex = gameState.path[gameState.currentPathIndex];
+            const cells = document.querySelectorAll('.cell');
+            
+            if (index === expectedIndex) {
+                // 正确
+                cells[index].classList.add('current');
+                cells[index].textContent = '✓';      
+                gameState.currentPathIndex++;
+                
+                // 检查是否到达终点
+                if (gameState.currentPathIndex >= gameState.path.length) {
+                    // 成功完成关卡
+                    gameState.score += 10 * gameState.level;
+                    gameState.level++;
+                    
+                    document.getElementById('message').className = 'message success';
+                    document.getElementById('message').textContent = `🎉 恭喜过关！进入第 ${gameState.level} 关`;
+                    
+                    setTimeout(() => {
+                        document.getElementById('message').className = 'message';
+                        document.getElementById('message').textContent = '';
+                        generateLevel();
+                    }, 2000);
+                } else {
+                    // 继续路径
+                    setTimeout(() => {
+                        cells[index].classList.remove('current');
+                        cells[index].classList.add('clicked');
+                    }, 300);
+                }
+            } else {
+                // 错误
+                cells[index].classList.add('wrong');
+                cells[index].textContent = '✗';
+                
+                gameState.lives--;
+                updateDisplay();
+                
+                if (gameState.lives <= 0) {
+                    // 游戏结束
+                    gameState.gameOver = true;
+                    document.getElementById('message').className = 'message error';
+                    document.getElementById('message').textContent = '❌ 游戏失败！点击重新开始';
+                    document.getElementById('startBtn').disabled = false;
+                } else {
+                    document.getElementById('message').className = 'message error';
+                    document.getElementById('message').textContent = `❌ 跳错了！还剩 ${gameState.lives} 次机会`;
+                    
+                    setTimeout(() => {
+                        document.getElementById('message').className = 'message';
+                        document.getElementById('message').textContent = '请重新开始这一关';
+                        resetLevel();
+                    }, 2000);
+                }
+            }
+        }
+
+        function resetLevel() {
+            gameState.currentPathIndex = 0;
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach(cell => {
+                cell.classList.remove('start', 'end', 'path', 'current', 'wrong', 'clicked');
+                cell.textContent = '';
+            });
+            
+            // 重新显示路径
+            showPath();
+        }
+
+        function updateDisplay() {
+            document.getElementById('level').textContent = gameState.level;
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('lives').textContent = gameState.lives;
+        }
+    </script>
+</body>
+
+</html>
