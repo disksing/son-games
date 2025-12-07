@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>迷宫游戏（1-100关）</title>
   <style>
     html,
@@ -121,6 +121,70 @@
       border-radius: 10px;
       cursor: pointer;
       font-weight: 700;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* 触摸控制按钮 */
+    .touch-controls {
+      position: absolute;
+      bottom: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: none;
+      gap: 10px;
+      z-index: 10;
+    }
+
+    .touch-controls.show {
+      display: flex;
+    }
+
+    .touch-btn {
+      width: 50px;
+      height: 50px;
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: #fff;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    .touch-btn:active {
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    .touch-controls-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 50px);
+      grid-template-rows: repeat(3, 50px);
+      gap: 5px;
+    }
+
+    .touch-btn-up {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .touch-btn-down {
+      grid-column: 2;
+      grid-row: 3;
+    }
+
+    .touch-btn-left {
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    .touch-btn-right {
+      grid-column: 3;
+      grid-row: 2;
     }
 
     .footer {
@@ -193,16 +257,49 @@
     <div class="footer">
       <div class="pill">操作：← → ↑ ↓ / WASD 移动</div>
     </div>
+    <div class="touch-controls" id="touchControls">
+      <div class="touch-controls-grid">
+        <div class="touch-btn touch-btn-up" id="touchUp">↑</div>
+        <div class="touch-btn touch-btn-left" id="touchLeft">←</div>
+        <div class="touch-btn touch-btn-down" id="touchDown">↓</div>
+        <div class="touch-btn touch-btn-right" id="touchRight">→</div>
+      </div>
+    </div>
   </div>
 
   <script>
+    // 设备检测
+    function detectDevice() {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      const isMobile = isTouch && (width <= 768 || (width <= 1024 && height <= 768));
+      const isTablet = isTouch && !isMobile && width <= 1024;
+      return { isMobile, isTablet, isDesktop: !isMobile && !isTablet, isTouch };
+    }
+
+    const device = detectDevice();
+    console.log('设备类型:', device);
+
     // 配置
     const MAX_LEVEL = 100;
     // 根据关卡计算期望单元格尺寸（像素）：关卡越高，单元格越小，迷宫越密集
     function desiredCellSize(level) {
       const t = (level - 1) / (MAX_LEVEL - 1);
-      const maxSize = 36; // 第1关较大格子，迷宫简单
-      const minSize = 14; // 第100关较小格子，迷宫复杂
+      let maxSize, minSize;
+      if (device.isMobile) {
+        // 手机模式：缩小尺寸以看到全部内容
+        maxSize = 24; // 手机模式较小的格子
+        minSize = 10;
+      } else if (device.isTablet) {
+        // 平板模式：中等尺寸
+        maxSize = 30;
+        minSize = 12;
+      } else {
+        // 桌面模式：原始尺寸
+        maxSize = 36;
+        minSize = 14;
+      }
       return Math.round(maxSize + (minSize - maxSize) * t);
     }
 
@@ -584,6 +681,86 @@
       else if (key === 'arrowright' || key === 'd') { e.preventDefault(); tryMove(1, 0); }
     });
 
+    // 触摸控制（滑动方向，不是点击跳转）
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchMoved = false;
+
+    canvas.addEventListener('touchstart', (e) => {
+      if (!playing) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      touchStartX = touch.clientX - rect.left;
+      touchStartY = touch.clientY - rect.top;
+      touchMoved = false;
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', (e) => {
+      if (!playing) return;
+      e.preventDefault();
+      touchMoved = true;
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', (e) => {
+      if (!playing || !touchMoved) return;
+      e.preventDefault();
+      const touch = e.changedTouches[0];
+      const rect = canvas.getBoundingClientRect();
+      const touchEndX = touch.clientX - rect.left;
+      const touchEndY = touch.clientY - rect.top;
+
+      const dx = touchEndX - touchStartX;
+      const dy = touchEndY - touchStartY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      // 需要滑动超过一定距离才触发移动
+      if (dist > 20) {
+        if (Math.abs(dx) > Math.abs(dy)) {
+          // 水平滑动
+          if (dx > 0) tryMove(1, 0); // 向右
+          else tryMove(-1, 0); // 向左
+        } else {
+          // 垂直滑动
+          if (dy > 0) tryMove(0, 1); // 向下
+          else tryMove(0, -1); // 向上
+        }
+      }
+    }, { passive: false });
+
+    // 触摸按钮控制
+    if (device.isTouch) {
+      const touchControls = document.getElementById('touchControls');
+      touchControls.classList.add('show');
+
+      const touchUp = document.getElementById('touchUp');
+      const touchDown = document.getElementById('touchDown');
+      const touchLeft = document.getElementById('touchLeft');
+      const touchRight = document.getElementById('touchRight');
+
+      function bindTouchButton(btn, dc, dr) {
+        let isPressed = false;
+        btn.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          isPressed = true;
+          tryMove(dc, dr);
+        }, { passive: false });
+        btn.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          isPressed = false;
+        }, { passive: false });
+        btn.addEventListener('touchcancel', (e) => {
+          e.preventDefault();
+          isPressed = false;
+        }, { passive: false });
+      }
+
+      bindTouchButton(touchUp, 0, -1);
+      bindTouchButton(touchDown, 0, 1);
+      bindTouchButton(touchLeft, -1, 0);
+      bindTouchButton(touchRight, 1, 0);
+    }
+
     // 中键：调试功能二选一（游览预览 / 通关攻略），再次中键可退出当前调试
     window.addEventListener('mousedown', (e) => {
       if (e.button === 1) {
@@ -794,6 +971,8 @@
       canvas.style.height = cssH + 'px';
     }
     window.addEventListener('resize', () => {
+      // 重新检测设备
+      Object.assign(device, detectDevice());
       fitCanvas();
       // 重新按屏幕计算网格，使迷宫继续铺满
       setupLevel(level);

@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no">
   <title>Flight Runner</title>
   <style>
     html,
@@ -147,10 +147,23 @@
 
   <script>
     (function () {
+      // 设备检测
+      function detectDevice() {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        const isMobile = isTouch && (width <= 768 || (width <= 1024 && height <= 768));
+        const isTablet = isTouch && !isMobile && width <= 1024;
+        return { isMobile, isTablet, isDesktop: !isMobile && !isTablet, isTouch };
+      }
+      const device = detectDevice();
+
       const canvas = document.getElementById('game');
       const ctx = canvas.getContext('2d');
       const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-      const baseW = 420, baseH = 720;
+      // 根据设备调整基础尺寸
+      const baseW = device.isMobile ? 380 : device.isTablet ? 400 : 420;
+      const baseH = device.isMobile ? 680 : device.isTablet ? 700 : 720;
 
       function fitCanvas() {
         const rect = canvas.getBoundingClientRect();

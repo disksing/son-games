@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>真实猫咪生活</title>
     <style>
         * {
@@ -94,9 +95,17 @@
             position: relative;
         }
 
-        .fill-sleep { background: linear-gradient(90deg, #ffc107, #ff9800); }
-        .fill-water { background: linear-gradient(90deg, #17a2b8, #0066cc); }
-        .fill-food { background: linear-gradient(90deg, #28a745, #00cc66); }
+        .fill-sleep {
+            background: linear-gradient(90deg, #ffc107, #ff9800);
+        }
+
+        .fill-water {
+            background: linear-gradient(90deg, #17a2b8, #0066cc);
+        }
+
+        .fill-food {
+            background: linear-gradient(90deg, #28a745, #00cc66);
+        }
 
         .bar-text {
             position: absolute;
@@ -213,8 +222,15 @@
         }
 
         @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
         }
 
         .player-health {
@@ -239,6 +255,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="game-container">
         <div class="game-header">
@@ -397,11 +414,11 @@
                     { type: 'foodBowl', x: 300, y: 500, width: 60, height: 40 },
                     { type: 'waterBowl', x: 400, y: 500, width: 60, height: 40 }
                 ],
-                draw: function() {
+                draw: function () {
                     // 绘制墙壁
                     ctx.fillStyle = '#8D6E63';
                     ctx.fillRect(0, 0, canvas.width, 50);
-                    
+
                     // 绘制地板
                     for (let i = 0; i < canvas.width; i += 40) {
                         for (let j = 50; j < canvas.height; j += 40) {
@@ -430,26 +447,26 @@
                     // 绘制食盆和水盆
                     const foodBowl = gameState.sceneItems.find(item => item.type === 'foodBowl');
                     const waterBowl = gameState.sceneItems.find(item => item.type === 'waterBowl');
-                    
+
                     if (foodBowl) {
                         ctx.fillStyle = '#9E9E9E';
                         ctx.beginPath();
-                        ctx.ellipse(foodBowl.x + foodBowl.width/2, foodBowl.y + foodBowl.height/2, foodBowl.width/2, foodBowl.height/2, 0, 0, Math.PI * 2);
+                        ctx.ellipse(foodBowl.x + foodBowl.width / 2, foodBowl.y + foodBowl.height / 2, foodBowl.width / 2, foodBowl.height / 2, 0, 0, Math.PI * 2);
                         ctx.fill();
                         ctx.fillStyle = '#8BC34A';
                         ctx.beginPath();
-                        ctx.ellipse(foodBowl.x + foodBowl.width/2, foodBowl.y + foodBowl.height/2, foodBowl.width/2 - 5, foodBowl.height/2 - 5, 0, 0, Math.PI * 2);
+                        ctx.ellipse(foodBowl.x + foodBowl.width / 2, foodBowl.y + foodBowl.height / 2, foodBowl.width / 2 - 5, foodBowl.height / 2 - 5, 0, 0, Math.PI * 2);
                         ctx.fill();
                     }
 
                     if (waterBowl) {
                         ctx.fillStyle = '#9E9E9E';
                         ctx.beginPath();
-                        ctx.ellipse(waterBowl.x + waterBowl.width/2, waterBowl.y + waterBowl.height/2, waterBowl.width/2, waterBowl.height/2, 0, 0, Math.PI * 2);
+                        ctx.ellipse(waterBowl.x + waterBowl.width / 2, waterBowl.y + waterBowl.height / 2, waterBowl.width / 2, waterBowl.height / 2, 0, 0, Math.PI * 2);
                         ctx.fill();
                         ctx.fillStyle = '#2196F3';
                         ctx.beginPath();
-                        ctx.ellipse(waterBowl.x + waterBowl.width/2, waterBowl.y + waterBowl.height/2, waterBowl.width/2 - 5, waterBowl.height/2 - 5, 0, 0, Math.PI * 2);
+                        ctx.ellipse(waterBowl.x + waterBowl.width / 2, waterBowl.y + waterBowl.height / 2, waterBowl.width / 2 - 5, waterBowl.height / 2 - 5, 0, 0, Math.PI * 2);
                         ctx.fill();
                     }
                 }
@@ -459,19 +476,19 @@
                 items: [
                     { type: 'counter', x: 100, y: 450, width: 200, height: 100 }
                 ],
-                draw: function() {
+                draw: function () {
                     ctx.fillStyle = '#FFC107';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    
+
                     // 绘制柜台
                     ctx.fillStyle = '#8B4513';
                     ctx.fillRect(0, 450, canvas.width, 150);
-                    
+
                     ctx.fillStyle = '#000';
                     ctx.font = 'bold 48px Arial';
                     ctx.textAlign = 'center';
                     ctx.fillText('🛒 宠物商店', canvas.width / 2, 250);
-                    
+
                     ctx.font = '24px Arial';
                     ctx.fillText('点击商店购买物品', canvas.width / 2, 350);
                 }
@@ -479,14 +496,14 @@
             outdoor: {
                 bg: '#81C784',
                 items: [],
-                draw: function() {
+                draw: function () {
                     ctx.fillStyle = '#A5D6A7';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    
+
                     // 绘制天空
                     ctx.fillStyle = '#87CEEB';
                     ctx.fillRect(0, 0, canvas.width, 200);
-                    
+
                     // 绘制草地
                     for (let i = 0; i < canvas.width; i += 20) {
                         ctx.strokeStyle = '#66BB6A';
@@ -505,10 +522,10 @@
             hospital: {
                 bg: '#FFFFFF',
                 items: [],
-                draw: function() {
+                draw: function () {
                     ctx.fillStyle = '#E3F2FD';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    
+
                     ctx.fillStyle = '#000';
                     ctx.font = 'bold 36px Arial';
                     ctx.textAlign = 'center';
@@ -530,14 +547,14 @@
             ctx.beginPath();
             ctx.arc(gameState.player.x, gameState.player.y, gameState.player.size, 0, Math.PI * 2);
             ctx.fill();
-            
+
             // 玩家眼睛
             ctx.fillStyle = '#000';
             ctx.beginPath();
             ctx.arc(gameState.player.x - 8, gameState.player.y - 8, 3, 0, Math.PI * 2);
             ctx.arc(gameState.player.x + 8, gameState.player.y - 8, 3, 0, Math.PI * 2);
             ctx.fill();
-            
+
             // 名称标签
             ctx.fillStyle = '#000';
             ctx.font = '14px Arial';
@@ -547,17 +564,17 @@
 
         function drawCat() {
             if (gameState.isCatRunaway && gameState.currentScene !== 'outdoor') return;
-            
+
             let catEmoji = '😸';
             if (gameState.isCatSleeping) catEmoji = '😴';
             else if (gameState.cat.state === 'eating') catEmoji = '🍽️';
             else if (gameState.cat.state === 'drinking') catEmoji = '💧';
-            
+
             ctx.font = `${gameState.cat.size}px Arial`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(catEmoji, gameState.cat.x, gameState.cat.y);
-            
+
             // 猫咪名称
             ctx.fillStyle = '#000';
             ctx.font = '14px Arial';
@@ -568,7 +585,7 @@
         function drawScene() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             scenes[gameState.currentScene].draw();
-            
+
             if (gameState.currentScene === 'home') {
                 drawPlayer();
                 drawCat();
@@ -581,11 +598,11 @@
             document.getElementById('sleepBar').style.width = gameState.cat.sleep + '%';
             document.getElementById('sleepText').textContent = Math.round(gameState.cat.sleep) + '%';
             document.getElementById('sleepPercent').textContent = Math.round(gameState.cat.sleep) + '%';
-            
+
             document.getElementById('waterBar').style.width = gameState.cat.water + '%';
             document.getElementById('waterText').textContent = Math.round(gameState.cat.water) + '%';
             document.getElementById('waterPercent').textContent = Math.round(gameState.cat.water) + '%';
-            
+
             document.getElementById('foodBar').style.width = gameState.cat.food + '%';
             document.getElementById('foodText').textContent = Math.round(gameState.cat.food) + '%';
             document.getElementById('foodPercent').textContent = Math.round(gameState.cat.food) + '%';
@@ -660,8 +677,8 @@
             const waterBowl = gameState.sceneItems.find(item => item.type === 'waterBowl');
 
             if (foodBowl && gameState.cat.food < 50 && gameState.inventory.food.basic > 0) {
-                const dx = (foodBowl.x + foodBowl.width/2) - gameState.cat.x;
-                const dy = (foodBowl.y + foodBowl.height/2) - gameState.cat.y;
+                const dx = (foodBowl.x + foodBowl.width / 2) - gameState.cat.x;
+                const dy = (foodBowl.y + foodBowl.height / 2) - gameState.cat.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
 
                 if (dist > 5) {
@@ -677,8 +694,8 @@
             }
 
             if (waterBowl && gameState.cat.water < 50 && gameState.inventory.water.basic > 0) {
-                const dx = (waterBowl.x + waterBowl.width/2) - gameState.cat.x;
-                const dy = (waterBowl.y + waterBowl.height/2) - gameState.cat.y;
+                const dx = (waterBowl.x + waterBowl.width / 2) - gameState.cat.x;
+                const dy = (waterBowl.y + waterBowl.height / 2) - gameState.cat.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
 
                 if (dist > 5) {
@@ -702,31 +719,39 @@
                 const scene = btn.getAttribute('data-scene');
                 gameState.currentScene = scene;
                 initScene();
-                
+
                 document.querySelectorAll('[data-scene]').forEach(b => {
                     b.classList.toggle('active', b === btn);
                 });
             });
         });
 
-        // 画布点击事件 - 移动玩家
-        canvas.addEventListener('click', (e) => {
+        // 设备检测
+        function detectDevice() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            const isMobile = isTouch && (width <= 768 || (width <= 1024 && height <= 768));
+            const isTablet = isTouch && !isMobile && width <= 1024;
+            return { isMobile, isTablet, isDesktop: !isMobile && !isTablet, isTouch };
+        }
+        const device = detectDevice();
+
+        // 画布点击/触摸事件 - 移动玩家（触摸设备使用滑动）
+        let touchStartX = 0, touchStartY = 0;
+        let isDragging = false;
+
+        function movePlayerTo(x, y) {
             if (gameState.currentScene !== 'home') return;
-            
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            
-            // 移动玩家到点击位置
             const dx = x - gameState.player.x;
             const dy = y - gameState.player.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            
+
             let moveInterval = setInterval(() => {
                 const currentDx = x - gameState.player.x;
                 const currentDy = y - gameState.player.y;
                 const currentDist = Math.sqrt(currentDx * currentDx + currentDy * currentDy);
-                
+
                 if (currentDist < 3) {
                     clearInterval(moveInterval);
                 } else {
@@ -734,7 +759,47 @@
                     gameState.player.y += currentDy * 0.05;
                 }
             }, 16);
+        }
+
+        canvas.addEventListener('click', (e) => {
+            if (device.isTouch) return; // 触摸设备使用触摸事件
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            movePlayerTo(x, y);
         });
+
+        // 触摸滑动控制
+        if (device.isTouch) {
+            canvas.addEventListener('touchstart', (e) => {
+                if (gameState.currentScene !== 'home') return;
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                touchStartX = touch.clientX - rect.left;
+                touchStartY = touch.clientY - rect.top;
+                isDragging = true;
+            }, { passive: false });
+
+            canvas.addEventListener('touchmove', (e) => {
+                if (!isDragging || gameState.currentScene !== 'home') return;
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const x = touch.clientX - rect.left;
+                const y = touch.clientY - rect.top;
+
+                // 平滑移动跟随手指
+                const dx = x - gameState.player.x;
+                const dy = y - gameState.player.y;
+                gameState.player.x += dx * 0.1;
+                gameState.player.y += dy * 0.1;
+            }, { passive: false });
+
+            canvas.addEventListener('touchend', (e) => {
+                isDragging = false;
+            }, { passive: false });
+        }
 
         // 重新开始
         document.getElementById('restartBtn').addEventListener('click', () => {
@@ -746,4 +811,5 @@
         gameLoopInterval = setInterval(gameLoop, 16);
     </script>
 </body>
+
 </html>
