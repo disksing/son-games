@@ -1,0 +1,4138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>学生积分系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 15px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 全班统计 - 右上角 */
+        .class-stats {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 12px 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            z-index: 100;
+            min-width: 120px;
+        }
+
+        .class-stats .stats-title {
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .class-stats .stats-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .class-stats .stats-row .label {
+            color: #666;
+        }
+
+        .class-stats .stats-row .value {
+            font-weight: bold;
+        }
+
+        .class-stats .stats-row .value.total {
+            color: #667eea;
+        }
+
+        .class-stats .stats-row .value.added {
+            color: #2b8a3e;
+        }
+
+        .class-stats .stats-row .value.subtracted {
+            color: #c92a2a;
+        }
+
+        .class-stats .exchange-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+        }
+
+        .class-stats .exchange-row .coin-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 6px;
+        }
+
+        .class-stats .exchange-row .exchange-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #f59f00;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 金币SVG样式 */
+        .coin-svg {
+            filter: drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.3));
+        }
+
+        .students-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .student-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100px;
+        }
+
+        .student-card:active {
+            transform: scale(0.95);
+        }
+
+        .avatar {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            position: relative;
+            border: 3px solid white;
+            overflow: hidden;
+        }
+
+        .avatar svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .avatar .score-badge {
+            position: absolute;
+            top: -3px;
+            right: -3px;
+            background: #ff6b6b;
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 10px;
+            min-width: 22px;
+            text-align: center;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .avatar .score-badge.positive {
+            background: #51cf66;
+        }
+
+        .student-name {
+            margin-top: 6px;
+            color: white;
+            font-size: 13px;
+            font-weight: 500;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 80px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .student-stats {
+            margin-top: 5px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.95);
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .student-stats .total {
+            font-weight: bold;
+            color: #ffd43b;
+            margin-right: 3px;
+        }
+
+        .student-stats .added {
+            color: #8ce99a;
+            margin-right: 3px;
+        }
+
+        .student-stats .subtracted {
+            color: #ffa8a8;
+        }
+
+        .student-exchange {
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .student-exchange .coin-icon {
+            width: 16px;
+            height: 16px;
+            margin-right: 3px;
+        }
+
+        .student-exchange .exchange-num {
+            font-size: 13px;
+            font-weight: bold;
+            color: #ffd43b;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 添加学生按钮 */
+        .add-student {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            width: 100px;
+        }
+
+        .add-avatar {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: 3px dashed rgba(255, 255, 255, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            color: rgba(255, 255, 255, 0.7);
+            transition: all 0.2s;
+        }
+
+        .add-student:active .add-avatar {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: white;
+        }
+
+        .add-label {
+            margin-top: 6px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 13px;
+        }
+
+        /* 弹窗遮罩 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 24px;
+            padding: 30px 25px;
+            width: 90%;
+            max-width: 360px;
+            max-height: 85vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: #f1f1f1;
+            border-radius: 50%;
+            font-size: 24px;
+            color: #666;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: #e0e0e0;
+        }
+
+        .modal h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 25px;
+            font-size: 22px;
+        }
+
+        /* 输入框 */
+        .input-group {
+            margin-bottom: 25px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 15px 18px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 18px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-group input:focus {
+            border-color: #667eea;
+        }
+
+        /* 性别选择 */
+        .gender-select {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+
+        .gender-btn {
+            flex: 1;
+            padding: 20px;
+            border-radius: 16px;
+            border: 3px solid #e0e0e0;
+            background: white;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .gender-btn:active {
+            transform: scale(0.98);
+        }
+
+        .gender-btn.selected {
+            border-color: #667eea;
+            background: #f0f3ff;
+        }
+
+        .gender-btn .icon {
+            font-size: 50px;
+            margin-bottom: 8px;
+        }
+
+        .gender-btn .label {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* 按钮 */
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-cancel {
+            background: #f1f1f1;
+            color: #666;
+            margin-top: 12px;
+        }
+
+        /* 积分操作菜单 */
+        .score-menu {
+            text-align: center;
+        }
+
+        .score-menu .student-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .score-menu .student-info .avatar-display {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+        }
+
+        .score-menu .student-info .avatar-display svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .score-menu .student-info .name {
+            margin-top: 12px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .score-menu .student-info .current-score {
+            margin-top: 8px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .score-section {
+            margin-bottom: 18px;
+        }
+
+        .score-section h3 {
+            font-size: 15px;
+            color: #666;
+            margin-bottom: 12px;
+        }
+
+        .score-buttons {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+        }
+
+        .score-btn {
+            padding: 14px 8px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .score-btn:active {
+            transform: scale(0.9);
+        }
+
+        .score-btn.add {
+            background: #d3f9d8;
+            color: #2b8a3e;
+        }
+
+        .score-btn.sub {
+            background: #ffe3e3;
+            color: #c92a2a;
+        }
+
+        .exchange-input-group input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 18px;
+            outline: none;
+            text-align: center;
+        }
+
+        .exchange-input-group input:focus {
+            border-color: #ffd43b;
+        }
+
+        .exchange-input-group .btn-exchange {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #ffd43b 0%, #fab005 100%);
+            color: #333;
+            border: none;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+
+        /* 动画效果 */
+        @keyframes scorePopup {
+            0% {
+                transform: scale(0.5) translateY(0);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1.5) translateY(-40px);
+                opacity: 0;
+            }
+        }
+
+        .score-popup {
+            position: fixed;
+            font-size: 36px;
+            font-weight: bold;
+            pointer-events: none;
+            animation: scorePopup 0.8s ease-out forwards;
+            z-index: 2000;
+        }
+
+        .score-popup.positive {
+            color: #51cf66;
+        }
+
+        .score-popup.negative {
+            color: #ff6b6b;
+        }
+
+        /* 兑换成功动画 */
+        @keyframes exchangeSuccess {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .exchange-success {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 35px 55px;
+            border-radius: 24px;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            z-index: 3000;
+            animation: exchangeSuccess 0.5s ease-out;
+        }
+
+        .exchange-success .icon {
+            font-size: 70px;
+            margin-bottom: 15px;
+        }
+
+        .exchange-success .text {
+            font-size: 22px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* 底部导航栏 */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0 20px 0;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+        }
+
+        .nav-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            padding: 8px 20px;
+            border-radius: 12px;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:active {
+            background: #f0f0f0;
+            transform: scale(0.95);
+        }
+
+        .nav-btn .nav-icon {
+            width: 40px;
+            height: 40px;
+            margin-bottom: 4px;
+        }
+
+        .nav-btn .nav-label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        /* 商店弹窗 */
+        .shop-modal .modal {
+            max-width: 400px;
+            padding: 20px;
+        }
+
+        .shop-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .shop-item {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .shop-item:active {
+            transform: scale(0.98);
+            border-color: #667eea;
+        }
+
+        .shop-item .item-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 10px;
+        }
+
+        .shop-item .item-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .shop-item .item-price {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: #f59f00;
+        }
+
+        .shop-item .item-price .coin-icon {
+            width: 18px;
+            height: 18px;
+            margin-right: 4px;
+        }
+
+        /* 全屏房间 */
+        .fullscreen-room {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2000;
+        }
+
+        .fullscreen-room.active {
+            display: block;
+        }
+
+        /* 3D立体室内场景 */
+        .room-indoor {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            perspective: 800px;
+            background: #1a1a2e;
+        }
+
+        /* 3D房间容器 */
+        .room-3d {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+        }
+
+        /* 地板 - 3D透视 */
+        .room-floor {
+            position: absolute;
+            bottom: 0;
+            left: -20%;
+            width: 140%;
+            height: 45%;
+            background: linear-gradient(180deg, #8B6914 0%, #5D4E37 100%);
+            transform: rotateX(60deg);
+            transform-origin: bottom center;
+            box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 地板格子纹理 */
+        .room-floor::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                linear-gradient(90deg, rgba(0, 0, 0, 0.1) 1px, transparent 1px),
+                linear-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        /* 后墙 */
+        .room-back-wall {
+            position: absolute;
+            top: 5%;
+            left: 10%;
+            width: 80%;
+            height: 50%;
+            background: linear-gradient(180deg, #ffecd2 0%, #e8c9a0 100%);
+            border: 8px solid #8B4513;
+            box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 左墙 */
+        .room-left-wall {
+            position: absolute;
+            top: 5%;
+            left: 0;
+            width: 10%;
+            height: 50%;
+            background: linear-gradient(90deg, #d4a574 0%, #e8c9a0 100%);
+            transform: skewY(-10deg);
+            transform-origin: top right;
+        }
+
+        /* 右墙 */
+        .room-right-wall {
+            position: absolute;
+            top: 5%;
+            right: 0;
+            width: 10%;
+            height: 50%;
+            background: linear-gradient(270deg, #d4a574 0%, #e8c9a0 100%);
+            transform: skewY(10deg);
+            transform-origin: top left;
+        }
+
+        /* 门 */
+        .room-door {
+            position: absolute;
+            bottom: 0;
+            right: 12%;
+            width: 15%;
+            max-width: 80px;
+            height: 45%;
+            background: linear-gradient(180deg, #654321 0%, #3d2510 100%);
+            border: 4px solid #2d1a0a;
+            border-bottom: none;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 50;
+        }
+
+        .room-door:hover {
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        .room-door::before {
+            content: '🚪';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 30px;
+        }
+
+        .room-door::after {
+            content: '走到这里出门';
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: #ffd43b;
+            white-space: nowrap;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        /* 门把手 */
+        .door-handle {
+            position: absolute;
+            top: 50%;
+            right: 15%;
+            width: 8px;
+            height: 8px;
+            background: #ffd700;
+            border-radius: 50%;
+            box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+        }
+
+        /* 柜子 - 3D效果 */
+        .room-cabinet-3d {
+            position: absolute;
+            bottom: 8%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            max-width: 350px;
+            z-index: 40;
+        }
+
+        .cabinet-top {
+            background: linear-gradient(180deg, #5D3A1A 0%, #4a2e15 100%);
+            height: 15px;
+            border-radius: 8px 8px 0 0;
+            transform: perspective(200px) rotateX(-5deg);
+            transform-origin: bottom;
+        }
+
+        .cabinet-body {
+            background: linear-gradient(180deg, #654321 0%, #3d2510 100%);
+            padding: 15px;
+            border: 3px solid #2d1a0a;
+            border-top: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .cabinet-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .cabinet-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 8px;
+            text-align: center;
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .cabinet-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+            border-color: #ffd43b;
+        }
+
+        .cabinet-item .item-icon {
+            width: 35px;
+            height: 35px;
+        }
+
+        .cabinet-item .item-count {
+            font-size: 10px;
+            color: #ffd43b;
+            font-weight: bold;
+        }
+
+        /* 室内玩家 */
+        .indoor-player {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            z-index: 100;
+            transition: all 0.15s ease-out;
+        }
+
+        .indoor-player .avatar-wrap {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        /* ====== 3D立体室外场景 ====== */
+        .room-outdoor {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            perspective: 1200px;
+        }
+
+        /* 天空 */
+        .outdoor-sky {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 45%;
+            background: linear-gradient(180deg, #4a90d9 0%, #87ceeb 50%, #b0e0e6 100%);
+        }
+
+        /* 太阳 */
+        .outdoor-sun {
+            position: absolute;
+            top: 8%;
+            right: 15%;
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle, #fff700 0%, #ffa500 100%);
+            border-radius: 50%;
+            box-shadow: 0 0 60px #ffa500, 0 0 100px #ff8c00;
+        }
+
+        /* 云朵 */
+        .outdoor-cloud {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            opacity: 0.9;
+        }
+
+        .cloud1 {
+            top: 10%;
+            left: 10%;
+            width: 80px;
+            height: 30px;
+            box-shadow: 25px -10px 0 10px white, 50px 0 0 5px white;
+        }
+
+        .cloud2 {
+            top: 18%;
+            left: 60%;
+            width: 60px;
+            height: 25px;
+            box-shadow: 20px -8px 0 8px white, 40px 0 0 4px white;
+        }
+
+        /* 3D草地 */
+        .outdoor-ground-3d {
+            position: absolute;
+            bottom: 0;
+            left: -30%;
+            width: 160%;
+            height: 60%;
+            background: linear-gradient(180deg, #7cba4f 0%, #5a9a32 50%, #4a8830 100%);
+            transform: rotateX(65deg);
+            transform-origin: bottom center;
+        }
+
+        /* 草地纹理 */
+        .outdoor-ground-3d::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: radial-gradient(circle, rgba(100, 180, 70, 0.5) 2px, transparent 2px);
+            background-size: 20px 20px;
+        }
+
+        /* 小路 */
+        .garden-path {
+            position: absolute;
+            bottom: 0;
+            left: 45%;
+            width: 10%;
+            height: 100%;
+            background: linear-gradient(90deg, #c9a66b 0%, #d4b07a 50%, #c9a66b 100%);
+            transform: rotateX(65deg);
+            transform-origin: bottom center;
+        }
+
+        /* 房子入口 */
+        .house-entrance {
+            position: absolute;
+            bottom: 55%;
+            left: 42%;
+            width: 16%;
+            max-width: 100px;
+            height: 25%;
+            background: linear-gradient(180deg, #8B4513 0%, #654321 100%);
+            border: 4px solid #3d2510;
+            border-radius: 10px 10px 0 0;
+            cursor: pointer;
+            z-index: 50;
+        }
+
+        .house-entrance::before {
+            content: '🏠';
+            position: absolute;
+            top: 30%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 35px;
+        }
+
+        .house-entrance::after {
+            content: '回房间';
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            color: #ffd43b;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        /* 喷泉 */
+        .fountain {
+            position: absolute;
+            bottom: 38%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 60;
+        }
+
+        .fountain-base {
+            width: 80px;
+            height: 25px;
+            background: linear-gradient(180deg, #708090 0%, #4a5568 100%);
+            border-radius: 50%;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .fountain-pillar {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 40px;
+            background: linear-gradient(90deg, #708090 0%, #a0aec0 50%, #708090 100%);
+        }
+
+        .fountain-top {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 15px;
+            background: linear-gradient(180deg, #a0aec0 0%, #708090 100%);
+            border-radius: 50%;
+        }
+
+        .fountain-water {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 30px;
+            background: linear-gradient(180deg, rgba(135, 206, 250, 0.8) 0%, rgba(135, 206, 250, 0) 100%);
+            animation: waterSpray 1s ease-in-out infinite;
+        }
+
+        @keyframes waterSpray {
+
+            0%,
+            100% {
+                height: 25px;
+                opacity: 0.8;
+            }
+
+            50% {
+                height: 35px;
+                opacity: 1;
+            }
+        }
+
+        .water-drops {
+            position: absolute;
+            bottom: 85px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 20px;
+        }
+
+        .water-drop {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(135, 206, 250, 0.8);
+            border-radius: 50%;
+            animation: dropFall 1s ease-in infinite;
+        }
+
+        .water-drop:nth-child(1) {
+            left: 0;
+            animation-delay: 0s;
+        }
+
+        .water-drop:nth-child(2) {
+            left: 13px;
+            animation-delay: 0.3s;
+        }
+
+        .water-drop:nth-child(3) {
+            left: 26px;
+            animation-delay: 0.6s;
+        }
+
+        @keyframes dropFall {
+            0% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(40px);
+                opacity: 0;
+            }
+        }
+
+        /* 沙坑 */
+        .sandbox-3d {
+            position: absolute;
+            bottom: 25%;
+            right: 12%;
+            width: 100px;
+            height: 50px;
+            z-index: 55;
+        }
+
+        .sandbox-pit {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #f4d03f 0%, #dab32a 100%);
+            border-radius: 50%;
+            border: 5px solid #8B4513;
+            box-shadow: inset 0 -15px 25px rgba(0, 0, 0, 0.3), 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .sandbox-hint {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: #ffd43b;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 3px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+
+        /* 树木 */
+        .tree {
+            position: absolute;
+            z-index: 50;
+        }
+
+        .tree-trunk {
+            width: 15px;
+            height: 40px;
+            background: linear-gradient(90deg, #5D4E37 0%, #8B7355 50%, #5D4E37 100%);
+            margin: 0 auto;
+        }
+
+        .tree-leaves {
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle, #228B22 0%, #006400 100%);
+            border-radius: 50%;
+            margin-top: -10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .tree1 {
+            bottom: 30%;
+            left: 8%;
+        }
+
+        .tree2 {
+            bottom: 35%;
+            left: 18%;
+            transform: scale(0.8);
+        }
+
+        .tree3 {
+            bottom: 32%;
+            right: 25%;
+            transform: scale(0.9);
+        }
+
+        /* 花朵 */
+        .flower {
+            position: absolute;
+            z-index: 45;
+        }
+
+        .flower::before {
+            content: '🌸';
+            font-size: 20px;
+        }
+
+        .flower1 {
+            bottom: 22%;
+            left: 25%;
+        }
+
+        .flower2 {
+            bottom: 20%;
+            left: 35%;
+        }
+
+        .flower3 {
+            bottom: 23%;
+            right: 30%;
+        }
+
+        .flower4 {
+            bottom: 18%;
+            right: 22%;
+        }
+
+        /* 玩家角色 */
+        .player {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            z-index: 100;
+            transition: all 0.12s ease-out;
+        }
+
+        .player .avatar-wrap {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        /* 玩家徽章 */
+        .player-badges {
+            position: absolute;
+            top: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 5px;
+        }
+
+        .player-badges .badge {
+            width: 25px;
+            height: 25px;
+            animation: badgeBounce 2s ease-in-out infinite;
+        }
+
+        @keyframes badgeBounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-3px);
+            }
+        }
+
+        /* 遥控飞机 */
+        .rc-plane {
+            position: absolute;
+            width: 70px;
+            height: 50px;
+            z-index: 200;
+            transition: all 0.08s linear;
+            filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.3));
+        }
+
+        .rc-plane.flying {
+            animation: planeTilt 0.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes planeTilt {
+            0% {
+                transform: rotate(-3deg);
+            }
+
+            100% {
+                transform: rotate(3deg);
+            }
+        }
+
+        /* 房间UI */
+        .room-ui {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            z-index: 300;
+        }
+
+        .room-back-btn {
+            padding: 12px 24px;
+            background: linear-gradient(180deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s;
+        }
+
+        .room-back-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .room-student-info {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px 15px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .room-student-info .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            overflow: hidden;
+        }
+
+        .room-student-info .name {
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* 携带物品栏 */
+        .carry-items {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 12px 20px;
+            border-radius: 25px;
+            z-index: 300;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .carry-item {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .carry-item:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .carry-item.active {
+            background: rgba(255, 215, 0, 0.4);
+            border-color: #ffd700;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+        }
+
+        .carry-item .item-icon {
+            width: 32px;
+            height: 32px;
+        }
+
+        /* 操作提示 */
+        .control-hint {
+            position: absolute;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 15px;
+            font-size: 13px;
+            z-index: 300;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        /* 地图弹窗 */
+        .map-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            max-width: 400px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 20px;
+            z-index: 500;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .map-modal.active {
+            display: block;
+        }
+
+        .map-title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .map-content {
+            background: linear-gradient(180deg, #7cba4f 0%, #5a9a32 100%);
+            border-radius: 15px;
+            padding: 20px;
+            position: relative;
+            min-height: 200px;
+        }
+
+        .map-item {
+            position: absolute;
+            font-size: 12px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 4px 8px;
+            border-radius: 8px;
+        }
+
+        .map-fountain {
+            top: 40%;
+            left: 45%;
+        }
+
+        .map-sandbox {
+            top: 30%;
+            right: 15%;
+        }
+
+        .map-house {
+            top: 10%;
+            left: 40%;
+        }
+
+        .map-you {
+            background: #ffd700 !important;
+            font-weight: bold;
+        }
+
+        /* 雨天效果 */
+        .rain-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 180;
+            overflow: hidden;
+        }
+
+        .raindrop {
+            position: absolute;
+            width: 2px;
+            height: 20px;
+            background: linear-gradient(180deg, transparent 0%, rgba(174, 194, 224, 0.8) 100%);
+            animation: rainFall 0.5s linear infinite;
+        }
+
+        @keyframes rainFall {
+            0% {
+                transform: translateY(-20px);
+            }
+
+            100% {
+                transform: translateY(100vh);
+            }
+        }
+
+        /* 雨天提示 */
+        .weather-warning {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 30px 50px;
+            border-radius: 20px;
+            z-index: 500;
+            text-align: center;
+        }
+
+        .weather-warning .icon {
+            font-size: 60px;
+            margin-bottom: 15px;
+        }
+
+        .weather-warning .text {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .weather-warning .countdown {
+            font-size: 48px;
+            font-weight: bold;
+            color: #ff6b6b;
+        }
+
+        /* 淋湿效果 */
+        .got-wet-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(74, 144, 226, 0.5);
+            z-index: 400;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .got-wet-overlay .icon {
+            font-size: 80px;
+            animation: shake 0.5s ease-in-out infinite;
+        }
+
+        .got-wet-overlay .text {
+            font-size: 24px;
+            color: white;
+            margin-top: 20px;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-5px);
+            }
+
+            75% {
+                transform: translateX(5px);
+            }
+        }
+
+        /* 打伞状态 */
+        .player-with-umbrella::after {
+            content: '☂️';
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 30px;
+        }
+
+        /* 天气显示 */
+        .weather-display {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 15px;
+            border-radius: 15px;
+            font-size: 14px;
+            z-index: 200;
+        }
+
+        .map-close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        /* 场景选择按钮 */
+        .scene-select-btn {
+            position: absolute;
+            bottom: 8%;
+            right: 5%;
+            padding: 10px 15px;
+            background: linear-gradient(180deg, #9b59b6 0%, #8e44ad 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            font-size: 12px;
+            cursor: pointer;
+            z-index: 60;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .scene-select-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* 场景选择弹窗 */
+        .scene-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 400;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .scene-modal.active {
+            display: block;
+        }
+
+        .scene-modal-content {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+        }
+
+        .scene-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .scene-modal-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .scene-modal-close {
+            font-size: 28px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .scene-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            max-height: 60vh;
+            overflow-y: auto;
+            padding: 5px;
+        }
+
+        .scene-item {
+            aspect-ratio: 1;
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+            border: 3px solid transparent;
+        }
+
+        .scene-item:hover {
+            transform: scale(1.05);
+        }
+
+        .scene-item.active {
+            border-color: #ffd700;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+        }
+
+        .scene-item.locked {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .scene-item.locked::after {
+            content: '🔒';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+        }
+
+        .scene-preview {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .scene-sky {
+            height: 40%;
+        }
+
+        .scene-ground {
+            height: 60%;
+        }
+
+        .scene-number {
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+        }
+
+        .scene-info {
+            text-align: center;
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .scene-info-text {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .scene-info-count {
+            font-size: 18px;
+            font-weight: bold;
+            color: #9b59b6;
+            margin-top: 5px;
+        }
+
+        /* 留出底部导航栏空间 */
+        .students-grid {
+            padding-bottom: 100px;
+        }
+
+        /* 记录按钮 */
+        .record-btn {
+            position: absolute;
+            top: -8px;
+            left: -8px;
+            width: 28px;
+            height: 28px;
+            background: #667eea;
+            border-radius: 50%;
+            border: none;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .class-stats {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+        }
+
+        /* 记录表弹窗 */
+        .record-modal .modal {
+            max-width: 400px;
+            max-height: 80vh;
+        }
+
+        .record-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .record-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-radius: 10px;
+            background: #f8f9fa;
+            margin-bottom: 8px;
+        }
+
+        .record-item .record-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-size: 18px;
+        }
+
+        .record-item .record-icon.add {
+            background: #d3f9d8;
+        }
+
+        .record-item .record-icon.sub {
+            background: #ffe3e3;
+        }
+
+        .record-item .record-icon.buy {
+            background: #fff3bf;
+        }
+
+        .record-item .record-info {
+            flex: 1;
+        }
+
+        .record-item .record-info .record-text {
+            font-size: 14px;
+            color: #333;
+        }
+
+        .record-item .record-info .record-time {
+            font-size: 11px;
+            color: #999;
+            margin-top: 2px;
+        }
+
+        .record-item .record-delete {
+            width: 28px;
+            height: 28px;
+            background: #ffe3e3;
+            border: none;
+            border-radius: 50%;
+            color: #c92a2a;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .record-empty {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+        }
+
+        /* 密码弹窗 */
+        .password-modal .modal {
+            max-width: 300px;
+            text-align: center;
+        }
+
+        .password-modal .password-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 20px;
+            text-align: center;
+            letter-spacing: 8px;
+            margin: 20px 0;
+        }
+
+        .password-modal .password-input:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+
+        /* 选择学生弹窗 */
+        .select-student-modal .modal {
+            max-width: 360px;
+        }
+
+        .select-student-list {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+
+        .select-student-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+        }
+
+        .select-student-item:active {
+            transform: scale(0.98);
+        }
+
+        .select-student-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .select-student-item:not(.disabled):hover {
+            border-color: #667eea;
+            background: #f0f3ff;
+        }
+
+        .select-student-item .student-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            overflow: hidden;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .select-student-item .student-avatar svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .select-student-item .student-info {
+            flex: 1;
+        }
+
+        .select-student-item .student-info .name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .select-student-item .student-info .score {
+            font-size: 14px;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .select-student-item .student-info .not-enough {
+            font-size: 12px;
+            color: #c92a2a;
+        }
+
+        .purchase-item-preview {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            margin-bottom: 10px;
+        }
+
+        .purchase-item-preview .item-icon {
+            width: 50px;
+            height: 50px;
+            margin-right: 15px;
+        }
+
+        .purchase-item-preview .item-details .item-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .purchase-item-preview .item-details .item-price {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: #f59f00;
+            margin-top: 4px;
+        }
+
+        .purchase-item-preview .item-details .item-price .coin-icon {
+            width: 16px;
+            height: 16px;
+            margin-right: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 全班统计 - 右上角 -->
+    <div class="class-stats" id="classStats">
+        <button class="record-btn" onclick="openPasswordModal()">📋</button>
+        <div class="stats-title">📊 全班统计</div>
+        <div class="stats-row">
+            <span class="label">总分</span>
+            <span class="value total" id="classTotalScore">0</span>
+        </div>
+        <div class="stats-row">
+            <span class="label">加分</span>
+            <span class="value added" id="classTotalAdded">+0</span>
+        </div>
+        <div class="stats-row">
+            <span class="label">扣分</span>
+            <span class="value subtracted" id="classTotalSubtracted">-0</span>
+        </div>
+        <div class="exchange-row">
+            <svg class="coin-icon coin-svg" viewBox="0 0 100 100">
+                <defs>
+                    <linearGradient id="coinGold" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#FFD700" />
+                        <stop offset="30%" style="stop-color:#FFEC8B" />
+                        <stop offset="50%" style="stop-color:#FFD700" />
+                        <stop offset="70%" style="stop-color:#DAA520" />
+                        <stop offset="100%" style="stop-color:#B8860B" />
+                    </linearGradient>
+                    <linearGradient id="coinShine" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#FFFACD;stop-opacity:0.8" />
+                        <stop offset="100%" style="stop-color:#FFD700;stop-opacity:0" />
+                    </linearGradient>
+                </defs>
+                <circle cx="50" cy="50" r="45" fill="url(#coinGold)" stroke="#B8860B" stroke-width="4" />
+                <circle cx="50" cy="50" r="35" fill="none" stroke="#DAA520" stroke-width="2" />
+                <text x="50" y="58" font-size="28" font-weight="bold" fill="#B8860B" text-anchor="middle">$</text>
+                <ellipse cx="35" cy="30" rx="12" ry="8" fill="url(#coinShine)" />
+            </svg>
+            <span class="exchange-value" id="classTotalExchanged">0</span>
+        </div>
+    </div>
+
+    <div class="header">
+        <h1>🌟 学生积分系统 🌟</h1>
+    </div>
+
+    <div class="students-grid" id="studentsGrid">
+        <!-- 学生卡片会动态添加 -->
+    </div>
+
+    <!-- 添加学生弹窗 -->
+    <div class="modal-overlay" id="addModal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeAddModal()">✕</button>
+            <h2>添加学生</h2>
+
+            <div class="input-group">
+                <label>学生名字</label>
+                <input type="text" id="studentName" placeholder="请输入学生名字">
+            </div>
+
+            <div class="input-group">
+                <label>选择性别</label>
+                <div class="gender-select">
+                    <div class="gender-btn" data-gender="female" onclick="selectGender('female')">
+                        <span class="icon">👧</span>
+                        <span class="label">女生</span>
+                    </div>
+                    <div class="gender-btn" data-gender="male" onclick="selectGender('male')">
+                        <span class="icon">👦</span>
+                        <span class="label">男生</span>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" onclick="confirmAddStudent()">添加学生</button>
+        </div>
+    </div>
+
+    <!-- 积分操作弹窗 -->
+    <div class="modal-overlay" id="scoreModal">
+        <div class="modal score-menu">
+            <button class="modal-close" onclick="closeScoreModal()">✕</button>
+
+            <div class="student-info">
+                <div class="avatar-display" id="menuAvatar"></div>
+                <div class="name" id="menuName"></div>
+                <div class="current-score">积分: <span id="menuScore">0</span></div>
+            </div>
+
+            <div class="score-section">
+                <h3>➕ 加积分</h3>
+                <div class="score-buttons">
+                    <button class="score-btn add" onclick="addScore(1)">+1</button>
+                    <button class="score-btn add" onclick="addScore(2)">+2</button>
+                    <button class="score-btn add" onclick="addScore(3)">+3</button>
+                    <button class="score-btn add" onclick="addScore(4)">+4</button>
+                    <button class="score-btn add" onclick="addScore(5)">+5</button>
+                    <button class="score-btn add" onclick="addScore(6)">+6</button>
+                    <button class="score-btn add" onclick="addScore(7)">+7</button>
+                    <button class="score-btn add" onclick="addScore(8)">+8</button>
+                    <button class="score-btn add" onclick="addScore(9)">+9</button>
+                    <button class="score-btn add" onclick="addScore(10)">+10</button>
+                </div>
+            </div>
+
+            <div class="score-section">
+                <h3>➖ 扣积分</h3>
+                <div class="score-buttons">
+                    <button class="score-btn sub" onclick="subScore(1)">-1</button>
+                    <button class="score-btn sub" onclick="subScore(2)">-2</button>
+                    <button class="score-btn sub" onclick="subScore(3)">-3</button>
+                    <button class="score-btn sub" onclick="subScore(4)">-4</button>
+                    <button class="score-btn sub" onclick="subScore(5)">-5</button>
+                    <button class="score-btn sub" onclick="subScore(6)">-6</button>
+                    <button class="score-btn sub" onclick="subScore(7)">-7</button>
+                    <button class="score-btn sub" onclick="subScore(8)">-8</button>
+                    <button class="score-btn sub" onclick="subScore(9)">-9</button>
+                    <button class="score-btn sub" onclick="subScore(10)">-10</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 底部导航栏 -->
+    <div class="bottom-nav">
+        <div class="nav-btn" onclick="openShopModal()">
+            <svg class="nav-icon" viewBox="0 0 100 100">
+                <!-- 礼物盒 -->
+                <defs>
+                    <linearGradient id="giftRed" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#ff6b6b" />
+                        <stop offset="100%" style="stop-color:#c92a2a" />
+                    </linearGradient>
+                    <linearGradient id="giftYellow" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#ffd43b" />
+                        <stop offset="100%" style="stop-color:#fab005" />
+                    </linearGradient>
+                </defs>
+                <!-- 盒身 -->
+                <rect x="15" y="40" width="70" height="50" rx="5" fill="url(#giftRed)" />
+                <!-- 盒盖 -->
+                <rect x="10" y="30" width="80" height="15" rx="3" fill="url(#giftRed)" stroke="#a61e1e"
+                    stroke-width="2" />
+                <!-- 丝带竖 -->
+                <rect x="43" y="30" width="14" height="60" fill="url(#giftYellow)" />
+                <!-- 丝带横 -->
+                <rect x="10" y="33" width="80" height="10" fill="url(#giftYellow)" />
+                <!-- 蝴蝶结 -->
+                <ellipse cx="38" cy="25" rx="12" ry="8" fill="url(#giftYellow)" stroke="#e6a500" stroke-width="1" />
+                <ellipse cx="62" cy="25" rx="12" ry="8" fill="url(#giftYellow)" stroke="#e6a500" stroke-width="1" />
+                <circle cx="50" cy="28" r="6" fill="url(#giftYellow)" stroke="#e6a500" stroke-width="1" />
+            </svg>
+            <span class="nav-label">商店</span>
+        </div>
+        <div class="nav-btn" onclick="openRoomModal()">
+            <svg class="nav-icon" viewBox="0 0 100 100">
+                <!-- 房子 -->
+                <defs>
+                    <linearGradient id="roofColor" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style="stop-color:#e64980" />
+                        <stop offset="100%" style="stop-color:#a61e4d" />
+                    </linearGradient>
+                    <linearGradient id="houseColor" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style="stop-color:#ffecd2" />
+                        <stop offset="100%" style="stop-color:#fcb69f" />
+                    </linearGradient>
+                </defs>
+                <!-- 屋顶 -->
+                <polygon points="50,10 10,45 90,45" fill="url(#roofColor)" stroke="#7b1e3a" stroke-width="2" />
+                <!-- 房身 -->
+                <rect x="18" y="45" width="64" height="45" fill="url(#houseColor)" stroke="#d4a574" stroke-width="2" />
+                <!-- 门 -->
+                <rect x="40" y="55" width="20" height="35" rx="2" fill="#8B4513" stroke="#5D3A1A" stroke-width="2" />
+                <circle cx="55" cy="75" r="2" fill="#ffd43b" />
+                <!-- 窗户 -->
+                <rect x="25" y="55" width="12" height="12" fill="#87ceeb" stroke="#5D3A1A" stroke-width="1" />
+                <rect x="63" y="55" width="12" height="12" fill="#87ceeb" stroke="#5D3A1A" stroke-width="1" />
+            </svg>
+            <span class="nav-label">房间</span>
+        </div>
+    </div>
+
+    <!-- 商店弹窗 -->
+    <div class="modal-overlay shop-modal" id="shopModal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeShopModal()">✕</button>
+            <h2>🎁 积分商店</h2>
+            <div class="shop-grid" id="shopGrid">
+                <!-- 商品会动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 选择学生购买弹窗 -->
+    <div class="modal-overlay select-student-modal" id="selectStudentModal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeSelectStudentModal()">✕</button>
+            <h2>选择学生购买</h2>
+            <div class="purchase-item-preview" id="purchaseItemPreview">
+                <!-- 商品预览会动态生成 -->
+            </div>
+            <p style="text-align: center; color: #666; font-size: 14px; margin-bottom: 10px;">选择用谁的积分购买：</p>
+            <div class="select-student-list" id="selectStudentList">
+                <!-- 学生列表会动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 选择学生进入房间弹窗 -->
+    <div class="modal-overlay select-student-modal" id="selectRoomStudentModal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeSelectRoomStudentModal()">✕</button>
+            <h2>🏠 选择学生进入房间</h2>
+            <div class="select-student-list" id="selectRoomStudentList">
+                <!-- 学生列表会动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 全屏房间 -->
+    <div class="fullscreen-room" id="fullscreenRoom">
+        <!-- 3D室内场景 -->
+        <div class="room-indoor" id="roomIndoor">
+            <div class="room-3d">
+                <!-- 墙壁 -->
+                <div class="room-back-wall"></div>
+                <div class="room-left-wall"></div>
+                <div class="room-right-wall"></div>
+                <!-- 地板 -->
+                <div class="room-floor"></div>
+                <!-- 门 -->
+                <div class="room-door" id="roomDoor">
+                    <div class="door-handle"></div>
+                </div>
+                <!-- 柜子 -->
+                <div class="room-cabinet-3d">
+                    <div class="cabinet-top"></div>
+                    <div class="cabinet-body">
+                        <div class="cabinet-grid" id="roomCabinetGrid">
+                            <!-- 柜子物品 -->
+                        </div>
+                    </div>
+                </div>
+                <!-- 场景选择按钮 -->
+                <button class="scene-select-btn" onclick="openSceneModal()">🎨 换场景</button>
+                <!-- 室内玩家 -->
+                <div class="indoor-player" id="indoorPlayer" style="left:40%;bottom:25%;">
+                    <div class="player-badges" id="indoorPlayerBadges"></div>
+                    <div class="avatar-wrap" id="indoorPlayerAvatar"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3D室外场景 -->
+        <div class="room-outdoor" id="roomOutdoor" style="display:none;">
+            <!-- 天空 -->
+            <div class="outdoor-sky"></div>
+            <div class="outdoor-sun"></div>
+            <div class="outdoor-cloud cloud1"></div>
+            <div class="outdoor-cloud cloud2"></div>
+
+            <!-- 3D草地 -->
+            <div class="outdoor-ground-3d"></div>
+            <div class="garden-path"></div>
+
+            <!-- 房子入口 -->
+            <div class="house-entrance" id="houseEntrance"></div>
+
+            <!-- 喷泉 -->
+            <div class="fountain">
+                <div class="fountain-top"></div>
+                <div class="fountain-pillar"></div>
+                <div class="fountain-base"></div>
+                <div class="fountain-water"></div>
+                <div class="water-drops">
+                    <div class="water-drop"></div>
+                    <div class="water-drop"></div>
+                    <div class="water-drop"></div>
+                </div>
+            </div>
+
+            <!-- 沙坑 -->
+            <div class="sandbox-3d" id="sandbox">
+                <div class="sandbox-pit"></div>
+                <div class="sandbox-hint" id="sandboxHint">带挖沙套装来玩</div>
+            </div>
+
+            <!-- 树木 -->
+            <div class="tree tree1">
+                <div class="tree-leaves"></div>
+                <div class="tree-trunk"></div>
+            </div>
+            <div class="tree tree2">
+                <div class="tree-leaves"></div>
+                <div class="tree-trunk"></div>
+            </div>
+            <div class="tree tree3">
+                <div class="tree-leaves"></div>
+                <div class="tree-trunk"></div>
+            </div>
+
+            <!-- 花朵 -->
+            <div class="flower flower1"></div>
+            <div class="flower flower2"></div>
+            <div class="flower flower3"></div>
+            <div class="flower flower4"></div>
+
+            <!-- 玩家 -->
+            <div class="player" id="player" style="left:50%;bottom:45%;">
+                <div class="player-badges" id="playerBadges"></div>
+                <div class="avatar-wrap" id="playerAvatar"></div>
+            </div>
+
+            <!-- 遥控飞机 -->
+            <div class="rc-plane" id="rcPlane" style="display:none;left:50%;bottom:60%;"></div>
+
+            <!-- 雨滴层 -->
+            <div class="rain-overlay" id="rainOverlay" style="display:none;"></div>
+        </div>
+
+        <!-- 天气显示 -->
+        <div class="weather-display" id="weatherDisplay" style="display:none;">
+            <span id="weatherIcon">☀️</span> <span id="weatherText">晴天</span>
+        </div>
+
+        <!-- 房间UI -->
+        <div class="room-ui">
+            <button class="room-back-btn" onclick="exitRoom()">← 退出</button>
+            <div class="room-student-info" id="roomStudentInfo">
+                <div class="avatar" id="roomStudentAvatar"></div>
+                <span class="name" id="roomStudentName"></span>
+            </div>
+            <div style="display:flex;gap:10px;">
+                <!-- 地图按钮已移除,按M查看 -->
+            </div>
+        </div>
+
+        <!-- 携带物品栏 -->
+        <div class="carry-items" id="carryItems">
+            <!-- 携带的物品 -->
+        </div>
+
+        <!-- 操作提示 -->
+        <div class="control-hint" id="controlHint">
+            WASD移动 | Q控制飞机 | M地图
+        </div>
+
+        <!-- 地图弹窗 -->
+        <div class="map-modal" id="mapModal">
+            <span class="map-close" onclick="closeMap()">✕</span>
+            <div class="map-title">🗺️ 花园地图</div>
+            <div class="map-content">
+                <div class="map-item map-house">🏠 房间</div>
+                <div class="map-item map-fountain">⛲ 喷泉</div>
+                <div class="map-item map-sandbox">🏖️ 沙坑</div>
+                <div class="map-item map-you" id="mapYou">📍 你</div>
+            </div>
+        </div>
+
+        <!-- 场景选择弹窗 -->
+        <div class="scene-modal" id="sceneModal">
+            <div class="scene-modal-content">
+                <div class="scene-modal-header">
+                    <div class="scene-modal-title">🎨 选择场景</div>
+                    <span class="scene-modal-close" onclick="closeSceneModal()">✕</span>
+                </div>
+                <div class="scene-info">
+                    <div class="scene-info-text">已解锁场景</div>
+                    <div class="scene-info-count" id="sceneUnlockedCount">1 / 100</div>
+                </div>
+                <div class="scene-grid" id="sceneGrid">
+                    <!-- 场景会动态生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 密码弹窗 -->
+    <div class="modal-overlay password-modal" id="passwordModal">
+        <div class="modal">
+            <button class="modal-close" onclick="closePasswordModal()">✕</button>
+            <h2>🔐 输入密码</h2>
+            <p style="color: #666; font-size: 14px;">需要密码才能查看和管理记录</p>
+            <input type="password" class="password-input" id="passwordInput" placeholder="******" maxlength="6">
+            <button class="btn btn-primary" onclick="checkPassword()">确认</button>
+        </div>
+    </div>
+
+    <!-- 记录表弹窗 -->
+    <div class="modal-overlay record-modal" id="recordModal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeRecordModal()">✕</button>
+            <h2>📋 操作记录</h2>
+            <div class="record-list" id="recordList">
+                <!-- 记录会动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 管理密码
+        const ADMIN_PASSWORD = '123456';
+
+        // 操作记录
+        let records = JSON.parse(localStorage.getItem('records') || '[]');
+
+        // 商品数据
+        const shopItems = [
+            {
+                id: 'badge_gift',
+                name: '礼物盒徽章',
+                price: 15,
+                icon: `<svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="45" fill="#ffd43b" stroke="#e6a500" stroke-width="3"/>
+                    <rect x="30" y="45" width="40" height="30" rx="3" fill="#ff6b6b"/>
+                    <rect x="45" y="45" width="10" height="30" fill="#ffd43b"/>
+                    <rect x="30" y="40" width="40" height="8" rx="2" fill="#ff6b6b"/>
+                    <rect x="30" y="42" width="40" height="5" fill="#ffd43b"/>
+                    <ellipse cx="43" cy="38" rx="8" ry="5" fill="#ffd43b"/>
+                    <ellipse cx="57" cy="38" rx="8" ry="5" fill="#ffd43b"/>
+                </svg>`
+            },
+            {
+                id: 'sand_set',
+                name: '挖沙套装',
+                price: 30,
+                icon: `<svg viewBox="0 0 100 100">
+                    <!-- 沙滩背景 -->
+                    <ellipse cx="50" cy="85" rx="40" ry="10" fill="#f4d03f"/>
+                    <!-- 水桶 -->
+                    <path d="M25 50 L30 80 L50 80 L55 50 Z" fill="#3498db" stroke="#2980b9" stroke-width="2"/>
+                    <ellipse cx="40" cy="50" rx="15" ry="5" fill="#5dade2" stroke="#2980b9" stroke-width="2"/>
+                    <path d="M30 45 Q40 35 50 45" stroke="#2980b9" stroke-width="3" fill="none"/>
+                    <!-- 铲子 -->
+                    <rect x="60" y="30" width="6" height="45" fill="#8B4513" rx="2"/>
+                    <path d="M55 75 L73 75 L66 90 L62 90 Z" fill="#bdc3c7" stroke="#7f8c8d" stroke-width="1"/>
+                    <!-- 绳子 -->
+                    <path d="M28 48 Q20 40 35 35 Q50 30 55 48" stroke="#d4a574" stroke-width="3" fill="none" stroke-dasharray="3,2"/>
+                </svg>`
+            },
+            {
+                id: 'badge_1',
+                name: '徽章(1个)',
+                price: 5,
+                icon: `<svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="35" fill="#ff6b6b" stroke="#c92a2a" stroke-width="3"/>
+                    <text x="50" y="58" font-size="24" fill="white" text-anchor="middle" font-weight="bold">★</text>
+                </svg>`
+            },
+            {
+                id: 'badge_3',
+                name: '徽章组(3个)',
+                price: 12,
+                icon: `<svg viewBox="0 0 100 100">
+                    <circle cx="30" cy="40" r="18" fill="#ff6b6b" stroke="#c92a2a" stroke-width="2"/>
+                    <text x="30" y="45" font-size="12" fill="white" text-anchor="middle" font-weight="bold">★</text>
+                    <circle cx="70" cy="40" r="18" fill="#51cf66" stroke="#2b8a3e" stroke-width="2"/>
+                    <text x="70" y="45" font-size="12" fill="white" text-anchor="middle" font-weight="bold">★</text>
+                    <circle cx="50" cy="70" r="18" fill="#339af0" stroke="#1864ab" stroke-width="2"/>
+                    <text x="50" y="75" font-size="12" fill="white" text-anchor="middle" font-weight="bold">★</text>
+                </svg>`
+            },
+            {
+                id: 'badge_5',
+                name: '徽章组(5个)',
+                price: 18,
+                icon: `<svg viewBox="0 0 100 100">
+                    <circle cx="25" cy="35" r="14" fill="#ff6b6b" stroke="#c92a2a" stroke-width="2"/>
+                    <circle cx="50" cy="25" r="14" fill="#ffd43b" stroke="#e6a500" stroke-width="2"/>
+                    <circle cx="75" cy="35" r="14" fill="#51cf66" stroke="#2b8a3e" stroke-width="2"/>
+                    <circle cx="35" cy="65" r="14" fill="#339af0" stroke="#1864ab" stroke-width="2"/>
+                    <circle cx="65" cy="65" r="14" fill="#cc5de8" stroke="#9c36b5" stroke-width="2"/>
+                </svg>`
+            },
+            {
+                id: 'badge_8',
+                name: '徽章组(8个)',
+                price: 28,
+                icon: `<svg viewBox="0 0 100 100">
+                    <circle cx="20" cy="30" r="12" fill="#ff6b6b" stroke="#c92a2a" stroke-width="2"/>
+                    <circle cx="50" cy="20" r="12" fill="#ffd43b" stroke="#e6a500" stroke-width="2"/>
+                    <circle cx="80" cy="30" r="12" fill="#51cf66" stroke="#2b8a3e" stroke-width="2"/>
+                    <circle cx="20" cy="55" r="12" fill="#339af0" stroke="#1864ab" stroke-width="2"/>
+                    <circle cx="50" cy="50" r="12" fill="#cc5de8" stroke="#9c36b5" stroke-width="2"/>
+                    <circle cx="80" cy="55" r="12" fill="#f59f00" stroke="#e67700" stroke-width="2"/>
+                    <circle cx="35" cy="78" r="12" fill="#20c997" stroke="#0ca678" stroke-width="2"/>
+                    <circle cx="65" cy="78" r="12" fill="#845ef7" stroke="#7048e8" stroke-width="2"/>
+                </svg>`
+            },
+            {
+                id: 'badge_10',
+                name: '徽章组(10个)',
+                price: 35,
+                icon: `<svg viewBox="0 0 100 100">
+                    <circle cx="15" cy="25" r="10" fill="#ff6b6b" stroke="#c92a2a" stroke-width="1"/>
+                    <circle cx="38" cy="18" r="10" fill="#ffd43b" stroke="#e6a500" stroke-width="1"/>
+                    <circle cx="62" cy="18" r="10" fill="#51cf66" stroke="#2b8a3e" stroke-width="1"/>
+                    <circle cx="85" cy="25" r="10" fill="#339af0" stroke="#1864ab" stroke-width="1"/>
+                    <circle cx="20" cy="50" r="10" fill="#cc5de8" stroke="#9c36b5" stroke-width="1"/>
+                    <circle cx="50" cy="45" r="10" fill="#f59f00" stroke="#e67700" stroke-width="1"/>
+                    <circle cx="80" cy="50" r="10" fill="#20c997" stroke="#0ca678" stroke-width="1"/>
+                    <circle cx="28" cy="75" r="10" fill="#845ef7" stroke="#7048e8" stroke-width="1"/>
+                    <circle cx="50" cy="80" r="10" fill="#e64980" stroke="#a61e4d" stroke-width="1"/>
+                    <circle cx="72" cy="75" r="10" fill="#fab005" stroke="#f59f00" stroke-width="1"/>
+                </svg>`
+            },
+            {
+                id: 'rc_plane',
+                name: '遥控飞机(5个)',
+                price: 20,
+                icon: `<svg viewBox="0 0 100 100">
+                    <!-- 机身 -->
+                    <ellipse cx="50" cy="50" rx="35" ry="10" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                    <!-- 机翼 -->
+                    <path d="M30 50 L10 35 L10 40 L30 50 L10 60 L10 65 L30 50" fill="#3498db" stroke="#2980b9" stroke-width="1"/>
+                    <path d="M70 50 L90 35 L90 40 L70 50 L90 60 L90 65 L70 50" fill="#3498db" stroke="#2980b9" stroke-width="1"/>
+                    <!-- 尾翼 -->
+                    <path d="M15 50 L5 40 L5 60 Z" fill="#f39c12" stroke="#d68910" stroke-width="1"/>
+                    <!-- 机头 -->
+                    <ellipse cx="85" cy="50" rx="5" ry="6" fill="#2c3e50"/>
+                    <!-- 驾驶舱 -->
+                    <ellipse cx="60" cy="48" rx="8" ry="4" fill="#87ceeb" stroke="#5dade2" stroke-width="1"/>
+                    <!-- 遥控天线 -->
+                    <line x1="50" y1="40" x2="50" y2="25" stroke="#333" stroke-width="2"/>
+                    <circle cx="50" cy="23" r="3" fill="#e74c3c"/>
+                </svg>`
+            },
+            {
+                id: 'umbrella',
+                name: '小伞',
+                price: 5,
+                icon: `<svg viewBox="0 0 100 100">
+                    <!-- 伞面 -->
+                    <path d="M10 50 Q50 10 90 50 Q70 55 50 50 Q30 55 10 50" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                    <!-- 伞骨 -->
+                    <line x1="50" y1="50" x2="25" y2="48" stroke="#d4a574" stroke-width="1"/>
+                    <line x1="50" y1="50" x2="75" y2="48" stroke="#d4a574" stroke-width="1"/>
+                    <line x1="50" y1="50" x2="15" y2="50" stroke="#d4a574" stroke-width="1"/>
+                    <line x1="50" y1="50" x2="85" y2="50" stroke="#d4a574" stroke-width="1"/>
+                    <!-- 伞柄 -->
+                    <line x1="50" y1="50" x2="50" y2="85" stroke="#8B4513" stroke-width="4" stroke-linecap="round"/>
+                    <!-- 伞钩 -->
+                    <path d="M50 85 Q50 95 40 95 Q30 95 30 88" stroke="#8B4513" stroke-width="4" fill="none" stroke-linecap="round"/>
+                    <!-- 伞顶 -->
+                    <circle cx="50" cy="30" r="4" fill="#ffd43b" stroke="#e6a500" stroke-width="1"/>
+                </svg>`
+            },
+            {
+                id: 'new_scene',
+                name: '新场景',
+                price: 50,
+                icon: `<svg viewBox="0 0 100 100">
+                    <!-- 背景 -->
+                    <rect x="5" y="5" width="90" height="90" rx="10" fill="#87ceeb"/>
+                    <!-- 太阳 -->
+                    <circle cx="75" cy="25" r="12" fill="#ffd700"/>
+                    <!-- 山 -->
+                    <path d="M0 90 L30 50 L60 90 Z" fill="#228B22"/>
+                    <path d="M40 90 L70 40 L100 90 Z" fill="#2d8a2d"/>
+                    <!-- 树 -->
+                    <circle cx="20" cy="65" r="10" fill="#006400"/>
+                    <rect x="18" y="70" width="4" height="15" fill="#8B4513"/>
+                    <!-- 花 -->
+                    <circle cx="50" cy="80" r="4" fill="#ff69b4"/>
+                    <circle cx="80" cy="75" r="4" fill="#ffeb3b"/>
+                    <!-- NEW标签 -->
+                    <rect x="55" y="10" width="35" height="18" rx="4" fill="#e74c3c"/>
+                    <text x="72" y="23" font-size="10" fill="white" text-anchor="middle" font-weight="bold">NEW</text>
+                </svg>`
+            }
+        ];
+
+        // 女生头像 SVG 模板 - 可爱风格
+        const femaleAvatarTemplates = [
+            // 粉色双马尾女孩
+            (colors) => `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="${colors.bg}"/><circle cx="50" cy="55" r="30" fill="${colors.skin}"/><ellipse cx="25" cy="35" rx="12" ry="15" fill="${colors.hair}"/><ellipse cx="75" cy="35" rx="12" ry="15" fill="${colors.hair}"/><path d="M20 45 Q50 20 80 45 Q50 30 20 45" fill="${colors.hair}"/><circle cx="40" cy="52" r="4" fill="#333"/><circle cx="60" cy="52" r="4" fill="#333"/><circle cx="41" cy="51" r="1.5" fill="white"/><circle cx="61" cy="51" r="1.5" fill="white"/><ellipse cx="35" cy="60" rx="5" ry="3" fill="#ffb3ba" opacity="0.6"/><ellipse cx="65" cy="60" rx="5" ry="3" fill="#ffb3ba" opacity="0.6"/><path d="M45 65 Q50 70 55 65" stroke="#e57373" stroke-width="2" fill="none" stroke-linecap="round"/></svg>`,
+            // 短发可爱女孩
+            (colors) => `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="${colors.bg}"/><circle cx="50" cy="55" r="28" fill="${colors.skin}"/><ellipse cx="50" cy="35" rx="32" ry="20" fill="${colors.hair}"/><rect x="20" y="30" width="60" height="15" rx="5" fill="${colors.hair}"/><circle cx="40" cy="52" r="4" fill="#333"/><circle cx="60" cy="52" r="4" fill="#333"/><circle cx="41" cy="51" r="1.5" fill="white"/><circle cx="61" cy="51" r="1.5" fill="white"/><path d="M43 66 Q50 72 57 66" stroke="#e57373" stroke-width="2.5" fill="none" stroke-linecap="round"/><ellipse cx="33" cy="58" rx="6" ry="4" fill="#ffb3ba" opacity="0.5"/><ellipse cx="67" cy="58" rx="6" ry="4" fill="#ffb3ba" opacity="0.5"/></svg>`,
+            // 长发公主
+            (colors) => `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="${colors.bg}"/><ellipse cx="50" cy="70" rx="25" ry="30" fill="${colors.hair}"/><circle cx="50" cy="50" r="26" fill="${colors.skin}"/><path d="M24 40 Q50 15 76 40 L76 55 Q50 45 24 55 Z" fill="${colors.hair}"/><circle cx="40" cy="48" r="3.5" fill="#333"/><circle cx="60" cy="48" r="3.5" fill="#333"/><circle cx="41" cy="47" r="1.2" fill="white"/><circle cx="61" cy="47" r="1.2" fill="white"/><path d="M45 60 Q50 65 55 60" stroke="#e57373" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M38 42 Q40 40 43 42" stroke="${colors.hair}" stroke-width="2" fill="none"/><path d="M57 42 Q60 40 62 42" stroke="${colors.hair}" stroke-width="2" fill="none"/></svg>`,
+            // 丸子头女孩
+            (colors) => `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="${colors.bg}"/><circle cx="50" cy="20" r="12" fill="${colors.hair}"/><circle cx="50" cy="55" r="28" fill="${colors.skin}"/><path d="M22 50 Q50 25 78 50 Q50 40 22 50" fill="${colors.hair}"/><circle cx="40" cy="52" r="4" fill="#333"/><circle cx="60" cy="52" r="4" fill="#333"/><circle cx="41" cy="51" r="1.5" fill="white"/><circle cx="61" cy="51" r="1.5" fill="white"/><path d="M44 65 Q50 70 56 65" stroke="#e57373" stroke-width="2" fill="none" stroke-linecap="round"/><ellipse cx="34" cy="58" rx="5" ry="3" fill="#ffb3ba" opacity="0.5"/><ellipse cx="66" cy="58" rx="5" ry="3" fill="#ffb3ba" opacity="0.5"/></svg>`,
+        ];
+
+        // 男生头像 SVG 模板 - 酷酷风格
+        const maleAvatarTemplates = [
+            // 酷酷刺头男孩
+            (colors) => `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="${colors.bg}"/><circle cx="50" cy="55" r="28" fill="${colors.skin}"/><path d="M25 45 L35 20 L45 40 L50 15 L55 40 L65 20 L75 45 Q50 35 25 45" fill="${colors.hair}"/><rect x="35" y="48" width="10" height="5" rx="2" fill="#333"/><rect x="55" y="48" width="10" height="5" rx="2" fill="#333"/><path d="M32 45 L40 48" stroke="${colors.hair}" stroke-width="2.5"/><path d="M68 45 L60 48" stroke="${colors.hair}" stroke-width="2.5"/><path d="M45 67 L55 67" stroke="#666" stroke-width="2.5" stroke-linecap="round"/></svg>`,
+            // 戴帽子男孩
+            (colors) => `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="${colors.bg}"/><circle cx="50" cy="58" r="26" fill="${colors.skin}"/><ellipse cx="50" cy="30" rx="28" ry="12" fill="${colors.hair}"/><rect x="22" y="28" width="56" height="8" rx="2" fill="${colors.accent}"/><rect x="35" y="22" width="30" height="15" rx="3" fill="${colors.accent}"/><circle cx="40" cy="55" r="3.5" fill="#333"/><circle cx="60" cy="55" r="3.5" fill="#333"/><path d="M44 68 L56 68" stroke="#666" stroke-width="2.5" stroke-linecap="round"/></svg>`,
+            // 侧分头男孩
+            (colors) => `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="${colors.bg}"/><circle cx="50" cy="55" r="27" fill="${colors.skin}"/><path d="M23 50 Q30 25 75 35 L78 50 Q50 40 23 50" fill="${colors.hair}"/><path d="M30 40 Q35 30 50 28" stroke="${colors.hair}" stroke-width="8" fill="none" stroke-linecap="round"/><circle cx="40" cy="52" r="3.5" fill="#333"/><circle cx="60" cy="52" r="3.5" fill="#333"/><path d="M35 48 L43 50" stroke="#333" stroke-width="2"/><path d="M65 48 L57 50" stroke="#333" stroke-width="2"/><path d="M45 66 L55 66" stroke="#666" stroke-width="2.5" stroke-linecap="round"/></svg>`,
+            // 运动男孩
+            (colors) => `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="${colors.bg}"/><circle cx="50" cy="55" r="27" fill="${colors.skin}"/><ellipse cx="50" cy="38" rx="25" ry="12" fill="${colors.hair}"/><circle cx="40" cy="52" r="4" fill="#333"/><circle cx="60" cy="52" r="4" fill="#333"/><circle cx="41" cy="51" r="1.5" fill="white"/><circle cx="61" cy="51" r="1.5" fill="white"/><path d="M43 67 Q50 72 57 67" stroke="#666" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M28 40 Q30 30 40 32" stroke="${colors.accent}" stroke-width="4" fill="none" stroke-linecap="round"/></svg>`,
+        ];
+
+        // 颜色配置
+        const femaleColors = [
+            { bg: '#ffe4ec', skin: '#ffecd2', hair: '#8B4513', accent: '#ff69b4' },
+            { bg: '#e8f5e9', skin: '#ffe0bd', hair: '#2d1b00', accent: '#4caf50' },
+            { bg: '#fff3e0', skin: '#ffd5b4', hair: '#4a3000', accent: '#ff9800' },
+            { bg: '#f3e5f5', skin: '#ffe4c4', hair: '#1a1a2e', accent: '#9c27b0' },
+            { bg: '#e3f2fd', skin: '#ffdbac', hair: '#654321', accent: '#2196f3' },
+            { bg: '#fce4ec', skin: '#f5cba7', hair: '#3d2914', accent: '#e91e63' },
+        ];
+
+        const maleColors = [
+            { bg: '#e3f2fd', skin: '#ffecd2', hair: '#1a1a2e', accent: '#1976d2' },
+            { bg: '#e8f5e9', skin: '#ffe0bd', hair: '#2d1b00', accent: '#388e3c' },
+            { bg: '#fff8e1', skin: '#ffd5b4', hair: '#3d2914', accent: '#f57c00' },
+            { bg: '#fce4ec', skin: '#ffe4c4', hair: '#4a3000', accent: '#c2185b' },
+            { bg: '#ede7f6', skin: '#ffdbac', hair: '#1a0f00', accent: '#7b1fa2' },
+            { bg: '#e0f7fa', skin: '#f5cba7', hair: '#2c1810', accent: '#0097a7' },
+        ];
+
+        // 生成随机头像
+        function generateRandomAvatar(gender) {
+            if (gender === 'female') {
+                const template = femaleAvatarTemplates[Math.floor(Math.random() * femaleAvatarTemplates.length)];
+                const colors = femaleColors[Math.floor(Math.random() * femaleColors.length)];
+                return template(colors);
+            } else {
+                const template = maleAvatarTemplates[Math.floor(Math.random() * maleAvatarTemplates.length)];
+                const colors = maleColors[Math.floor(Math.random() * maleColors.length)];
+                return template(colors);
+            }
+        }
+
+        // 数据
+        let students = JSON.parse(localStorage.getItem('students') || '[]');
+        let totalExchanged = parseInt(localStorage.getItem('totalExchanged') || '0');
+        let inventory = JSON.parse(localStorage.getItem('inventory') || '{}');
+        let currentStudentId = null;
+        let selectedGender = null;
+
+        // 初始化
+        function init() {
+            renderStudents();
+            updateClassStats();
+            renderShop();
+            renderRoomCabinet();
+        }
+
+        // 保存库存数据
+        function saveInventory() {
+            localStorage.setItem('inventory', JSON.stringify(inventory));
+        }
+
+        // 渲染商店
+        function renderShop() {
+            const grid = document.getElementById('shopGrid');
+            grid.innerHTML = '';
+
+            const coinSvg = `<svg class="coin-icon coin-svg" viewBox="0 0 100 100">
+                <defs><linearGradient id="coinGold3" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#FFD700"/><stop offset="50%" style="stop-color:#FFEC8B"/>
+                    <stop offset="100%" style="stop-color:#B8860B"/></linearGradient></defs>
+                <circle cx="50" cy="50" r="45" fill="url(#coinGold3)" stroke="#B8860B" stroke-width="4"/>
+                <text x="50" y="58" font-size="28" font-weight="bold" fill="#B8860B" text-anchor="middle">$</text>
+            </svg>`;
+
+            shopItems.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'shop-item';
+                div.onclick = () => buyItem(item);
+                div.innerHTML = `
+                    <div class="item-icon">${item.icon}</div>
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-price">${coinSvg}<span>${item.price}</span></div>
+                `;
+                grid.appendChild(div);
+            });
+        }
+
+        // 当前要购买的商品
+        let currentPurchaseItem = null;
+
+        // 购买商品 - 打开选择学生弹窗
+        function buyItem(item) {
+            if (students.length === 0) {
+                alert('还没有学生呢，先添加学生吧！');
+                return;
+            }
+
+            currentPurchaseItem = item;
+            renderSelectStudentList(item);
+            closeShopModal();
+            document.getElementById('selectStudentModal').classList.add('active');
+        }
+
+        // 渲染选择学生列表
+        function renderSelectStudentList(item) {
+            const coinSvg = `<svg class="coin-icon coin-svg" viewBox="0 0 100 100">
+                <defs><linearGradient id="coinGold4" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#FFD700"/><stop offset="50%" style="stop-color:#FFEC8B"/>
+                    <stop offset="100%" style="stop-color:#B8860B"/></linearGradient></defs>
+                <circle cx="50" cy="50" r="45" fill="url(#coinGold4)" stroke="#B8860B" stroke-width="4"/>
+                <text x="50" y="58" font-size="28" font-weight="bold" fill="#B8860B" text-anchor="middle">$</text>
+            </svg>`;
+
+            // 显示商品预览
+            const preview = document.getElementById('purchaseItemPreview');
+            preview.innerHTML = `
+                <div class="item-icon">${item.icon}</div>
+                <div class="item-details">
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-price">${coinSvg}<span>${item.price}</span></div>
+                </div>
+            `;
+
+            // 显示学生列表
+            const list = document.getElementById('selectStudentList');
+            list.innerHTML = '';
+
+            students.forEach(student => {
+                const canAfford = student.score >= item.price;
+                const div = document.createElement('div');
+                div.className = 'select-student-item' + (canAfford ? '' : ' disabled');
+                div.innerHTML = `
+                    <div class="student-avatar">${student.avatar}</div>
+                    <div class="student-info">
+                        <div class="name">${student.name}</div>
+                        <div class="score">积分: ${student.score}</div>
+                        ${!canAfford ? '<div class="not-enough">积分不足</div>' : ''}
+                    </div>
+                `;
+                if (canAfford) {
+                    div.onclick = () => confirmPurchase(student.id);
+                }
+                list.appendChild(div);
+            });
+        }
+
+        // 确认购买
+        function confirmPurchase(studentId) {
+            const student = students.find(s => s.id === studentId);
+            const item = currentPurchaseItem;
+
+            if (!student || !item) return;
+
+            if (student.score < item.price) {
+                alert('积分不足！');
+                return;
+            }
+
+            // 扣除积分
+            student.score -= item.price;
+
+            // 累计兑换积分
+            totalExchanged += item.price;
+            student.totalExchanged = (student.totalExchanged || 0) + item.price;
+
+            // 特殊处理：新场景
+            if (item.id === 'new_scene') {
+                // 为该学生解锁一个新场景
+                const newSceneId = unlockNewScene(studentId);
+                if (newSceneId !== null) {
+                    // 添加记录
+                    addRecord('buy', student.name, item.price, `${item.name} (场景${newSceneId + 1})`);
+
+                    saveData();
+                    renderStudents();
+                    closeSelectStudentModal();
+
+                    // 显示解锁成功
+                    const success = document.createElement('div');
+                    success.className = 'exchange-success';
+                    success.innerHTML = `
+                        <div style="font-size:50px;">🎨</div>
+                        <div class="text">${student.name} 解锁了场景 ${newSceneId + 1}！</div>
+                    `;
+                    document.body.appendChild(success);
+                    setTimeout(() => {
+                        success.style.opacity = '0';
+                        success.style.transition = 'opacity 0.3s';
+                        setTimeout(() => success.remove(), 300);
+                    }, 1500);
+                } else {
+                    // 已经全部解锁了，退还积分
+                    student.score += item.price;
+                    totalExchanged -= item.price;
+                    student.totalExchanged -= item.price;
+                    alert('该学生已解锁全部100个场景！');
+                }
+                return;
+            }
+
+            // 普通物品添加到库存
+            inventory[item.id] = (inventory[item.id] || 0) + 1;
+
+            // 添加记录
+            addRecord('buy', student.name, item.price, item.name);
+
+            saveData();
+            saveInventory();
+            renderStudents();
+            renderRoomCabinet();
+
+            closeSelectStudentModal();
+
+            // 显示购买成功
+            showPurchaseSuccess(item, student.name);
+        }
+
+        // 关闭选择学生弹窗
+        function closeSelectStudentModal() {
+            document.getElementById('selectStudentModal').classList.remove('active');
+            currentPurchaseItem = null;
+        }
+
+        // 显示购买成功
+        function showPurchaseSuccess(item, studentName) {
+            const success = document.createElement('div');
+            success.className = 'exchange-success';
+            success.innerHTML = `
+                <div class="icon" style="font-size:50px;">${item.icon}</div>
+                <div class="text">${studentName} 购买了 ${item.name}！</div>
+            `;
+            document.body.appendChild(success);
+
+            setTimeout(() => {
+                success.style.opacity = '0';
+                success.style.transition = 'opacity 0.3s';
+                setTimeout(() => success.remove(), 300);
+            }, 1500);
+        }
+
+        // 打开商店
+        function openShopModal() {
+            renderShop();
+            document.getElementById('shopModal').classList.add('active');
+        }
+
+        // 关闭商店
+        function closeShopModal() {
+            document.getElementById('shopModal').classList.remove('active');
+        }
+
+        // 房间相关变量
+        let currentRoomStudentId = null;
+        let isOutdoor = false;
+        let indoorPlayerPos = { x: 40, y: 25 };
+        let playerPos = { x: 50, y: 45 };
+        let planePos = { x: 50, y: 60 };
+        let planeActive = false;
+        let carryingItems = [];
+        let isDigging = false;
+
+        // 天气系统
+        let isRaining = false;
+        let hasUmbrella = false;
+        let rainCountdown = 0;
+        let rainTimer = null;
+        let gotWet = false;
+
+        // 场景系统 - 每个学生有自己的场景数据
+        // 学生场景数据存储在 student.unlockedScenes 和 student.currentSceneId
+
+        // 生成100个场景配置
+        const sceneConfigs = [];
+        (function generateScenes() {
+            // 天空颜色
+            const skyColors = [
+                ['#87ceeb', '#b0e0e6'], // 晴天
+                ['#ff7e5f', '#feb47b'], // 黄昏
+                ['#1a1a2e', '#16213e'], // 夜晚
+                ['#a8c0ff', '#3f2b96'], // 紫色天空
+                ['#11998e', '#38ef7d'], // 极光
+                ['#fc466b', '#3f5efb'], // 梦幻
+                ['#f5af19', '#f12711'], // 火烧云
+                ['#00c6ff', '#0072ff'], // 深蓝
+                ['#ffecd2', '#fcb69f'], // 粉色
+                ['#667eea', '#764ba2'], // 紫罗兰
+            ];
+            // 草地颜色
+            const grassColors = [
+                ['#7cba4f', '#5a9a32'], // 绿色
+                ['#a8e063', '#56ab2f'], // 浅绿
+                ['#134e5e', '#71b280'], // 深绿
+                ['#f7971e', '#ffd200'], // 金黄（秋天）
+                ['#c9d6ff', '#e2e2e2'], // 雪地
+                ['#614385', '#516395'], // 紫色花田
+                ['#f093fb', '#f5576c'], // 粉色花海
+                ['#4facfe', '#00f2fe'], // 冰霜
+                ['#43e97b', '#38f9d7'], // 翠绿
+                ['#fa709a', '#fee140'], // 彩虹
+            ];
+            // 装饰物类型
+            const decorTypes = ['fountain', 'pond', 'statue', 'swing', 'bench', 'well', 'gazebo', 'bridge', 'windmill', 'campfire'];
+            // 树木数量和类型
+            const treeStyles = ['normal', 'pine', 'cherry', 'palm', 'willow'];
+            // 花朵类型
+            const flowerTypes = ['🌸', '🌺', '🌻', '🌷', '🌹', '💐', '🪻', '🌼', '💮', '🏵️'];
+
+            for (let i = 0; i < 100; i++) {
+                const skyIndex = i % skyColors.length;
+                const grassIndex = Math.floor(i / 10) % grassColors.length;
+                const decorIndex = i % decorTypes.length;
+                const treeStyle = treeStyles[i % treeStyles.length];
+                const flowerType = flowerTypes[i % flowerTypes.length];
+                const treeCount = 2 + (i % 4);
+                const flowerCount = 3 + (i % 5);
+                const hasSun = i % 3 !== 2; // 夜晚场景没有太阳
+                const hasCloud = i % 4 !== 3;
+                const hasSandbox = i % 2 === 0;
+
+                sceneConfigs.push({
+                    id: i,
+                    name: `场景 ${i + 1}`,
+                    skyColors: skyColors[skyIndex],
+                    grassColors: grassColors[grassIndex],
+                    decorType: decorTypes[decorIndex],
+                    treeStyle: treeStyle,
+                    treeCount: treeCount,
+                    flowerType: flowerType,
+                    flowerCount: flowerCount,
+                    hasSun: hasSun,
+                    hasCloud: hasCloud,
+                    hasSandbox: hasSandbox,
+                    // 特殊装饰位置
+                    decorX: 40 + (i % 20),
+                    decorY: 35 + (i % 10),
+                });
+            }
+        })();
+
+        // 获取学生的场景数据
+        function getStudentSceneData(studentId) {
+            const student = students.find(s => s.id === studentId);
+            if (!student) return { unlockedScenes: [0], currentSceneId: 0 };
+
+            // 初始化场景数据（如果不存在）
+            if (!student.unlockedScenes) {
+                student.unlockedScenes = [0];
+            }
+            if (student.currentSceneId === undefined) {
+                student.currentSceneId = 0;
+            }
+
+            return {
+                unlockedScenes: student.unlockedScenes,
+                currentSceneId: student.currentSceneId
+            };
+        }
+
+        // 解锁新场景（为指定学生）
+        function unlockNewScene(studentId) {
+            const student = students.find(s => s.id === studentId);
+            if (!student) return null;
+
+            // 初始化
+            if (!student.unlockedScenes) {
+                student.unlockedScenes = [0];
+            }
+
+            // 找一个还没解锁的场景
+            for (let i = 0; i < 100; i++) {
+                if (!student.unlockedScenes.includes(i)) {
+                    student.unlockedScenes.push(i);
+                    saveData();
+                    return i;
+                }
+            }
+            return null; // 全部解锁了
+        }
+
+        // 应用场景
+        function applyScene(sceneId) {
+            const scene = sceneConfigs[sceneId];
+            if (!scene) return;
+
+            // 保存到当前学生
+            const student = students.find(s => s.id === currentRoomStudentId);
+            if (student) {
+                student.currentSceneId = sceneId;
+                saveData();
+            }
+
+            const outdoor = document.getElementById('roomOutdoor');
+            if (!outdoor) return;
+
+            // 应用天空颜色
+            const sky = outdoor.querySelector('.outdoor-sky');
+            if (sky) {
+                sky.style.background = `linear-gradient(180deg, ${scene.skyColors[0]} 0%, ${scene.skyColors[1]} 100%)`;
+            }
+
+            // 应用草地颜色
+            const ground = outdoor.querySelector('.outdoor-ground-3d');
+            if (ground) {
+                ground.style.background = `linear-gradient(180deg, ${scene.grassColors[0]} 0%, ${scene.grassColors[1]} 100%)`;
+            }
+
+            // 太阳
+            const sun = outdoor.querySelector('.outdoor-sun');
+            if (sun) {
+                sun.style.display = scene.hasSun ? 'block' : 'none';
+            }
+
+            // 云朵
+            outdoor.querySelectorAll('.outdoor-cloud').forEach(cloud => {
+                cloud.style.display = scene.hasCloud ? 'block' : 'none';
+            });
+
+            // 沙坑
+            const sandbox = outdoor.querySelector('.sandbox-3d');
+            if (sandbox) {
+                sandbox.style.display = scene.hasSandbox ? 'block' : 'none';
+            }
+
+            // 更新树木样式
+            const trees = outdoor.querySelectorAll('.tree');
+            trees.forEach((tree, idx) => {
+                tree.style.display = idx < scene.treeCount ? 'block' : 'none';
+                const leaves = tree.querySelector('.tree-leaves');
+                if (leaves) {
+                    switch (scene.treeStyle) {
+                        case 'pine':
+                            leaves.style.background = 'radial-gradient(circle, #1a5f1a 0%, #0d3d0d 100%)';
+                            leaves.style.borderRadius = '0 50% 50% 50%';
+                            break;
+                        case 'cherry':
+                            leaves.style.background = 'radial-gradient(circle, #ffb7c5 0%, #ff69b4 100%)';
+                            leaves.style.borderRadius = '50%';
+                            break;
+                        case 'palm':
+                            leaves.style.background = 'radial-gradient(circle, #32cd32 0%, #228b22 100%)';
+                            leaves.style.borderRadius = '20% 80% 20% 80%';
+                            break;
+                        case 'willow':
+                            leaves.style.background = 'radial-gradient(circle, #90ee90 0%, #3cb371 100%)';
+                            leaves.style.borderRadius = '50% 50% 80% 80%';
+                            break;
+                        default:
+                            leaves.style.background = 'radial-gradient(circle, #228B22 0%, #006400 100%)';
+                            leaves.style.borderRadius = '50%';
+                    }
+                }
+            });
+
+            // 更新花朵
+            const flowers = outdoor.querySelectorAll('.flower');
+            flowers.forEach((flower, idx) => {
+                flower.style.display = idx < scene.flowerCount ? 'block' : 'none';
+                flower.textContent = '';
+                flower.style.setProperty('--flower-emoji', `"${scene.flowerType}"`);
+            });
+
+            // 更新装饰物（用喷泉元素来显示不同装饰）
+            const fountain = outdoor.querySelector('.fountain');
+            if (fountain) {
+                updateDecoration(fountain, scene.decorType);
+            }
+        }
+
+        // 更新装饰物外观
+        function updateDecoration(element, decorType) {
+            const water = element.querySelector('.fountain-water');
+            const drops = element.querySelector('.water-drops');
+
+            switch (decorType) {
+                case 'fountain':
+                    if (water) water.style.display = 'block';
+                    if (drops) drops.style.display = 'block';
+                    break;
+                case 'pond':
+                    if (water) water.style.display = 'none';
+                    if (drops) drops.style.display = 'none';
+                    element.querySelector('.fountain-base').style.background = 'linear-gradient(180deg, #4a90d9 0%, #2c5aa0 100%)';
+                    break;
+                case 'statue':
+                    if (water) water.style.display = 'none';
+                    if (drops) drops.style.display = 'none';
+                    element.querySelector('.fountain-pillar').style.height = '60px';
+                    break;
+                default:
+                    if (water) water.style.display = 'block';
+                    if (drops) drops.style.display = 'block';
+            }
+        }
+
+        // 打开场景选择弹窗
+        function openSceneModal() {
+            renderSceneGrid();
+            document.getElementById('sceneModal').classList.add('active');
+        }
+
+        // 关闭场景选择弹窗
+        function closeSceneModal() {
+            document.getElementById('sceneModal').classList.remove('active');
+        }
+
+        // 渲染场景选择网格
+        function renderSceneGrid() {
+            const grid = document.getElementById('sceneGrid');
+            grid.innerHTML = '';
+
+            const sceneData = getStudentSceneData(currentRoomStudentId);
+            const student = students.find(s => s.id === currentRoomStudentId);
+            const currentScene = student ? (student.currentSceneId || 0) : 0;
+
+            // 更新解锁数量显示
+            document.getElementById('sceneUnlockedCount').textContent =
+                `${sceneData.unlockedScenes.length} / 100`;
+
+            // 渲染所有场景
+            for (let i = 0; i < 100; i++) {
+                const scene = sceneConfigs[i];
+                const isUnlocked = sceneData.unlockedScenes.includes(i);
+                const isActive = currentScene === i;
+
+                const div = document.createElement('div');
+                div.className = 'scene-item' + (isActive ? ' active' : '') + (isUnlocked ? '' : ' locked');
+
+                // 创建3D立体预览
+                div.innerHTML = `
+                    <div class="scene-preview">
+                        <div class="scene-sky" style="background: linear-gradient(180deg, ${scene.skyColors[0]} 0%, ${scene.skyColors[1]} 100%); position:relative;">
+                            ${scene.hasSun ? '<div style="position:absolute;top:5px;right:8px;width:15px;height:15px;background:radial-gradient(circle,#fff700,#ffa500);border-radius:50%;"></div>' : ''}
+                            ${scene.hasCloud ? '<div style="position:absolute;top:8px;left:5px;width:20px;height:8px;background:white;border-radius:10px;opacity:0.8;"></div>' : ''}
+                        </div>
+                        <div class="scene-ground" style="background: linear-gradient(180deg, ${scene.grassColors[0]} 0%, ${scene.grassColors[1]} 100%); position:relative; transform: perspective(50px) rotateX(5deg); transform-origin: top;">
+                            <div style="position:absolute;bottom:20%;left:50%;transform:translateX(-50%);font-size:12px;">${scene.decorType === 'fountain' ? '⛲' : scene.decorType === 'pond' ? '💧' : '🗿'}</div>
+                            <div style="position:absolute;bottom:10%;left:20%;font-size:10px;">🌳</div>
+                            <div style="position:absolute;bottom:5%;right:25%;font-size:8px;">${scene.flowerType}</div>
+                            ${scene.hasSandbox ? '<div style="position:absolute;bottom:15%;right:10%;width:15px;height:8px;background:#f4d03f;border-radius:50%;border:1px solid #8B4513;"></div>' : ''}
+                        </div>
+                    </div>
+                    <div class="scene-number">${i + 1}</div>
+                `;
+
+                if (isUnlocked) {
+                    div.onclick = () => selectScene(i);
+                }
+
+                grid.appendChild(div);
+            }
+        }
+
+        // 选择场景
+        function selectScene(sceneId) {
+            applyScene(sceneId);
+            renderSceneGrid();
+
+            // 显示成功提示
+            const toast = document.createElement('div');
+            toast.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.8);color:white;padding:15px 30px;border-radius:15px;z-index:9999;font-size:16px;';
+            toast.textContent = `已切换到场景 ${sceneId + 1}`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 1500);
+        }
+
+        // 打开房间（选择学生）
+        function openRoomModal() {
+            renderSelectRoomStudentList();
+            document.getElementById('selectRoomStudentModal').classList.add('active');
+        }
+
+        // 关闭选择房间学生弹窗
+        function closeSelectRoomStudentModal() {
+            document.getElementById('selectRoomStudentModal').classList.remove('active');
+        }
+
+        // 渲染选择进入房间的学生列表
+        function renderSelectRoomStudentList() {
+            const list = document.getElementById('selectRoomStudentList');
+            list.innerHTML = '';
+
+            if (students.length === 0) {
+                list.innerHTML = '<div style="text-align:center;color:#999;padding:20px;">还没有学生</div>';
+                return;
+            }
+
+            students.forEach(student => {
+                const div = document.createElement('div');
+                div.className = 'select-student-item';
+                div.innerHTML = `
+                    <div class="student-avatar">${student.avatar}</div>
+                    <div class="student-info">
+                        <div class="name">${student.name}</div>
+                        <div class="score">积分: ${student.score}</div>
+                    </div>
+                `;
+                div.onclick = () => enterRoom(student.id);
+                list.appendChild(div);
+            });
+        }
+
+        // 进入房间
+        function enterRoom(studentId) {
+            currentRoomStudentId = studentId;
+            const student = students.find(s => s.id === studentId);
+            if (!student) return;
+
+            closeSelectRoomStudentModal();
+
+            // 设置学生信息
+            document.getElementById('roomStudentAvatar').innerHTML = student.avatar;
+            document.getElementById('roomStudentName').textContent = student.name;
+
+            // 初始化房间状态
+            isOutdoor = false;
+            carryingItems = [];
+            indoorPlayerPos = { x: 40, y: 25 };
+            playerPos = { x: 50, y: 45 };
+
+            // 应用该学生的当前场景
+            const sceneId = student.currentSceneId || 0;
+            applyScene(sceneId);
+
+            // 显示室内
+            document.getElementById('roomIndoor').style.display = 'block';
+            document.getElementById('roomOutdoor').style.display = 'none';
+            document.getElementById('controlHint').innerHTML = 'WASD移动 | 走到门口出门';
+
+            // 渲染柜子和室内玩家
+            renderRoomCabinet();
+            renderCarryItems();
+            renderIndoorPlayer();
+
+            // 显示全屏房间
+            document.getElementById('fullscreenRoom').classList.add('active');
+
+            // 添加键盘监听
+            document.addEventListener('keydown', handleRoomKeydown);
+        }
+
+        // 渲染室内玩家
+        function renderIndoorPlayer() {
+            const student = students.find(s => s.id === currentRoomStudentId);
+            if (!student) return;
+
+            const player = document.getElementById('indoorPlayer');
+            const avatar = document.getElementById('indoorPlayerAvatar');
+            const badges = document.getElementById('indoorPlayerBadges');
+
+            avatar.innerHTML = student.avatar;
+            player.style.left = indoorPlayerPos.x + '%';
+            player.style.bottom = indoorPlayerPos.y + '%';
+
+            // 渲染徽章
+            badges.innerHTML = '';
+            carryingItems.filter(id => id.includes('badge')).forEach(itemId => {
+                const item = shopItems.find(i => i.id === itemId);
+                if (!item) return;
+                const badge = document.createElement('div');
+                badge.className = 'badge';
+                badge.innerHTML = item.icon;
+                badges.appendChild(badge);
+            });
+        }
+
+        // 退出房间
+        function exitRoom() {
+            document.getElementById('fullscreenRoom').classList.remove('active');
+            document.removeEventListener('keydown', handleRoomKeydown);
+            planeActive = false;
+            currentRoomStudentId = null;
+            closeMap();
+        }
+
+        // 去户外（从门口出去）
+        function goOutdoor() {
+            // 检查是否带伞
+            hasUmbrella = carryingItems.includes('umbrella');
+
+            // 随机天气：70%晴天，30%雨天
+            isRaining = Math.random() > 0.7;
+
+            isOutdoor = true;
+            document.getElementById('roomIndoor').style.display = 'none';
+            document.getElementById('roomOutdoor').style.display = 'block';
+            playerPos = { x: 50, y: 52 }; // 从房子门口出来
+            renderPlayer();
+            updateSandboxHint();
+
+            // 显示天气
+            const weatherDisplay = document.getElementById('weatherDisplay');
+            const weatherIcon = document.getElementById('weatherIcon');
+            const weatherText = document.getElementById('weatherText');
+            weatherDisplay.style.display = 'block';
+
+            if (isRaining) {
+                weatherIcon.textContent = '🌧️';
+                weatherText.textContent = '雨天';
+                startRain();
+
+                if (!hasUmbrella) {
+                    // 没带伞，开始5秒倒计时
+                    startRainCountdown();
+                    document.getElementById('controlHint').innerHTML = '⚠️ 下雨了！5秒内回房间！';
+                } else {
+                    // 带了伞，安全
+                    document.getElementById('player').classList.add('player-with-umbrella');
+                    document.getElementById('controlHint').innerHTML = '☂️ 打着伞，雨中漫步~';
+                }
+            } else {
+                weatherIcon.textContent = '☀️';
+                weatherText.textContent = '晴天';
+                stopRain();
+                document.getElementById('controlHint').innerHTML = 'WASD移动 | Q飞机 | M地图';
+            }
+        }
+
+        // 开始下雨效果
+        function startRain() {
+            const rainOverlay = document.getElementById('rainOverlay');
+            rainOverlay.style.display = 'block';
+            rainOverlay.innerHTML = '';
+
+            // 创建雨滴
+            for (let i = 0; i < 100; i++) {
+                const drop = document.createElement('div');
+                drop.className = 'raindrop';
+                drop.style.left = Math.random() * 100 + '%';
+                drop.style.animationDelay = Math.random() * 0.5 + 's';
+                drop.style.animationDuration = (0.3 + Math.random() * 0.3) + 's';
+                rainOverlay.appendChild(drop);
+            }
+        }
+
+        // 停止下雨
+        function stopRain() {
+            document.getElementById('rainOverlay').style.display = 'none';
+            document.getElementById('player').classList.remove('player-with-umbrella');
+            if (rainTimer) {
+                clearInterval(rainTimer);
+                rainTimer = null;
+            }
+        }
+
+        // 开始雨天倒计时
+        function startRainCountdown() {
+            rainCountdown = 5;
+            gotWet = false;
+
+            // 显示倒计时警告
+            const warning = document.createElement('div');
+            warning.className = 'weather-warning';
+            warning.id = 'rainWarning';
+            warning.innerHTML = `
+                <div class="icon">🌧️</div>
+                <div class="text">下雨了！快回房间！</div>
+                <div class="countdown" id="rainCountdownDisplay">${rainCountdown}</div>
+            `;
+            document.body.appendChild(warning);
+
+            rainTimer = setInterval(() => {
+                rainCountdown--;
+                const display = document.getElementById('rainCountdownDisplay');
+                if (display) {
+                    display.textContent = rainCountdown;
+                }
+
+                if (rainCountdown <= 0) {
+                    // 时间到，淋湿了
+                    clearInterval(rainTimer);
+                    rainTimer = null;
+                    const warningEl = document.getElementById('rainWarning');
+                    if (warningEl) warningEl.remove();
+
+                    if (isOutdoor && !hasUmbrella && !gotWet) {
+                        getWet();
+                    }
+                }
+            }, 1000);
+        }
+
+        // 淋湿效果
+        function getWet() {
+            gotWet = true;
+            stopRain();
+
+            // 显示淋湿效果
+            const wetOverlay = document.createElement('div');
+            wetOverlay.className = 'got-wet-overlay';
+            wetOverlay.id = 'wetOverlay';
+            wetOverlay.innerHTML = `
+                <div class="icon">💦</div>
+                <div class="text">啊！被淋湿了！</div>
+            `;
+            document.body.appendChild(wetOverlay);
+
+            // 强制回房间
+            setTimeout(() => {
+                const overlay = document.getElementById('wetOverlay');
+                if (overlay) overlay.remove();
+                goIndoor();
+            }, 2000);
+        }
+
+        // 回房间（从房子入口进入）
+        function goIndoor() {
+            // 清理雨天状态
+            const warning = document.getElementById('rainWarning');
+            if (warning) warning.remove();
+            if (rainTimer) {
+                clearInterval(rainTimer);
+                rainTimer = null;
+            }
+            stopRain();
+            document.getElementById('weatherDisplay').style.display = 'none';
+            gotWet = false;
+
+            isOutdoor = false;
+            planeActive = false;
+            document.getElementById('rcPlane').style.display = 'none';
+            document.getElementById('roomIndoor').style.display = 'block';
+            document.getElementById('roomOutdoor').style.display = 'none';
+            document.getElementById('controlHint').innerHTML = 'WASD移动 | 走到门口出门';
+            indoorPlayerPos = { x: 40, y: 25 };
+            renderIndoorPlayer();
+            closeMap();
+        }
+
+        // 渲染房间柜子
+        function renderRoomCabinet() {
+            const grid = document.getElementById('roomCabinetGrid');
+            grid.innerHTML = '';
+
+            const ownedItems = Object.entries(inventory).filter(([id, count]) => count > 0);
+
+            if (ownedItems.length === 0) {
+                grid.innerHTML = '<div style="text-align:center;color:#ffd43b;padding:20px;grid-column:1/-1;">柜子是空的~<br>去商店买些东西吧！</div>';
+                return;
+            }
+
+            ownedItems.forEach(([itemId, count]) => {
+                const item = shopItems.find(i => i.id === itemId);
+                if (!item) return;
+
+                const div = document.createElement('div');
+                div.className = 'cabinet-item';
+                div.innerHTML = `
+                    <div class="item-icon">${item.icon}</div>
+                    <div class="item-count">x${count}</div>
+                `;
+                div.onclick = () => takeItem(itemId);
+                grid.appendChild(div);
+            });
+        }
+
+        // 拿取物品
+        function takeItem(itemId) {
+            const item = shopItems.find(i => i.id === itemId);
+            if (!item) return;
+
+            // 检查是否已经携带了
+            if (carryingItems.includes(itemId)) {
+                alert('已经携带了这个物品！');
+                return;
+            }
+
+            // 最多携带4个物品
+            if (carryingItems.length >= 4) {
+                alert('最多只能携带4个物品！');
+                return;
+            }
+
+            carryingItems.push(itemId);
+            renderCarryItems();
+
+            // 如果是徽章，更新玩家显示
+            if (itemId.includes('badge')) {
+                renderIndoorPlayer();
+                if (isOutdoor) renderPlayer();
+            }
+        }
+
+        // 渲染携带物品
+        function renderCarryItems() {
+            const container = document.getElementById('carryItems');
+            container.innerHTML = '';
+
+            carryingItems.forEach((itemId, index) => {
+                const item = shopItems.find(i => i.id === itemId);
+                if (!item) return;
+
+                const div = document.createElement('div');
+                div.className = 'carry-item' + (itemId === 'rc_plane' && planeActive ? ' active' : '');
+                div.innerHTML = `<div class="item-icon">${item.icon}</div>`;
+                div.onclick = () => useItem(itemId);
+                container.appendChild(div);
+            });
+
+            // 如果没有携带物品，显示提示
+            if (carryingItems.length === 0) {
+                container.innerHTML = '<div style="color:rgba(255,255,255,0.5);font-size:12px;">点击柜子中的物品携带</div>';
+            }
+        }
+
+        // 使用物品
+        function useItem(itemId) {
+            if (itemId === 'rc_plane') {
+                if (!isOutdoor) {
+                    alert('遥控飞机需要去户外才能玩哦！');
+                    return;
+                }
+                togglePlane();
+            } else if (itemId === 'sand_set') {
+                if (!isOutdoor) {
+                    alert('挖沙套装需要去户外沙坑才能用！');
+                    return;
+                }
+                // 检查是否在沙坑附近
+                if (isNearSandbox()) {
+                    startDigging();
+                } else {
+                    alert('走到沙坑旁边才能挖沙哦！');
+                }
+            }
+        }
+
+        // 切换遥控飞机
+        function togglePlane() {
+            if (!carryingItems.includes('rc_plane')) {
+                alert('需要先从柜子里拿遥控飞机！');
+                return;
+            }
+
+            planeActive = !planeActive;
+            const plane = document.getElementById('rcPlane');
+            if (planeActive) {
+                plane.style.display = 'block';
+                plane.innerHTML = shopItems.find(i => i.id === 'rc_plane').icon;
+                plane.classList.add('flying');
+                planePos = { x: playerPos.x, y: playerPos.y + 15 };
+                plane.style.left = planePos.x + '%';
+                plane.style.bottom = planePos.y + '%';
+                document.getElementById('controlHint').innerHTML = 'WASD控制飞机 | Q放下 | M地图';
+            } else {
+                plane.style.display = 'none';
+                plane.classList.remove('flying');
+                document.getElementById('controlHint').innerHTML = 'WASD移动 | Q飞机 | M地图';
+            }
+            renderCarryItems();
+        }
+
+        // 检查是否在沙坑附近
+        function isNearSandbox() {
+            return playerPos.x > 75 && playerPos.y < 35;
+        }
+
+        // 更新沙坑提示
+        function updateSandboxHint() {
+            const hint = document.getElementById('sandboxHint');
+            if (carryingItems.includes('sand_set')) {
+                if (isNearSandbox()) {
+                    hint.textContent = '点击使用挖沙套装！';
+                    hint.style.background = 'rgba(76, 175, 80, 0.9)';
+                } else {
+                    hint.textContent = '走过来挖沙吧！';
+                    hint.style.background = 'rgba(0, 0, 0, 0.7)';
+                }
+            } else {
+                hint.textContent = '带挖沙套装来玩';
+                hint.style.background = 'rgba(0, 0, 0, 0.7)';
+            }
+        }
+
+        // 开始挖沙
+        function startDigging() {
+            isDigging = true;
+            alert('开始挖沙啦！🏖️ 好好玩吧~');
+            setTimeout(() => { isDigging = false; }, 2000);
+        }
+
+        // 渲染户外玩家
+        function renderPlayer() {
+            const student = students.find(s => s.id === currentRoomStudentId);
+            if (!student) return;
+
+            const player = document.getElementById('player');
+            const avatar = document.getElementById('playerAvatar');
+            const badges = document.getElementById('playerBadges');
+
+            avatar.innerHTML = student.avatar;
+            player.style.left = playerPos.x + '%';
+            player.style.bottom = playerPos.y + '%';
+
+            // 渲染徽章
+            badges.innerHTML = '';
+            carryingItems.filter(id => id.includes('badge')).forEach(itemId => {
+                const item = shopItems.find(i => i.id === itemId);
+                if (!item) return;
+                const badge = document.createElement('div');
+                badge.className = 'badge';
+                badge.innerHTML = item.icon;
+                badges.appendChild(badge);
+            });
+        }
+
+        // 渲染玩家徽章（兼容旧代码）
+        function renderPlayerBadges() {
+            if (isOutdoor) {
+                renderPlayer();
+            } else {
+                renderIndoorPlayer();
+            }
+        }
+
+        // 打开地图
+        function openMap() {
+            document.getElementById('mapModal').classList.add('active');
+            updateMapPosition();
+        }
+
+        // 关闭地图
+        function closeMap() {
+            document.getElementById('mapModal').classList.remove('active');
+        }
+
+        // 更新地图上的位置
+        function updateMapPosition() {
+            const mapYou = document.getElementById('mapYou');
+            // 把玩家位置映射到地图上
+            const mapX = 10 + (playerPos.x / 100) * 80;
+            const mapY = 10 + ((100 - playerPos.y) / 100) * 80;
+            mapYou.style.left = mapX + '%';
+            mapYou.style.top = mapY + '%';
+        }
+
+        // 处理房间键盘事件
+        function handleRoomKeydown(e) {
+            const key = e.key.toLowerCase();
+            const speed = 3;
+
+            // M键 - 打开/关闭地图
+            if (key === 'm' && isOutdoor) {
+                const mapModal = document.getElementById('mapModal');
+                if (mapModal.classList.contains('active')) {
+                    closeMap();
+                } else {
+                    openMap();
+                }
+                e.preventDefault();
+                return;
+            }
+
+            // Q键 - 控制飞机
+            if (key === 'q' && isOutdoor) {
+                if (carryingItems.includes('rc_plane')) {
+                    togglePlane();
+                }
+                e.preventDefault();
+                return;
+            }
+
+            // 室内移动
+            if (!isOutdoor) {
+                const player = document.getElementById('indoorPlayer');
+                let moved = false;
+
+                if (key === 'w' || key === 'arrowup') {
+                    indoorPlayerPos.y = Math.min(40, indoorPlayerPos.y + speed);
+                    moved = true;
+                } else if (key === 's' || key === 'arrowdown') {
+                    indoorPlayerPos.y = Math.max(8, indoorPlayerPos.y - speed);
+                    moved = true;
+                } else if (key === 'a' || key === 'arrowleft') {
+                    indoorPlayerPos.x = Math.max(10, indoorPlayerPos.x - speed);
+                    moved = true;
+                } else if (key === 'd' || key === 'arrowright') {
+                    indoorPlayerPos.x = Math.min(90, indoorPlayerPos.x + speed);
+                    moved = true;
+                }
+
+                if (moved) {
+                    player.style.left = indoorPlayerPos.x + '%';
+                    player.style.bottom = indoorPlayerPos.y + '%';
+
+                    // 检查是否走到门口（门在右边，x > 78% 就算到门口了）
+                    if (indoorPlayerPos.x > 78) {
+                        goOutdoor();
+                    }
+                    e.preventDefault();
+                }
+                return;
+            }
+
+            // 户外移动
+            if (planeActive) {
+                // 控制飞机
+                const plane = document.getElementById('rcPlane');
+                let moved = false;
+
+                if (key === 'w' || key === 'arrowup') {
+                    planePos.y = Math.min(90, planePos.y + speed * 1.5);
+                    moved = true;
+                } else if (key === 's' || key === 'arrowdown') {
+                    planePos.y = Math.max(20, planePos.y - speed * 1.5);
+                    moved = true;
+                } else if (key === 'a' || key === 'arrowleft') {
+                    planePos.x = Math.max(5, planePos.x - speed * 1.5);
+                    moved = true;
+                } else if (key === 'd' || key === 'arrowright') {
+                    planePos.x = Math.min(95, planePos.x + speed * 1.5);
+                    moved = true;
+                }
+
+                if (moved) {
+                    plane.style.left = planePos.x + '%';
+                    plane.style.bottom = planePos.y + '%';
+                    e.preventDefault();
+                }
+            } else {
+                // 控制玩家
+                const player = document.getElementById('player');
+                let moved = false;
+
+                if (key === 'w' || key === 'arrowup') {
+                    playerPos.y = Math.min(55, playerPos.y + speed);
+                    moved = true;
+                } else if (key === 's' || key === 'arrowdown') {
+                    playerPos.y = Math.max(18, playerPos.y - speed);
+                    moved = true;
+                } else if (key === 'a' || key === 'arrowleft') {
+                    playerPos.x = Math.max(5, playerPos.x - speed);
+                    moved = true;
+                } else if (key === 'd' || key === 'arrowright') {
+                    playerPos.x = Math.min(95, playerPos.x + speed);
+                    moved = true;
+                }
+
+                if (moved) {
+                    player.style.left = playerPos.x + '%';
+                    player.style.bottom = playerPos.y + '%';
+
+                    // 检查是否走到房子入口
+                    if (playerPos.x > 40 && playerPos.x < 60 && playerPos.y > 52) {
+                        goIndoor();
+                    }
+
+                    // 更新沙坑提示
+                    updateSandboxHint();
+
+                    // 更新地图位置
+                    if (document.getElementById('mapModal').classList.contains('active')) {
+                        updateMapPosition();
+                    }
+
+                    e.preventDefault();
+                }
+            }
+        }
+
+        // 保存记录
+        function saveRecords() {
+            localStorage.setItem('records', JSON.stringify(records));
+        }
+
+        // 添加记录
+        function addRecord(type, studentName, amount, itemName = null) {
+            const record = {
+                id: Date.now(),
+                type: type, // 'add', 'sub', 'buy'
+                studentName: studentName,
+                amount: amount,
+                itemName: itemName,
+                time: new Date().toLocaleString('zh-CN')
+            };
+            records.unshift(record); // 新记录放最前面
+            saveRecords();
+        }
+
+        // 打开密码弹窗
+        function openPasswordModal() {
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('passwordModal').classList.add('active');
+        }
+
+        // 关闭密码弹窗
+        function closePasswordModal() {
+            document.getElementById('passwordModal').classList.remove('active');
+        }
+
+        // 检查密码
+        function checkPassword() {
+            const input = document.getElementById('passwordInput').value;
+            if (input === ADMIN_PASSWORD) {
+                closePasswordModal();
+                openRecordModal();
+            } else {
+                alert('密码错误！');
+            }
+        }
+
+        // 打开记录表
+        function openRecordModal() {
+            renderRecordList();
+            document.getElementById('recordModal').classList.add('active');
+        }
+
+        // 关闭记录表
+        function closeRecordModal() {
+            document.getElementById('recordModal').classList.remove('active');
+        }
+
+        // 渲染记录列表
+        function renderRecordList() {
+            const list = document.getElementById('recordList');
+            list.innerHTML = '';
+
+            if (records.length === 0) {
+                list.innerHTML = '<div class="record-empty">暂无操作记录</div>';
+                return;
+            }
+
+            records.forEach(record => {
+                const div = document.createElement('div');
+                div.className = 'record-item';
+
+                let iconClass = '';
+                let iconEmoji = '';
+                let text = '';
+
+                if (record.type === 'add') {
+                    iconClass = 'add';
+                    iconEmoji = '➕';
+                    text = `${record.studentName} 加了 ${record.amount} 积分`;
+                } else if (record.type === 'sub') {
+                    iconClass = 'sub';
+                    iconEmoji = '➖';
+                    text = `${record.studentName} 扣了 ${record.amount} 积分`;
+                } else if (record.type === 'buy') {
+                    iconClass = 'buy';
+                    iconEmoji = '🛒';
+                    text = `${record.studentName} 购买了 ${record.itemName}（${record.amount}积分）`;
+                }
+
+                div.innerHTML = `
+                    <div class="record-icon ${iconClass}">${iconEmoji}</div>
+                    <div class="record-info">
+                        <div class="record-text">${text}</div>
+                        <div class="record-time">${record.time}</div>
+                    </div>
+                    <button class="record-delete" onclick="deleteRecord(${record.id})">🗑</button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        // 删除记录（撤销操作）
+        function deleteRecord(recordId) {
+            const record = records.find(r => r.id === recordId);
+            if (!record) return;
+
+            const student = students.find(s => s.name === record.studentName);
+
+            let confirmMsg = '';
+            if (record.type === 'add') {
+                confirmMsg = `确定撤销"${record.studentName}加${record.amount}积分"吗？\n（将扣回${record.amount}积分）`;
+            } else if (record.type === 'sub') {
+                confirmMsg = `确定撤销"${record.studentName}扣${record.amount}积分"吗？\n（将返还${record.amount}积分）`;
+            } else if (record.type === 'buy') {
+                confirmMsg = `确定撤销"${record.studentName}购买${record.itemName}"吗？\n（将返还${record.amount}积分，移除1个${record.itemName}）`;
+            }
+
+            if (!confirm(confirmMsg)) return;
+
+            // 撤销操作
+            if (student) {
+                if (record.type === 'add') {
+                    student.score -= record.amount;
+                    student.totalAdded -= record.amount;
+                } else if (record.type === 'sub') {
+                    student.score += record.amount;
+                    student.totalSubtracted -= record.amount;
+                } else if (record.type === 'buy') {
+                    student.score += record.amount;
+                    // 从库存移除
+                    const item = shopItems.find(i => i.name === record.itemName);
+                    if (item && inventory[item.id] > 0) {
+                        inventory[item.id]--;
+                    }
+                    saveInventory();
+                }
+            }
+
+            // 删除记录
+            records = records.filter(r => r.id !== recordId);
+
+            saveData();
+            saveRecords();
+            renderStudents();
+            renderRecordList();
+            renderRoomCabinet();
+        }
+
+        // 更新全班统计
+        function updateClassStats() {
+            let totalScore = 0;
+            let totalAdded = 0;
+            let totalSubtracted = 0;
+
+            students.forEach(student => {
+                totalScore += student.score || 0;
+                totalAdded += student.totalAdded || 0;
+                totalSubtracted += student.totalSubtracted || 0;
+            });
+
+            document.getElementById('classTotalScore').textContent = totalScore;
+            document.getElementById('classTotalAdded').textContent = '+' + totalAdded;
+            document.getElementById('classTotalSubtracted').textContent = '-' + totalSubtracted;
+            document.getElementById('classTotalExchanged').textContent = totalExchanged;
+        }
+
+        // 渲染学生列表
+        function renderStudents() {
+            const grid = document.getElementById('studentsGrid');
+            grid.innerHTML = '';
+
+            // 金币SVG模板
+            const coinSvg = `<svg class="coin-icon coin-svg" viewBox="0 0 100 100">
+                <defs>
+                    <linearGradient id="coinGold2" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#FFD700"/>
+                        <stop offset="30%" style="stop-color:#FFEC8B"/>
+                        <stop offset="50%" style="stop-color:#FFD700"/>
+                        <stop offset="70%" style="stop-color:#DAA520"/>
+                        <stop offset="100%" style="stop-color:#B8860B"/>
+                    </linearGradient>
+                </defs>
+                <circle cx="50" cy="50" r="45" fill="url(#coinGold2)" stroke="#B8860B" stroke-width="4"/>
+                <circle cx="50" cy="50" r="35" fill="none" stroke="#DAA520" stroke-width="2"/>
+                <text x="50" y="58" font-size="28" font-weight="bold" fill="#B8860B" text-anchor="middle">$</text>
+            </svg>`;
+
+            // 渲染已有学生
+            students.forEach(student => {
+                // 兼容旧数据
+                if (student.totalAdded === undefined) student.totalAdded = 0;
+                if (student.totalSubtracted === undefined) student.totalSubtracted = 0;
+                if (student.totalExchanged === undefined) student.totalExchanged = 0;
+
+                const card = document.createElement('div');
+                card.className = 'student-card';
+                card.onclick = () => openScoreModal(student.id);
+
+                const scoreClass = student.score >= 0 ? 'positive' : '';
+                card.innerHTML = `
+                    <div class="avatar">
+                        ${student.avatar}
+                        <span class="score-badge ${scoreClass}">${student.score}</span>
+                    </div>
+                    <div class="student-name">${student.name}</div>
+                    <div class="student-stats">
+                        <span class="total">总${student.score}</span>
+                        <span class="added">+${student.totalAdded}</span>
+                        <span class="subtracted">-${student.totalSubtracted}</span>
+                    </div>
+                    <div class="student-exchange">
+                        ${coinSvg}
+                        <span class="exchange-num">${student.totalExchanged}</span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+            // 添加"添加学生"按钮
+            const addBtn = document.createElement('div');
+            addBtn.className = 'add-student';
+            addBtn.onclick = openAddModal;
+            addBtn.innerHTML = `
+                <div class="add-avatar">+</div>
+                <div class="add-label">添加学生</div>
+            `;
+            grid.appendChild(addBtn);
+        }
+
+        // 保存数据
+        function saveData() {
+            localStorage.setItem('students', JSON.stringify(students));
+            localStorage.setItem('totalExchanged', totalExchanged.toString());
+            updateClassStats();
+        }
+
+        // 打开添加学生弹窗
+        function openAddModal() {
+            selectedGender = null;
+            document.getElementById('studentName').value = '';
+            document.querySelectorAll('#addModal .gender-btn').forEach(btn => btn.classList.remove('selected'));
+            document.getElementById('addModal').classList.add('active');
+        }
+
+        // 关闭添加学生弹窗
+        function closeAddModal() {
+            document.getElementById('addModal').classList.remove('active');
+        }
+
+        // 选择性别
+        function selectGender(gender) {
+            selectedGender = gender;
+            document.querySelectorAll('#addModal .gender-btn').forEach(btn => {
+                btn.classList.toggle('selected', btn.dataset.gender === gender);
+            });
+        }
+
+        // 确认添加学生
+        function confirmAddStudent() {
+            const name = document.getElementById('studentName').value.trim();
+            if (!name) {
+                alert('请输入学生名字');
+                return;
+            }
+            if (!selectedGender) {
+                alert('请选择性别');
+                return;
+            }
+
+            const newStudent = {
+                id: Date.now(),
+                name: name,
+                gender: selectedGender,
+                avatar: generateRandomAvatar(selectedGender),
+                score: 0,
+                totalAdded: 0,
+                totalSubtracted: 0,
+                totalExchanged: 0
+            };
+
+            students.push(newStudent);
+            saveData();
+            renderStudents();
+            closeAddModal();
+        }
+
+        // 打开积分操作弹窗
+        function openScoreModal(studentId) {
+            currentStudentId = studentId;
+            const student = students.find(s => s.id === studentId);
+            if (!student) return;
+
+            document.getElementById('menuAvatar').innerHTML = student.avatar;
+            document.getElementById('menuName').textContent = student.name;
+            document.getElementById('menuScore').textContent = student.score;
+            document.getElementById('scoreModal').classList.add('active');
+        }
+
+        // 关闭积分操作弹窗
+        function closeScoreModal() {
+            document.getElementById('scoreModal').classList.remove('active');
+            currentStudentId = null;
+        }
+
+        // 更新积分显示
+        function updateScoreDisplay() {
+            const student = students.find(s => s.id === currentStudentId);
+            if (student) {
+                document.getElementById('menuScore').textContent = student.score;
+            }
+        }
+
+        // 显示积分动画
+        function showScoreAnimation(amount, isPositive) {
+            const popup = document.createElement('div');
+            popup.className = `score-popup ${isPositive ? 'positive' : 'negative'}`;
+            popup.textContent = isPositive ? `+${amount}` : `-${amount}`;
+
+            const modal = document.querySelector('#scoreModal .modal');
+            const rect = modal.getBoundingClientRect();
+            popup.style.left = (rect.left + rect.width / 2) + 'px';
+            popup.style.top = (rect.top + 120) + 'px';
+
+            document.body.appendChild(popup);
+            setTimeout(() => popup.remove(), 800);
+        }
+
+        // 加积分
+        function addScore(amount) {
+            const student = students.find(s => s.id === currentStudentId);
+            if (student) {
+                student.score += amount;
+                student.totalAdded = (student.totalAdded || 0) + amount;
+                addRecord('add', student.name, amount);
+                saveData();
+                updateScoreDisplay();
+                renderStudents();
+                showScoreAnimation(amount, true);
+            }
+        }
+
+        // 扣积分
+        function subScore(amount) {
+            const student = students.find(s => s.id === currentStudentId);
+            if (student) {
+                student.score -= amount;
+                student.totalSubtracted = (student.totalSubtracted || 0) + amount;
+                addRecord('sub', student.name, amount);
+                saveData();
+                updateScoreDisplay();
+                renderStudents();
+                showScoreAnimation(amount, false);
+            }
+        }
+
+        // 初始化
+        init();
+    </script>
+</body>
+
+</html>

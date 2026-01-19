@@ -1,0 +1,4248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>反应速度测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.3s ease;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .game-container {
+            text-align: center;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            max-width: 700px;
+            width: 90%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+        }
+
+        .instruction {
+            color: #666;
+            font-size: 1.2em;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-start:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-start:active {
+            transform: translateY(0);
+        }
+
+        .btn-timer {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+        }
+
+        .btn-timer:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-timer:active {
+            transform: translateY(0);
+        }
+
+        .btn-restart {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            margin-top: 20px;
+        }
+
+        .btn-restart:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .waiting-text {
+            font-size: 2em;
+            color: white;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .click-text {
+            font-size: 2.5em;
+            color: white;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            animation: pulse 0.8s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .result {
+            margin: 30px 0;
+        }
+
+        .result-time {
+            font-size: 4em;
+            font-weight: bold;
+            color: #667eea;
+            margin: 20px 0;
+        }
+
+        .result-message {
+            font-size: 1.5em;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .color-waiting {
+            background-color: #e74c3c;
+        }
+
+        .color-ready {
+            background-color: #2ecc71;
+        }
+
+        .color-default {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .too-early {
+            color: #e74c3c;
+            font-size: 1.8em;
+            font-weight: bold;
+        }
+
+        .timer-display {
+            font-size: 3em;
+            font-weight: bold;
+            color: #667eea;
+            margin: 40px 0;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
+            word-break: break-all;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .timer-controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 30px;
+        }
+
+        .btn-control {
+            padding: 15px 40px;
+            font-size: 1.2em;
+            min-width: 120px;
+        }
+
+        .btn-back {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            color: #333;
+        }
+
+        .btn-back:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-math {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            color: #333;
+        }
+
+        .btn-math:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-math:active {
+            transform: translateY(0);
+        }
+
+        .btn-game {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            color: #333;
+        }
+
+        .btn-game:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-game:active {
+            transform: translateY(0);
+        }
+
+        .math-question {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+            margin: 40px 0;
+            line-height: 1.5;
+            padding: 0 20px;
+        }
+
+        .math-input {
+            font-size: 2em;
+            padding: 15px 25px;
+            border: 3px solid #667eea;
+            border-radius: 15px;
+            text-align: center;
+            width: 80%;
+            max-width: 300px;
+            margin: 20px auto;
+            display: block;
+            font-family: 'Courier New', monospace;
+        }
+
+        .math-input:focus {
+            outline: none;
+            border-color: #764ba2;
+            box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .math-score {
+            font-size: 1.5em;
+            color: #666;
+            margin: 20px 0;
+        }
+
+        .math-feedback {
+            font-size: 2em;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        .correct {
+            color: #2ecc71;
+        }
+
+        .incorrect {
+            color: #e74c3c;
+        }
+    </style>
+</head>
+
+<body class="color-default">
+    <div class="game-container" id="gameContainer">
+        <h1>⚡ 反应速度测试</h1>
+        <div id="startScreen">
+            <p class="instruction" style="margin-bottom: 15px;">
+                <strong>⏱️ 计时器模式</strong>
+            </p>
+            <div
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 35px;">
+                <button class="btn btn-timer" onclick="showTimer(event, 'second')">秒</button>
+                <button class="btn btn-timer" onclick="showTimer(event, 'millisecond')">毫秒</button>
+                <button class="btn btn-timer" onclick="showTimer(event, 'microsecond')">微秒</button>
+                <button class="btn btn-timer" onclick="showTimer(event, 'nanosecond')">纳秒</button>
+                <button class="btn btn-timer" onclick="showTimer(event, 'picosecond')">皮秒</button>
+            </div>
+            <div style="border-top: 2px solid #e0e0e0; margin: 30px 0; padding-top: 30px;">
+                <p class="instruction" style="margin-bottom: 15px;">
+                    <strong>🎮 游戏模式</strong>
+                </p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px;">
+                    <button class="btn btn-start" onclick="startGame(event)">反应速度测试</button>
+                    <button class="btn btn-math" onclick="showMath(event)">概率题挑战</button>
+                    <button class="btn btn-game" onclick="showRestaurantGame(event)">🍳 餐厅大厨</button>
+                    <button class="btn btn-game" onclick="showToastGame(event)">🍞 烤面包工坊</button>
+                    <button class="btn btn-game" onclick="showClawGame(event)">🎪 抓娃娃机</button>
+                    <button class="btn btn-game" onclick="showNoodleGame(event)">🍜 煮泡面</button>
+                    <button class="btn btn-game" onclick="showFishGame(event)">🎣 钓鱼</button>
+                    <button class="btn btn-game" onclick="showFruitGame(event)">🍉 切水果</button>
+                    <button class="btn btn-game" onclick="showRPSGame(event)">✊ 猜拳</button>
+                    <button class="btn btn-game" onclick="showPianoGame(event)">🎹 音符记忆</button>
+                    <button class="btn btn-game" onclick="showCatchGame(event)">🎯 接东西</button>
+                    <button class="btn btn-game" onclick="showBartenderGame(event)">🍹 调酒师</button>
+                    <button class="btn btn-game" onclick="showCafeGame(event)">☕ 咖啡店</button>
+                    <button class="btn btn-game" onclick="showFarmGame(event)">🌾 农场</button>
+                    <button class="btn btn-game" onclick="showConvenienceGame(event)">🏪 便利店</button>
+                    <button class="btn btn-game" onclick="showCakeGame(event)">🎂 蛋糕店</button>
+                    <button class="btn btn-game" onclick="showMiningGame(event)">⛏️ 挖矿</button>
+                    <button class="btn btn-game" onclick="showPetGame(event)">🐶 宠物店</button>
+                    <button class="btn btn-game" onclick="showArtGame(event)">🎨 美术馆</button>
+                    <button class="btn btn-game" onclick="showHospitalGame(event)">🏥 医院</button>
+                    <button class="btn btn-game" onclick="showCircusGame(event)">🎪 马戏团</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="waitingScreen" class="hidden">
+            <p class="waiting-text">等待绿色...</p>
+        </div>
+
+        <div id="clickScreen" class="hidden">
+            <p class="click-text">快点击！</p>
+        </div>
+
+        <div id="resultScreen" class="hidden">
+            <div class="result">
+                <p class="result-message" id="resultMessage">你的反应时间：</p>
+                <div class="result-time" id="resultTime">0 毫秒</div>
+                <p class="instruction" id="resultRating"></p>
+            </div>
+            <button class="btn btn-restart" onclick="restartGame(event)">再玩一次</button>
+        </div>
+
+        <div id="tooEarlyScreen" class="hidden">
+            <p class="too-early">⚠️ 太早了！</p>
+            <p class="instruction">请等待屏幕变成绿色！</p>
+            <button class="btn btn-restart" onclick="restartGame(event)">重试</button>
+        </div>
+
+        <div id="timerScreen" class="hidden">
+            <h2 style="color: #333; margin-bottom: 20px;" id="timerTitle">⏱️ 计时器</h2>
+            <div class="timer-display" id="timerDisplay">0</div>
+            <p class="instruction" style="margin-bottom: 20px;" id="timerUnit">单位</p>
+            <div class="timer-controls">
+                <button class="btn btn-start btn-control" onclick="startTimer(event)" id="startTimerBtn">开始</button>
+                <button class="btn btn-restart btn-control" onclick="pauseTimer(event)" id="pauseTimerBtn">暂停</button>
+                <button class="btn btn-restart btn-control" onclick="resetTimer(event)">重置</button>
+                <button class="btn btn-back btn-control" onclick="backToMenu(event)">返回菜单</button>
+            </div>
+        </div>
+
+        <div id="mathScreen" class="hidden">
+            <h2 style="color: #333; margin-bottom: 20px;">🎲 概率题挑战</h2>
+            <p class="math-score" id="mathScore">得分：0 / 已答：0</p>
+            <div class="math-question" id="mathQuestion">概率题</div>
+            <input type="number" class="math-input" id="mathInput" placeholder="输入答案" autocomplete="off">
+            <div class="math-feedback" id="mathFeedback"></div>
+            <div class="timer-controls" style="margin-top: 30px;">
+                <button class="btn btn-start btn-control" onclick="submitAnswer(event)">提交答案</button>
+                <button class="btn btn-restart btn-control" onclick="skipQuestion(event)">跳过</button>
+                <button class="btn btn-back btn-control" onclick="backToMenu(event)">返回菜单</button>
+            </div>
+        </div>
+
+        <div id="toastScreen" class="hidden">
+            <h2 style="color: #333; margin-bottom: 20px;">🍞 烤面包模拟器</h2>
+            <div id="toastBread"
+                style="width: 200px; height: 200px; margin: 30px auto; border: 3px solid #8B4513; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 3em; transition: background-color 0.1s;">
+            </div>
+            <p class="instruction" id="toastMessage">点击开始烤面包</p>
+            <p class="math-score" id="toastScore">完美度：-</p>
+            <div class="timer-controls" style="margin-top: 30px;">
+                <button class="btn btn-start btn-control" onclick="startToast(event)" id="toastStartBtn">开始烤</button>
+                <button class="btn btn-restart btn-control" onclick="stopToast(event)" id="toastStopBtn"
+                    disabled>停止！</button>
+                <button class="btn btn-back btn-control" onclick="backToMenu(event)">返回菜单</button>
+            </div>
+        </div>
+
+        <div id="simpleGame" class="hidden">
+            <h2 style="color: #333; margin-bottom: 20px;" id="simpleGameTitle">🎮 游戏</h2>
+            <div style="font-size: 3em; margin: 40px 0;" id="simpleGameContent">游戏内容</div>
+            <p class="math-score" id="simpleGameScore">得分：0</p>
+            <div class="timer-controls" style="margin-top: 30px;" id="simpleGameControls"></div>
+        </div>
+
+        <div id="restaurantGame" class="hidden">
+            <h2 style="color: #333; margin-bottom: 10px;">🍳 餐厅大厨</h2>
+
+            <!-- 顾客订单 -->
+            <div style="background: #fff3cd; padding: 10px; border-radius: 10px; margin-bottom: 10px;">
+                <div style="font-weight: bold; margin-bottom: 6px; font-size: 0.9em;">👥 顾客订单：</div>
+                <div id="ordersList" style="display: grid; gap: 6px; max-height: 120px; overflow-y: auto;"></div>
+            </div>
+
+            <!-- 菜谱 -->
+            <div style="background: #e8f5e9; padding: 10px; border-radius: 10px; margin-bottom: 10px;">
+                <div style="font-weight: bold; margin-bottom: 6px; font-size: 0.9em;">📖 菜谱（点击查看配方）：</div>
+                <div id="recipeButtons" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;"></div>
+                <div id="recipeDetail"
+                    style="margin-top: 8px; padding: 8px; background: white; border-radius: 5px; min-height: 35px; font-size: 0.85em;">
+                </div>
+            </div>
+
+            <!-- 烹饪工具区 -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+                <!-- 烤箱 -->
+                <div style="background: #ffe4e1; padding: 8px; border-radius: 10px;">
+                    <div style="font-weight: bold; margin-bottom: 5px; font-size: 0.85em;">🔥 烤箱 (<span
+                            id="ovenCount">0/4</span>)</div>
+                    <div id="ovenArea"
+                        style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; min-height: 70px;"></div>
+                </div>
+
+                <!-- 平底锅 -->
+                <div style="background: #fff8dc; padding: 8px; border-radius: 10px;">
+                    <div style="font-weight: bold; margin-bottom: 5px; font-size: 0.85em;">🍳 平底锅 (<span
+                            id="panCount">0/4</span>)</div>
+                    <div id="panArea"
+                        style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; min-height: 70px;"></div>
+                </div>
+
+                <!-- 煮锅 -->
+                <div style="background: #e0f7fa; padding: 8px; border-radius: 10px;">
+                    <div style="font-weight: bold; margin-bottom: 5px; font-size: 0.85em;">🍲 煮锅 (<span
+                            id="potCount">0/4</span>)</div>
+                    <div id="potArea"
+                        style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; min-height: 70px;"></div>
+                </div>
+            </div>
+
+            <!-- 制作台（盘子） -->
+            <div style="background: #d1ecf1; padding: 10px; border-radius: 10px; margin-bottom: 10px;">
+                <div style="font-weight: bold; margin-bottom: 6px; font-size: 0.9em;">🍽️ 制作台 (盘子: <span
+                        id="plateCount">0/4</span>)</div>
+                <div id="platesArea"
+                    style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; min-height: 100px;"></div>
+            </div>
+
+            <!-- 原料区 -->
+            <div style="background: #f0f8ff; padding: 10px; border-radius: 10px; margin-bottom: 8px;">
+                <div style="font-weight: bold; margin-bottom: 6px; font-size: 0.9em;">🧺 原料区（点击放入对应工具）：</div>
+                <div id="ingredientsArea" style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px;"></div>
+            </div>
+
+            <p class="math-score" id="restaurantScore">💰 0元 | ⭐ 5.0 | 完成: 0</p>
+            <div class="timer-controls">
+                <button class="btn btn-timer btn-control" onclick="createNewPlate(event)">新建盘子</button>
+                <button class="btn btn-back btn-control" onclick="backToMenu(event)">返回菜单</button>
+            </div>
+        </div>
+
+        <!-- 通用游戏界面 -->
+        <div id="universalGame" class="hidden">
+            <h2 style="color: #333; margin-bottom: 15px;" id="universalGameTitle">游戏</h2>
+            <div id="universalGameContent"
+                style="min-height: 300px; padding: 20px; background: #f8f9fa; border-radius: 10px; margin-bottom: 15px;">
+                <div style="text-align: center; padding: 50px; color: #999;">游戏加载中...</div>
+            </div>
+            <p class="math-score" id="universalGameScore">得分：0</p>
+            <div class="timer-controls" id="universalGameControls">
+                <button class="btn btn-back btn-control" onclick="backToMenu(event)">返回菜单</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let gameState = 'idle';
+        let startTime = 0;
+        let timeoutId = null;
+
+        let timerState = 'stopped';
+        let timerStartTime = 0;
+        let timerElapsed = 0;
+        let timerIntervalId = null;
+        let timerType = 'millisecond';
+
+        let mathScore = 0;
+        let mathTotal = 0;
+        let currentAnswer = 0;
+        let acceptableAnswers = [];
+
+        function startGame(event) {
+            if (event) {
+                event.stopPropagation();
+            }
+            gameState = 'waiting';
+            hideAllScreens();
+            document.getElementById('waitingScreen').classList.remove('hidden');
+            document.body.className = 'color-waiting';
+            document.getElementById('gameContainer').style.display = 'none';
+
+            const waitTime = Math.random() * 7000 + 3000;
+
+            timeoutId = setTimeout(() => {
+                gameState = 'ready';
+                document.getElementById('waitingScreen').classList.add('hidden');
+                document.getElementById('clickScreen').classList.remove('hidden');
+                document.body.className = 'color-ready';
+                startTime = Date.now();
+            }, waitTime);
+        }
+
+        function handleClick() {
+            if (gameState === 'timer' || gameState === 'math') {
+                return;
+            }
+            if (gameState === 'waiting') {
+                clearTimeout(timeoutId);
+                gameState = 'tooEarly';
+                showTooEarly();
+            } else if (gameState === 'ready') {
+                const reactionTime = Date.now() - startTime;
+                gameState = 'result';
+                showResult(reactionTime);
+            }
+        }
+
+        function showTooEarly() {
+            hideAllScreens();
+            document.getElementById('gameContainer').style.display = 'block';
+            document.getElementById('tooEarlyScreen').classList.remove('hidden');
+            document.body.className = 'color-default';
+        }
+
+        function showResult(time) {
+            hideAllScreens();
+            document.getElementById('gameContainer').style.display = 'block';
+            document.getElementById('resultScreen').classList.remove('hidden');
+            document.getElementById('resultTime').textContent = time + ' 毫秒';
+            document.body.className = 'color-default';
+
+            let rating = '';
+            if (time < 200) {
+                rating = '🚀 太厉害了！闪电般的速度！';
+            } else if (time < 300) {
+                rating = '🔥 非常棒！反应很快！';
+            } else if (time < 400) {
+                rating = '👍 不错哦！反应力很好！';
+            } else if (time < 500) {
+                rating = '😊 还不错！继续加油！';
+            } else {
+                rating = '🐌 慢慢来...或者快一点？';
+            }
+            document.getElementById('resultRating').textContent = rating;
+        }
+
+        function restartGame(event) {
+            if (event) {
+                event.stopPropagation();
+            }
+            gameState = 'idle';
+            hideAllScreens();
+            document.getElementById('gameContainer').style.display = 'block';
+            document.getElementById('startScreen').classList.remove('hidden');
+            document.body.className = 'color-default';
+        }
+
+        function hideAllScreens() {
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('waitingScreen').classList.add('hidden');
+            document.getElementById('clickScreen').classList.add('hidden');
+            document.getElementById('resultScreen').classList.add('hidden');
+            document.getElementById('tooEarlyScreen').classList.add('hidden');
+            document.getElementById('timerScreen').classList.add('hidden');
+            document.getElementById('mathScreen').classList.add('hidden');
+            document.getElementById('toastScreen').classList.add('hidden');
+            document.getElementById('simpleGame').classList.add('hidden');
+            document.getElementById('restaurantGame').classList.add('hidden');
+        }
+
+        function showTimer(event, type) {
+            if (event) {
+                event.stopPropagation();
+            }
+            timerType = type;
+
+            const timerConfig = {
+                'second': { title: '⏱️ 秒计时器', unit: '秒' },
+                'millisecond': { title: '⏱️ 毫秒计时器', unit: '毫秒' },
+                'microsecond': { title: '⏱️ 微秒计时器', unit: '微秒' },
+                'nanosecond': { title: '⏱️ 纳秒计时器', unit: '纳秒' },
+                'picosecond': { title: '⏱️ 皮秒计时器', unit: '皮秒' }
+            };
+
+            const config = timerConfig[type];
+            document.getElementById('timerTitle').textContent = config.title;
+            document.getElementById('timerUnit').textContent = config.unit;
+
+            hideAllScreens();
+            document.getElementById('timerScreen').classList.remove('hidden');
+            gameState = 'timer';
+        }
+
+        function startTimer(event) {
+            if (event) {
+                event.stopPropagation();
+            }
+            if (timerState === 'stopped' || timerState === 'paused') {
+                timerState = 'running';
+                timerStartTime = performance.now() - timerElapsed;
+                timerIntervalId = setInterval(updateTimer, 1);
+                document.getElementById('startTimerBtn').textContent = '运行中...';
+                document.getElementById('startTimerBtn').disabled = true;
+                document.getElementById('startTimerBtn').style.opacity = '0.6';
+            }
+        }
+
+        function pauseTimer(event) {
+            if (event) {
+                event.stopPropagation();
+            }
+            if (timerState === 'running') {
+                timerState = 'paused';
+                clearInterval(timerIntervalId);
+                timerElapsed = performance.now() - timerStartTime;
+                document.getElementById('startTimerBtn').textContent = '继续';
+                document.getElementById('startTimerBtn').disabled = false;
+                document.getElementById('startTimerBtn').style.opacity = '1';
+            }
+        }
+
+        function resetTimer(event) {
+            if (event) {
+                event.stopPropagation();
+            }
+            timerState = 'stopped';
+            clearInterval(timerIntervalId);
+            timerElapsed = 0;
+            timerStartTime = 0;
+            document.getElementById('timerDisplay').textContent = '0';
+            document.getElementById('startTimerBtn').textContent = '开始';
+            document.getElementById('startTimerBtn').disabled = false;
+            document.getElementById('startTimerBtn').style.opacity = '1';
+        }
+
+        function updateTimer() {
+            const currentTimeMs = performance.now() - timerStartTime;
+            let displayValue = 0;
+
+            switch (timerType) {
+                case 'second':
+                    displayValue = Math.floor(currentTimeMs / 1000);
+                    break;
+                case 'millisecond':
+                    displayValue = Math.floor(currentTimeMs);
+                    break;
+                case 'microsecond':
+                    displayValue = Math.floor(currentTimeMs * 1000);
+                    break;
+                case 'nanosecond':
+                    displayValue = Math.floor(currentTimeMs * 1000000);
+                    break;
+                case 'picosecond':
+                    displayValue = Math.floor(currentTimeMs * 1000000000);
+                    break;
+            }
+
+            document.getElementById('timerDisplay').textContent = displayValue.toLocaleString('zh-CN');
+        }
+
+        function backToMenu(event) {
+            if (event) {
+                event.stopPropagation();
+            }
+            timerState = 'stopped';
+            clearInterval(timerIntervalId);
+            timerElapsed = 0;
+            timerStartTime = 0;
+            document.getElementById('timerDisplay').textContent = '0';
+            document.getElementById('startTimerBtn').textContent = '开始';
+            document.getElementById('startTimerBtn').disabled = false;
+            document.getElementById('startTimerBtn').style.opacity = '1';
+
+            mathScore = 0;
+            mathTotal = 0;
+            document.getElementById('mathFeedback').textContent = '';
+
+            gameState = 'idle';
+            hideAllScreens();
+            document.getElementById('gameContainer').style.display = 'block';
+            document.getElementById('startScreen').classList.remove('hidden');
+            document.body.className = 'color-default';
+        }
+
+        function showMath(event) {
+            if (event) {
+                event.stopPropagation();
+            }
+            mathScore = 0;
+            mathTotal = 0;
+            hideAllScreens();
+            document.getElementById('mathScreen').classList.remove('hidden');
+            gameState = 'math';
+            generateQuestion();
+        }
+
+        function generateQuestion() {
+            // Reset answer first to avoid using old value
+            currentAnswer = 0;
+            acceptableAnswers = [];
+
+            const probTypes = ['coin', 'dice', 'ball'];
+            const probType = probTypes[Math.floor(Math.random() * probTypes.length)];
+
+            let questionText;
+            let newAnswer;
+
+            if (probType === 'coin') {
+                questionText = '抛硬币，正面朝上的概率是多少？(输入0-100的整数)';
+                newAnswer = 50;
+                acceptableAnswers = [50];
+            } else if (probType === 'dice') {
+                const target = Math.floor(Math.random() * 6) + 1;
+                questionText = `掷骰子，出现${target}的概率是多少？(输入0-100的整数，16或17都对)`;
+                newAnswer = 17;
+                acceptableAnswers = [16, 17];
+            } else {
+                const total = Math.floor(Math.random() * 4) + 4;
+                const red = Math.floor(Math.random() * (total - 1)) + 1;
+                const exactProb = (red / total) * 100;
+                const prob = Math.round(exactProb);
+                questionText = `袋子里有${total}个球，【其中有${red}个红球】，抽到红球的概率是多少？(${red}÷${total}×100，输入0-100的整数)`;
+                newAnswer = prob;
+
+                // Accept both floor and ceil values for rounding edge cases
+                const probFloor = Math.floor(exactProb);
+                const probCeil = Math.ceil(exactProb);
+                if (probFloor === probCeil) {
+                    acceptableAnswers = [prob];
+                } else {
+                    acceptableAnswers = [probFloor, probCeil];
+                }
+            }
+
+            // Update UI first
+            document.getElementById('mathQuestion').textContent = questionText;
+            document.getElementById('mathInput').value = '';
+            document.getElementById('mathFeedback').textContent = '';
+
+            // Then update answer to ensure it's synchronized
+            currentAnswer = newAnswer;
+
+            document.getElementById('mathInput').focus();
+        }
+
+        function submitAnswer(event) {
+            if (event) {
+                event.stopPropagation();
+            }
+
+            const userAnswer = parseInt(document.getElementById('mathInput').value);
+            const feedback = document.getElementById('mathFeedback');
+
+            if (isNaN(userAnswer)) {
+                feedback.textContent = '请输入一个数字！';
+                feedback.className = 'math-feedback incorrect';
+                return;
+            }
+
+            mathTotal++;
+
+            if (acceptableAnswers.includes(userAnswer)) {
+                mathScore++;
+                feedback.textContent = '✓ 正确！';
+                feedback.className = 'math-feedback correct';
+            } else {
+                let answerText;
+                if (acceptableAnswers.length > 1) {
+                    answerText = acceptableAnswers.join(' 或 ');
+                } else {
+                    answerText = currentAnswer;
+                }
+                feedback.textContent = `✗ 错误！正确答案是 ${answerText}（你的答案：${userAnswer}）`;
+                feedback.className = 'math-feedback incorrect';
+            }
+
+            document.getElementById('mathScore').textContent = `得分：${mathScore} / 已答：${mathTotal}`;
+
+            setTimeout(() => {
+                generateQuestion();
+            }, 1500);
+        }
+
+        function skipQuestion(event) {
+            if (event) {
+                event.stopPropagation();
+            }
+            mathTotal++;
+            document.getElementById('mathScore').textContent = `得分：${mathScore} / 已答：${mathTotal}`;
+            // Clear feedback before generating new question
+            document.getElementById('mathFeedback').textContent = '';
+            // Generate new question with new answer
+            generateQuestion();
+        }
+
+        // Restaurant Game (餐厅大厨) - 真实制作版
+        let restaurantData = {
+            money: 0,
+            rating: 5.0,
+            orders: [],  // 顾客订单
+            oven: [],    // 烤箱里的食材
+            pan: [],     // 平底锅里的食材
+            pot: [],     // 煮锅里的食材
+            plates: [],  // 制作台上的盘子
+            completed: 0,
+            maxOven: 4,
+            maxPan: 4,
+            maxPot: 4,
+            maxPlates: 4,
+            maxOrders: 4,
+            nextOrderId: 0,
+            selectedPlate: null // 当前选中的盘子
+        };
+
+        // 原料（带烹饪方法）
+        const rawIngredients = {
+            '生面包': { emoji: '🍞', cooked: '烤面包', cookTime: 15, tool: 'oven', toolName: '烤箱' },
+            '生肉饼': { emoji: '🥩', cooked: '烤肉饼', cookTime: 25, tool: 'oven', toolName: '烤箱' },
+            '生鸡蛋': { emoji: '🥚', cooked: '炒鸡蛋', cookTime: 10, tool: 'pan', toolName: '平底锅' },
+            '生培根': { emoji: '🥓', cooked: '熟培根', cookTime: 15, tool: 'pan', toolName: '平底锅' },
+            '面饼': { emoji: '🫓', cooked: '烤饼', cookTime: 20, tool: 'oven', toolName: '烤箱' },
+            '生米饭': { emoji: '🍚', cooked: '熟米饭', cookTime: 30, tool: 'pot', toolName: '煮锅' },
+            '生面条': { emoji: '🍜', cooked: '熟面条', cookTime: 20, tool: 'pot', toolName: '煮锅' }
+        };
+
+        // 不需要烹饪的配料
+        const readyIngredients = {
+            '生菜': { emoji: '🥬' },
+            '番茄': { emoji: '🍅' },
+            '奶酪': { emoji: '🧀' },
+            '胡萝卜': { emoji: '🥕' },
+            '辣椒': { emoji: '🌶️' }
+        };
+
+        // 调料
+        const sauces = {
+            '酱油': { emoji: '🥫', bonus: 0.3 },
+            '胡椒粉': { emoji: '🌶️', bonus: 0.2 },
+            '蜂蜜': { emoji: '🍯', bonus: 0.25 }
+        };
+
+        // 菜品配方
+        const recipes = {
+            '汉堡': {
+                emoji: '🍔',
+                price: 40,
+                layers: ['烤面包', '烤肉饼', '生菜', '番茄', '烤面包'],
+                steps: '烤箱：生面包→烤面包、生肉饼→烤肉饼 | 直接用：生菜、番茄',
+                orderCount: [1, 2]
+            },
+            '三明治': {
+                emoji: '🥪',
+                price: 30,
+                layers: ['烤面包', '熟培根', '生菜', '奶酪'],
+                steps: '烤箱：生面包→烤面包 | 平底锅：生培根→熟培根 | 直接用：生菜、奶酪',
+                orderCount: [1, 2]
+            },
+            '披萨': {
+                emoji: '🍕',
+                price: 50,
+                layers: ['烤饼', '奶酪', '番茄', '辣椒'],
+                steps: '烤箱：面饼→烤饼 | 直接用：奶酪、番茄、辣椒',
+                orderCount: [1, 1]
+            },
+            '炒饭': {
+                emoji: '🍚',
+                price: 35,
+                layers: ['熟米饭', '炒鸡蛋', '胡萝卜'],
+                steps: '煮锅：生米饭→熟米饭 | 平底锅：生鸡蛋→炒鸡蛋 | 直接用：胡萝卜',
+                orderCount: [1, 2]
+            },
+            '面条': {
+                emoji: '🍜',
+                price: 30,
+                layers: ['熟面条', '番茄', '炒鸡蛋'],
+                steps: '煮锅：生面条→熟面条 | 平底锅：生鸡蛋→炒鸡蛋 | 直接用：番茄',
+                orderCount: [1, 2]
+            }
+        };
+
+        function showRestaurantGame(event) {
+            if (event) event.stopPropagation();
+            hideAllScreens();
+            document.getElementById('restaurantGame').classList.remove('hidden');
+            gameState = 'restaurant';
+            initRestaurant();
+        }
+
+        function initRestaurant() {
+            restaurantData = {
+                money: 0,
+                rating: 5.0,
+                orders: [],
+                oven: [],
+                pan: [],
+                pot: [],
+                plates: [],
+                completed: 0,
+                maxOven: 4,
+                maxPan: 4,
+                maxPot: 4,
+                maxPlates: 4,
+                maxOrders: 4,
+                nextOrderId: 0,
+                selectedPlate: null
+            };
+
+            // 创建菜谱按钮
+            const recipeButtons = document.getElementById('recipeButtons');
+            recipeButtons.innerHTML = '';
+            Object.keys(recipes).forEach(dishName => {
+                const recipe = recipes[dishName];
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-timer';
+                btn.style.cssText = 'padding: 6px; font-size: 0.85em;';
+                btn.innerHTML = `${recipe.emoji}<br><small>${dishName}</small>`;
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    showRecipe(dishName);
+                };
+                recipeButtons.appendChild(btn);
+            });
+
+            // 创建原料按钮
+            const ingredientsArea = document.getElementById('ingredientsArea');
+            ingredientsArea.innerHTML = '';
+
+            // 生的原料
+            Object.keys(rawIngredients).forEach(name => {
+                const ing = rawIngredients[name];
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-timer';
+                btn.style.cssText = 'padding: 6px; font-size: 0.85em;';
+                btn.innerHTML = `${ing.emoji}<br><small>${name}</small>`;
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    putInTool(name);
+                };
+                ingredientsArea.appendChild(btn);
+            });
+
+            // 熟的配料
+            Object.keys(readyIngredients).forEach(name => {
+                const ing = readyIngredients[name];
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-timer';
+                btn.style.cssText = 'padding: 6px; font-size: 0.85em;';
+                btn.innerHTML = `${ing.emoji}<br><small>${name}</small>`;
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    addToPlate(name, ing.emoji);
+                };
+                ingredientsArea.appendChild(btn);
+            });
+
+            // 调料
+            Object.keys(sauces).forEach(name => {
+                const sauce = sauces[name];
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-start';
+                btn.style.cssText = 'padding: 6px; font-size: 0.85em;';
+                btn.innerHTML = `${sauce.emoji}<br><small>${name}</small>`;
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    addSauceToPlate(name);
+                };
+                ingredientsArea.appendChild(btn);
+            });
+
+            document.getElementById('recipeDetail').innerHTML = '<div style="color: #999;">点击菜谱查看配方</div>';
+            updateRestaurantUI();
+            startOrderGeneration();
+        }
+
+        function showRecipe(dishName) {
+            const recipe = recipes[dishName];
+            const layersText = recipe.layers.join('、');
+            document.getElementById('recipeDetail').innerHTML = `
+                <strong>${recipe.emoji} ${dishName}</strong> (${recipe.price}元)<br>
+                <span style="color: #666;">需要食材：${layersText}</span><br>
+                <span style="color: #009688; font-size: 0.9em;">${recipe.steps}</span>
+            `;
+        }
+
+        let orderGenerationInterval = null;
+        function startOrderGeneration() {
+            if (orderGenerationInterval) clearInterval(orderGenerationInterval);
+            generateNewOrder();
+            orderGenerationInterval = setInterval(() => {
+                if (restaurantData.orders.length < restaurantData.maxOrders) {
+                    generateNewOrder();
+                }
+            }, 10000); // 每10秒尝试生成
+        }
+
+        function generateNewOrder() {
+            if (restaurantData.orders.length >= restaurantData.maxOrders) return;
+
+            const dishNames = Object.keys(recipes);
+            const dishName = dishNames[Math.floor(Math.random() * dishNames.length)];
+            const recipe = recipes[dishName];
+
+            // 顾客可能点多个
+            const countRange = recipe.orderCount;
+            const count = Math.floor(Math.random() * (countRange[1] - countRange[0] + 1)) + countRange[0];
+
+            const order = {
+                id: restaurantData.nextOrderId++,
+                dishName: dishName,
+                recipe: recipe,
+                count: count,
+                waitTime: 120,
+                originalWait: 120
+            };
+
+            restaurantData.orders.push(order);
+
+            order.timer = setInterval(() => {
+                order.waitTime--;
+                if (order.waitTime <= 0) {
+                    clearInterval(order.timer);
+                    removeOrder(order.id, true);
+                }
+                updateRestaurantUI();
+            }, 1000);
+
+            updateRestaurantUI();
+        }
+
+        function removeOrder(orderId, timeout = false) {
+            const index = restaurantData.orders.findIndex(o => o.id === orderId);
+            if (index === -1) return;
+
+            const order = restaurantData.orders[index];
+            if (order.timer) clearInterval(order.timer);
+
+            if (timeout) {
+                restaurantData.rating = Math.max(1, restaurantData.rating - 0.5);
+            }
+
+            restaurantData.orders.splice(index, 1);
+            updateRestaurantUI();
+        }
+
+        function putInTool(ingredientName) {
+            const ing = rawIngredients[ingredientName];
+            const tool = ing.tool;
+
+            // 检查对应工具是否满了
+            if (tool === 'oven' && restaurantData.oven.length >= restaurantData.maxOven) {
+                alert('烤箱满了！');
+                return;
+            }
+            if (tool === 'pan' && restaurantData.pan.length >= restaurantData.maxPan) {
+                alert('平底锅满了！');
+                return;
+            }
+            if (tool === 'pot' && restaurantData.pot.length >= restaurantData.maxPot) {
+                alert('煮锅满了！');
+                return;
+            }
+
+            const item = {
+                id: Date.now() + Math.random(),
+                rawName: ingredientName,
+                cookedName: ing.cooked,
+                emoji: ing.emoji,
+                timeLeft: ing.cookTime,
+                originalTime: ing.cookTime
+            };
+
+            restaurantData[tool].push(item);
+
+            item.timer = setInterval(() => {
+                item.timeLeft--;
+                if (item.timeLeft <= 0) {
+                    clearInterval(item.timer);
+                }
+                updateRestaurantUI();
+            }, 1000);
+
+            updateRestaurantUI();
+        }
+
+        function takeFromTool(tool, itemId) {
+            const index = restaurantData[tool].findIndex(i => i.id === itemId);
+            if (index === -1) return;
+
+            const item = restaurantData[tool][index];
+            if (item.timeLeft > 0) {
+                alert('还没做好！');
+                return;
+            }
+
+            clearInterval(item.timer);
+            const cookedName = item.cookedName;
+            const emoji = item.emoji;
+            restaurantData[tool].splice(index, 1);
+
+            // 直接添加到选中的盘子
+            addToPlate(cookedName, emoji);
+            updateRestaurantUI();
+        }
+
+        function createNewPlate(event) {
+            if (event) event.stopPropagation();
+
+            if (restaurantData.plates.length >= restaurantData.maxPlates) {
+                alert('盘子满了！');
+                return;
+            }
+
+            const plate = {
+                id: Date.now(),
+                layers: [],
+                sauces: []
+            };
+
+            restaurantData.plates.push(plate);
+            restaurantData.selectedPlate = plate.id;
+            updateRestaurantUI();
+        }
+
+        function selectPlate(plateId) {
+            restaurantData.selectedPlate = plateId;
+            updateRestaurantUI();
+        }
+
+        function addToPlate(ingredientName, emoji) {
+            if (!restaurantData.selectedPlate) {
+                alert('请先选择一个盘子！或点击"新建盘子"');
+                return;
+            }
+
+            const plate = restaurantData.plates.find(p => p.id === restaurantData.selectedPlate);
+            if (!plate) return;
+
+            plate.layers.push({ name: ingredientName, emoji: emoji });
+            updateRestaurantUI();
+        }
+
+        function addSauceToPlate(sauceName) {
+            if (!restaurantData.selectedPlate) {
+                alert('请先选择一个盘子！');
+                return;
+            }
+
+            const plate = restaurantData.plates.find(p => p.id === restaurantData.selectedPlate);
+            if (!plate) return;
+
+            if (!plate.sauces.includes(sauceName)) {
+                plate.sauces.push(sauceName);
+                updateRestaurantUI();
+            }
+        }
+
+        function arraysEqualIgnoreOrder(arr1, arr2) {
+            if (arr1.length !== arr2.length) return false;
+
+            const sorted1 = [...arr1].sort();
+            const sorted2 = [...arr2].sort();
+
+            for (let i = 0; i < sorted1.length; i++) {
+                if (sorted1[i] !== sorted2[i]) return false;
+            }
+            return true;
+        }
+
+        function deletePlate(plateId) {
+            const index = restaurantData.plates.findIndex(p => p.id === plateId);
+            if (index === -1) return;
+
+            restaurantData.plates.splice(index, 1);
+            if (restaurantData.selectedPlate === plateId) {
+                restaurantData.selectedPlate = null;
+            }
+            updateRestaurantUI();
+        }
+
+        function servePlate(plateId) {
+            const plateIndex = restaurantData.plates.findIndex(p => p.id === plateId);
+            if (plateIndex === -1) return;
+
+            const plate = restaurantData.plates[plateIndex];
+
+            if (plate.layers.length === 0) {
+                alert('盘子是空的！');
+                return;
+            }
+
+            // 检查是否匹配某个菜谱（不要求顺序）
+            const plateLayers = plate.layers.map(l => l.name);
+            let matchedDish = null;
+
+            // 调试信息
+            console.log('盘子里的食材：', plateLayers);
+
+            for (const dishName in recipes) {
+                const recipe = recipes[dishName];
+                const recipeLayers = recipe.layers;
+
+                console.log(`检查 ${dishName}:`, recipeLayers);
+                console.log('是否匹配:', arraysEqualIgnoreOrder(plateLayers, recipeLayers));
+
+                if (arraysEqualIgnoreOrder(plateLayers, recipeLayers)) {
+                    matchedDish = { name: dishName, recipe: recipe };
+                    break;
+                }
+            }
+
+            if (!matchedDish) {
+                const plateText = plateLayers.join('、');
+                alert(`这不是任何菜品...\n盘子里有：${plateText}\n\n请查看菜谱！`);
+                restaurantData.plates.splice(plateIndex, 1);
+                if (restaurantData.selectedPlate === plateId) {
+                    restaurantData.selectedPlate = null;
+                }
+                updateRestaurantUI();
+                return;
+            }
+
+            // 查找订单
+            const orderIndex = restaurantData.orders.findIndex(o => o.dishName === matchedDish.name);
+
+            if (orderIndex !== -1) {
+                const order = restaurantData.orders[orderIndex];
+
+                let earned = matchedDish.recipe.price;
+                plate.sauces.forEach(sauceName => {
+                    earned += Math.floor(matchedDish.recipe.price * sauces[sauceName].bonus);
+                });
+
+                const timeRatio = order.waitTime / order.originalWait;
+                if (timeRatio > 0.7) earned += 15;
+
+                restaurantData.money += earned;
+                restaurantData.completed++;
+                if (restaurantData.rating < 5) {
+                    restaurantData.rating = Math.min(5, restaurantData.rating + 0.1);
+                }
+
+                order.count--;
+                if (order.count <= 0) {
+                    clearInterval(order.timer);
+                    restaurantData.orders.splice(orderIndex, 1);
+                }
+
+                alert(`上菜成功！${matchedDish.recipe.emoji} ${matchedDish.name} +${earned}元`);
+            } else {
+                restaurantData.rating = Math.max(1, restaurantData.rating - 0.2);
+                const earned = Math.floor(matchedDish.recipe.price * 0.3);
+                restaurantData.money += earned;
+                alert(`没人点这个...只卖了${earned}元`);
+            }
+
+            restaurantData.plates.splice(plateIndex, 1);
+            if (restaurantData.selectedPlate === plateId) {
+                restaurantData.selectedPlate = null;
+            }
+            updateRestaurantUI();
+        }
+
+        function updateRestaurantUI() {
+            // 订单
+            const ordersList = document.getElementById('ordersList');
+            ordersList.innerHTML = '';
+            restaurantData.orders.forEach(order => {
+                const orderDiv = document.createElement('div');
+                orderDiv.style.cssText = 'background: white; padding: 6px; border-radius: 5px; border: 2px solid #ffc107;';
+                orderDiv.innerHTML = `
+                    <div style="font-size: 1.1em;">${order.recipe.emoji} ${order.dishName} x${order.count}</div>
+                    <div style="color: ${order.waitTime < 30 ? '#dc3545' : '#666'}; font-size: 0.8em; margin-top: 2px;">
+                        ⏰ ${order.waitTime}秒
+                    </div>
+                `;
+                ordersList.appendChild(orderDiv);
+            });
+
+            if (restaurantData.orders.length === 0) {
+                ordersList.innerHTML = '<div style="color: #999; text-align: center; padding: 8px;">暂无订单</div>';
+            }
+
+            // 烤箱
+            const ovenArea = document.getElementById('ovenArea');
+            document.getElementById('ovenCount').textContent = `${restaurantData.oven.length}/${restaurantData.maxOven}`;
+            ovenArea.innerHTML = '';
+            restaurantData.oven.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.style.cssText = `background: ${item.timeLeft === 0 ? '#90EE90' : '#FFA500'}; padding: 5px; border-radius: 5px; cursor: pointer; text-align: center;`;
+                itemDiv.innerHTML = `
+                    <div style="font-size: 1.3em;">${item.emoji}</div>
+                    <div style="font-size: 0.7em; margin-top: 2px;">${item.timeLeft === 0 ? '✓好了' : item.timeLeft + 's'}</div>
+                `;
+                itemDiv.onclick = () => takeFromTool('oven', item.id);
+                ovenArea.appendChild(itemDiv);
+            });
+            if (restaurantData.oven.length === 0) {
+                ovenArea.innerHTML = '<div style="color: #999; font-size: 0.75em; text-align: center; padding: 8px; grid-column: 1/-1;">空</div>';
+            }
+
+            // 平底锅
+            const panArea = document.getElementById('panArea');
+            document.getElementById('panCount').textContent = `${restaurantData.pan.length}/${restaurantData.maxPan}`;
+            panArea.innerHTML = '';
+            restaurantData.pan.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.style.cssText = `background: ${item.timeLeft === 0 ? '#90EE90' : '#FFA500'}; padding: 5px; border-radius: 5px; cursor: pointer; text-align: center;`;
+                itemDiv.innerHTML = `
+                    <div style="font-size: 1.3em;">${item.emoji}</div>
+                    <div style="font-size: 0.7em; margin-top: 2px;">${item.timeLeft === 0 ? '✓好了' : item.timeLeft + 's'}</div>
+                `;
+                itemDiv.onclick = () => takeFromTool('pan', item.id);
+                panArea.appendChild(itemDiv);
+            });
+            if (restaurantData.pan.length === 0) {
+                panArea.innerHTML = '<div style="color: #999; font-size: 0.75em; text-align: center; padding: 8px; grid-column: 1/-1;">空</div>';
+            }
+
+            // 煮锅
+            const potArea = document.getElementById('potArea');
+            document.getElementById('potCount').textContent = `${restaurantData.pot.length}/${restaurantData.maxPot}`;
+            potArea.innerHTML = '';
+            restaurantData.pot.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.style.cssText = `background: ${item.timeLeft === 0 ? '#90EE90' : '#FFA500'}; padding: 5px; border-radius: 5px; cursor: pointer; text-align: center;`;
+                itemDiv.innerHTML = `
+                    <div style="font-size: 1.3em;">${item.emoji}</div>
+                    <div style="font-size: 0.7em; margin-top: 2px;">${item.timeLeft === 0 ? '✓好了' : item.timeLeft + 's'}</div>
+                `;
+                itemDiv.onclick = () => takeFromTool('pot', item.id);
+                potArea.appendChild(itemDiv);
+            });
+            if (restaurantData.pot.length === 0) {
+                potArea.innerHTML = '<div style="color: #999; font-size: 0.75em; text-align: center; padding: 8px; grid-column: 1/-1;">空</div>';
+            }
+
+            // 盘子
+            const platesArea = document.getElementById('platesArea');
+            document.getElementById('plateCount').textContent = `${restaurantData.plates.length}/${restaurantData.maxPlates}`;
+            platesArea.innerHTML = '';
+            restaurantData.plates.forEach(plate => {
+                const plateDiv = document.createElement('div');
+                const isSelected = plate.id === restaurantData.selectedPlate;
+                plateDiv.style.cssText = `background: white; padding: 8px; border-radius: 5px; border: 3px solid ${isSelected ? '#007bff' : '#ddd'}; cursor: pointer;`;
+                plateDiv.onclick = () => selectPlate(plate.id);
+
+                const layersHTML = plate.layers.map(l => l.emoji).join(' ');
+                const saucesHTML = plate.sauces.length > 0 ? `<div style="font-size: 0.75em; margin-top: 3px;">调料: ${plate.sauces.join(', ')}</div>` : '';
+
+                plateDiv.innerHTML = `
+                    <div style="font-size: 1.5em; min-height: 30px;">${layersHTML || '空盘'}</div>
+                    ${saucesHTML}
+                    <button class="btn btn-start" style="width: 100%; padding: 4px; font-size: 0.8em; margin-top: 5px;" onclick="event.stopPropagation(); servePlate(${plate.id})">上菜</button>
+                    <button class="btn btn-restart" style="width: 100%; padding: 4px; font-size: 0.8em; margin-top: 3px;" onclick="event.stopPropagation(); deletePlate(${plate.id})">扔掉</button>
+                `;
+                platesArea.appendChild(plateDiv);
+            });
+
+            if (restaurantData.plates.length === 0) {
+                platesArea.innerHTML = '<div style="color: #999; text-align: center; padding: 20px; grid-column: 1/-1;">点击"新建盘子"开始制作</div>';
+            }
+
+            // 分数
+            document.getElementById('restaurantScore').textContent =
+                `💰 ${restaurantData.money}元 | ⭐ ${restaurantData.rating.toFixed(1)} | 完成: ${restaurantData.completed}`;
+        }
+
+        // Toast Game (烤面包)
+        let toastLevel = 0;
+        let toastInterval = null;
+        let toastStarted = false;
+
+        let toastData = {
+            breadType: null,
+            hasButter: false,
+            temperature: 'medium',
+            toasting: false,
+            level: 0,
+            score: 0
+        };
+
+        function showToastGame(event) {
+            if (event) event.stopPropagation();
+            hideAllScreens();
+            document.getElementById('toastScreen').classList.remove('hidden');
+            gameState = 'toast';
+            resetToast();
+        }
+
+        function resetToast() {
+            toastLevel = 0;
+            toastStarted = false;
+            toastData = { breadType: null, hasButter: false, temperature: 'medium', toasting: false, level: 0, score: 0 };
+            if (toastInterval) clearInterval(toastInterval);
+
+            document.getElementById('toastBread').style.backgroundColor = '#FFF';
+            document.getElementById('toastBread').innerHTML = '';
+            document.getElementById('toastMessage').innerHTML = '🍞 选择面包类型开始';
+            document.getElementById('toastScore').textContent = '总分：0';
+
+            const controls = document.querySelector('#toastScreen .timer-controls');
+            controls.innerHTML = `
+                <button class="btn btn-timer btn-control" onclick="selectBread(event, '白面包', '🍞')">白面包</button>
+                <button class="btn btn-timer btn-control" onclick="selectBread(event, '全麦面包', '🥖')">全麦</button>
+                <button class="btn btn-timer btn-control" onclick="selectBread(event, '法棍', '🥖')">法棍</button>
+                <button class="btn btn-back btn-control" onclick="backToMenu(event)">返回菜单</button>
+            `;
+        }
+
+        function selectBread(event, type, emoji) {
+            if (event) event.stopPropagation();
+            toastData.breadType = type;
+            document.getElementById('toastBread').textContent = emoji;
+            document.getElementById('toastBread').style.backgroundColor = '#FFEFD5';
+            document.getElementById('toastMessage').innerHTML = `已选择：${type}<br>要涂黄油吗？`;
+
+            const controls = document.querySelector('#toastScreen .timer-controls');
+            controls.innerHTML = `
+                <button class="btn btn-start btn-control" onclick="addButter(event, true)">涂黄油 🧈</button>
+                <button class="btn btn-restart btn-control" onclick="addButter(event, false)">不涂</button>
+                <button class="btn btn-back btn-control" onclick="backToMenu(event)">返回菜单</button>
+            `;
+        }
+
+        function addButter(event, hasButter) {
+            if (event) event.stopPropagation();
+            toastData.hasButter = hasButter;
+            if (hasButter) {
+                document.getElementById('toastMessage').innerHTML = '✨ 已涂黄油！<br>选择烤制温度：';
+            } else {
+                document.getElementById('toastMessage').innerHTML = '选择烤制温度：';
+            }
+
+            const controls = document.querySelector('#toastScreen .timer-controls');
+            controls.innerHTML = `
+                <button class="btn btn-timer btn-control" onclick="setTemp(event, 'low')">🔵 低温</button>
+                <button class="btn btn-timer btn-control" onclick="setTemp(event, 'medium')">🟡 中温</button>
+                <button class="btn btn-timer btn-control" onclick="setTemp(event, 'high')">🔴 高温</button>
+                <button class="btn btn-back btn-control" onclick="backToMenu(event)">返回菜单</button>
+            `;
+        }
+
+        function setTemp(event, temp) {
+            if (event) event.stopPropagation();
+            toastData.temperature = temp;
+            const tempNames = { 'low': '低温', 'medium': '中温', 'high': '高温' };
+            document.getElementById('toastMessage').innerHTML = `温度：${tempNames[temp]}<br>开始烤制！`;
+
+            const controls = document.querySelector('#toastScreen .timer-controls');
+            controls.innerHTML = `
+                <button class="btn btn-start btn-control" onclick="startToast(event)" id="toastStartBtn">开始烤</button>
+                <button class="btn btn-restart btn-control" onclick="stopToast(event)" id="toastStopBtn" disabled>停止！</button>
+                <button class="btn btn-back btn-control" onclick="backToMenu(event)">返回菜单</button>
+            `;
+        }
+
+        function startToast(event) {
+            if (event) event.stopPropagation();
+            if (!toastData.breadType) return;
+
+            toastStarted = true;
+            toastData.toasting = true;
+            toastLevel = 0;
+            document.getElementById('toastStartBtn').disabled = true;
+            document.getElementById('toastStopBtn').disabled = false;
+            document.getElementById('toastMessage').textContent = '面包正在烤...快点停止！';
+
+            const speeds = { 'low': 150, 'medium': 100, 'high': 60 };
+            const speed = speeds[toastData.temperature];
+
+            toastInterval = setInterval(() => {
+                toastLevel += 1;
+                toastData.level = toastLevel;
+                let color = `hsl(${40 - toastLevel * 2}, 70%, ${70 - toastLevel}%)`;
+                document.getElementById('toastBread').style.backgroundColor = color;
+
+                if (toastLevel >= 50) {
+                    clearInterval(toastInterval);
+                    document.getElementById('toastMessage').textContent = '烤焦了！😭';
+                    document.getElementById('toastStopBtn').disabled = true;
+                    setTimeout(() => nextRound(), 2000);
+                }
+            }, speed);
+        }
+
+        function stopToast(event) {
+            if (event) event.stopPropagation();
+            if (!toastStarted) return;
+            clearInterval(toastInterval);
+            document.getElementById('toastStopBtn').disabled = true;
+            toastData.toasting = false;
+
+            let score = 0;
+            let message = '';
+
+            const perfectRange = toastData.temperature === 'medium' ? [10, 20] :
+                toastData.temperature === 'low' ? [15, 25] : [8, 15];
+
+            if (toastLevel < perfectRange[0]) {
+                message = '太生了！🤢';
+                score = toastLevel * 3;
+            } else if (toastLevel >= perfectRange[0] && toastLevel <= perfectRange[1]) {
+                message = '完美！👍';
+                score = 100;
+                if (toastData.hasButter) score += 20;
+            } else if (toastLevel <= 35) {
+                message = '有点焦了 😅';
+                score = Math.max(0, 100 - (toastLevel - perfectRange[1]) * 4);
+            } else {
+                message = '烤得太过了！😵';
+                score = Math.max(0, 30 - (toastLevel - 35) * 2);
+            }
+
+            toastData.score += score;
+            document.getElementById('toastMessage').innerHTML = `${message}<br>本轮得分：${score}`;
+            document.getElementById('toastScore').textContent = `总分：${toastData.score}`;
+
+            const controls = document.querySelector('#toastScreen .timer-controls');
+            controls.innerHTML = `
+                <button class="btn btn-timer btn-control" onclick="addJam(event)">涂果酱 🍓</button>
+                <button class="btn btn-start btn-control" onclick="makeSandwich(event)">做三明治 🥪</button>
+                <button class="btn btn-restart btn-control" onclick="nextRound(event)">下一轮</button>
+                <button class="btn btn-back btn-control" onclick="backToMenu(event)">返回菜单</button>
+            `;
+        }
+
+        function addJam(event) {
+            if (event) event.stopPropagation();
+            toastData.score += 15;
+            document.getElementById('toastMessage').innerHTML = '✨ 涂上果酱！+15分';
+            document.getElementById('toastScore').textContent = `总分：${toastData.score}`;
+            setTimeout(() => nextRound(), 1500);
+        }
+
+        function makeSandwich(event) {
+            if (event) event.stopPropagation();
+            toastData.score += 30;
+            document.getElementById('toastMessage').innerHTML = '🥪 做成三明治！+30分';
+            document.getElementById('toastScore').textContent = `总分：${toastData.score}`;
+            setTimeout(() => nextRound(), 1500);
+        }
+
+        function nextRound(event) {
+            if (event) event.stopPropagation();
+            document.getElementById('toastMessage').innerHTML = `总分：${toastData.score}<br>继续下一轮？`;
+            const controls = document.querySelector('#toastScreen .timer-controls');
+            controls.innerHTML = `
+                <button class="btn btn-start btn-control" onclick="resetToast()">继续</button>
+                <button class="btn btn-back btn-control" onclick="backToMenu(event)">返回菜单</button>
+            `;
+        }
+
+        // Simple Games Manager
+        let simpleGameType = '';
+        let simpleGameData = {};
+
+        function showSimpleGame(type, title, initFunc) {
+            hideAllScreens();
+            document.getElementById('simpleGame').classList.remove('hidden');
+            document.getElementById('simpleGameTitle').textContent = title;
+            simpleGameType = type;
+            gameState = type;
+            initFunc();
+        }
+
+        // Noodle Game (煮泡面)
+        function showNoodleGame(event) {
+            if (event) event.stopPropagation();
+            showSimpleGame('noodle', '🍜 煮泡面大师', initNoodleGame);
+        }
+
+        function initNoodleGame() {
+            simpleGameData = { cooking: false, time: 0, interval: null, ingredients: [], score: 0 };
+            document.getElementById('simpleGameContent').innerHTML = `
+                <div style="font-size: 2em; margin: 20px 0;">选择泡面类型</div>
+                <div id="noodleDisplay" style="font-size: 5em; margin: 20px 0;">🍜</div>
+            `;
+            document.getElementById('simpleGameScore').textContent = '得分：0';
+            document.getElementById('simpleGameControls').innerHTML = `
+                <button class="btn btn-timer btn-control" onclick="selectNoodleType(event, '方便面', 180)">方便面(3分)</button>
+                <button class="btn btn-timer btn-control" onclick="selectNoodleType(event, '拉面', 240)">拉面(4分)</button>
+                <button class="btn btn-timer btn-control" onclick="selectNoodleType(event, '乌冬面', 300)">乌冬面(5分)</button>
+                <button class="btn btn-back btn-control" onclick="backToMenu(event)">返回菜单</button>
+            `;
+        }
+
+        function selectNoodleType(event, type, seconds) {
+            if (event) event.stopPropagation();
+            simpleGameData.noodleType = type;
+            simpleGameData.cookTime = seconds;
+
+            document.getElementById('simpleGameContent').innerHTML = `
+                <div style="font-size: 1.5em; margin: 10px 0;">选择：${type}</div>
+                <div id="noodleDisplay" style="font-size: 4em; margin: 20px 0;">🍜</div>
+                <div style="font-size: 1.2em;">选择调料：</div>
+                <div id="ingredientsList" style="margin: 10px 0; min-height: 40px; font-size: 2em;"></div>
+            `;
+            document.getElementById('simpleGameScore').textContent = '选择调料增加分数！';
+            document.getElementById('simpleGameControls').innerHTML = `
+                <button class="btn btn-timer btn-control" onclick="addNoodleIngredient(event, '🥚', 10)">加蛋</button>
+                <button class="btn btn-timer btn-control" onclick="addNoodleIngredient(event, '🥬', 10)">青菜</button>
+                <button class="btn btn-timer btn-control" onclick="addNoodleIngredient(event, '🥓', 15)">培根</button>
+                <button class="btn btn-timer btn-control" onclick="addNoodleIngredient(event, '🌶️', 5)">辣椒</button>
+                <button class="btn btn-start btn-control" onclick="startCookingNoodle(event)">开始煮！</button>
+                <button class="btn btn-back btn-control" onclick="backToMenu(event)">返回菜单</button>
+            `;
+        }
+
+        function addNoodleIngredient(event, ingredient, points) {
+            if (event) event.stopPropagation();
+            simpleGameData.ingredients.push({ item: ingredient, points: points });
+            document.getElementById('ingredientsList').textContent =
+                simpleGameData.ingredients.map(i => i.item).join(' ');
+        }
+
+        function startCookingNoodle(event) {
+            if (event) event.stopPropagation();
+            if (simpleGameData.cooking) return;
+
+            simpleGameData.cooking = true;
+            simpleGameData.time = simpleGameData.cookTime;
+
+            document.getElementById('simpleGameContent').innerHTML = `
+                <div style="font-size: 1.5em; margin: 10px 0;">${simpleGameData.noodleType}烹饪中...</div>
+                <div id="noodleDisplay" style="font-size: 5em; margin: 20px 0; animation: shake 0.5s infinite;">🍲</div>
+                <div id="noodleTime" style="font-size: 3em; color: #667eea;">--:--</div>
+                <style>
+                    @keyframes shake {
+                        0%, 100% { transform: translateX(0); }
+                        25% { transform: translateX(-5px); }
+                        75% { transform: translateX(5px); }
+                    }
+                </style>
+            `;
+            document.getElementById('simpleGameScore').textContent = '注意时间！';
+            document.getElementById('simpleGameControls').innerHTML = `
+                <button class="btn btn-restart btn-control" onclick="finishNoodle(event)">完成！</button>
+                <button class="btn btn-back btn-control" onclick="backToMenu(event)">返回菜单</button>
+            `;
+
+            simpleGameData.interval = setInterval(() => {
+                simpleGameData.time--;
+                let min = Math.floor(simpleGameData.time / 60);
+                let sec = simpleGameData.time % 60;
+                document.getElementById('noodleTime').textContent =
+                    `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+
+                if (simpleGameData.time <= 0) {
+                    clearInterval(simpleGameData.interval);
+                    document.getElementById('noodleTime').style.color = '#e74c3c';
+                    document.getElementById('simpleGameScore').textContent = '❌ 煮过头了！泡面糊了！';
+                    setTimeout(() => initNoodleGame(), 3000);
+                }
+            }, 1000);
+        }
+
+        function finishNoodle(event) {
+            if (event) event.stopPropagation();
+            clearInterval(simpleGameData.interval);
+            simpleGameData.cooking = false;
+
+            const timeLeft = simpleGameData.time;
+            const totalTime = simpleGameData.cookTime;
+            const timeScore = timeLeft > 10 ? 50 : Math.max(0, timeLeft * 5);
+            const ingredientScore = simpleGameData.ingredients.reduce((sum, i) => sum + i.points, 0);
+            const totalScore = timeScore + ingredientScore;
+            simpleGameData.score += totalScore;
+
+            document.getElementById('noodleDisplay').textContent = '🍜✨';
+            document.getElementById('noodleDisplay').style.animation = 'none';
+            document.getElementById('noodleTime').style.color = '#2ecc71';
+            document.getElementById('simpleGameScore').textContent =
+                `✨ 完成！本轮+${totalScore}分 | 总分：${simpleGameData.score}`;
+
+            setTimeout(() => initNoodleGame(), 3000);
+        }
+
+        // Claw Game (抓娃娃)
+        function showClawGame(event) {
+            if (event) event.stopPropagation();
+            showSimpleGame('claw', '🎪 抓娃娃机', initClawGame);
+        }
+
+        function initClawGame() {
+            simpleGameData = { score: 0, attempts: 10, clawPosition: 50, grabbing: false };
+            document.getElementById('simpleGameContent').innerHTML = `
+                <div style="position: relative; width: 400px; height: 350px; margin: 0 auto; border: 3px solid #8B4513; border-radius: 10px; background: linear-gradient(to bottom, #87CEEB 0%, #FFF8DC 100%);">
+                    <div id="clawMachine" style="position: absolute; top: 0; left: 45%; transition: left 0.3s;">
+                        <div style="font-size: 3em;">🦾</div>
+                        <div style="width: 2px; height: 50px; background: #333; margin: 0 auto;" id="clawString"></div>
+                    </div>
+                    <div style="position: absolute; bottom: 20px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 90%; left: 5%;">
+                        <div style="font-size: 3em;">🧸</div>
+                        <div style="font-size: 3em;">🎀</div>
+                        <div style="font-size: 3em;">🧸</div>
+                        <div style="font-size: 3em;">🎁</div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('simpleGameScore').textContent = `抓到：${simpleGameData.score} / 剩余次数：${simpleGameData.attempts}`;
+            document.getElementById('simpleGameControls').innerHTML = `
+                <button class="btn btn-restart btn-control" onclick="moveClawLeft(event)">⬅️ 左移</button>
+                <button class="btn btn-start btn-control" onclick="grabClaw(event)" id="grabBtn">抓取！</button>
+                <button class="btn btn-restart btn-control" onclick="moveClawRight(event)">➡️ 右移</button>
+                <button class="btn btn-back btn-control" onclick="backToMenu(event)">返回菜单</button>
+            `;
+        }
+
+        function moveClawLeft(event) {
+            if (event) event.stopPropagation();
+            if (simpleGameData.grabbing) return;
+            simpleGameData.clawPosition = Math.max(10, simpleGameData.clawPosition - 10);
+            document.getElementById('clawMachine').style.left = simpleGameData.clawPosition + '%';
+        }
+
+        function moveClawRight(event) {
+            if (event) event.stopPropagation();
+            if (simpleGameData.grabbing) return;
+            simpleGameData.clawPosition = Math.min(80, simpleGameData.clawPosition + 10);
+            document.getElementById('clawMachine').style.left = simpleGameData.clawPosition + '%';
+        }
+
+        function grabClaw(event) {
+            if (event) event.stopPropagation();
+            if (simpleGameData.grabbing || simpleGameData.attempts <= 0) return;
+
+            simpleGameData.grabbing = true;
+            simpleGameData.attempts--;
+            document.getElementById('grabBtn').disabled = true;
+
+            const clawString = document.getElementById('clawString');
+            let height = 50;
+
+            const descendInterval = setInterval(() => {
+                height += 10;
+                clawString.style.height = height + 'px';
+                if (height >= 200) {
+                    clearInterval(descendInterval);
+
+                    const baseSuccess = 0.35;
+                    const positionBonus = (simpleGameData.clawPosition >= 20 && simpleGameData.clawPosition <= 70) ? 0.15 : 0;
+                    const success = Math.random() < (baseSuccess + positionBonus);
+
+                    setTimeout(() => {
+                        const ascendInterval = setInterval(() => {
+                            height -= 10;
+                            clawString.style.height = height + 'px';
+                            if (height <= 50) {
+                                clearInterval(ascendInterval);
+                                simpleGameData.grabbing = false;
+                                document.getElementById('grabBtn').disabled = false;
+
+                                if (success) {
+                                    simpleGameData.score++;
+                                    document.getElementById('simpleGameScore').textContent =
+                                        `✨ 抓到了！ 得分：${simpleGameData.score} / 剩余：${simpleGameData.attempts}`;
+                                } else {
+                                    document.getElementById('simpleGameScore').textContent =
+                                        `💔 没抓到... 得分：${simpleGameData.score} / 剩余：${simpleGameData.attempts}`;
+                                }
+
+                                if (simpleGameData.attempts <= 0) {
+                                    setTimeout(() => {
+                                        document.getElementById('simpleGameContent').innerHTML =
+                                            `<div style="font-size: 2em; color: #667eea;">游戏结束！<br>共抓到 ${simpleGameData.score} 个娃娃！</div>`;
+                                        document.getElementById('simpleGameControls').innerHTML = `
+                                            <button class="btn btn-start btn-control" onclick="initClawGame()">再玩一次</button>
+                                            <button class="btn btn-back btn-control" onclick="backToMenu(event)">返回菜单</button>
+                                        `;
+                                    }, 1500);
+                                }
+                            }
+                        }, 50);
+                    }, 500);
+                }
+            }, 50);
+        }
+
+        // Fish Game (钓鱼)
+        const fishTypes = [
+            { emoji: '🐟', name: '小鱼', points: 10, chance: 0.5 },
+            { emoji: '🐠', name: '热带鱼', points: 20, chance: 0.25 },
+            { emoji: '🐡', name: '河豚', points: 30, chance: 0.15 },
+            { emoji: '🦈', name: '鲨鱼', points: 50, chance: 0.08 },
+            { emoji: '🐙', name: '章鱼', points: 40, chance: 0.02 }
+        ];
+
+        function showFishGame(event) {
+            if (event) event.stopPropagation();
+            showSimpleGame('fish', '🎣 钓鱼大师', initFishGame);
+        }
+
+        function initFishGame() {
+            simpleGameData = { score: 0, count: 0, fishing: false, waitTime: 0, currentFish: null, combo: 0 };
+            document.getElementById('simpleGameContent').innerHTML = `<div style="font-size: 5em;">🌊</div>`;
+            document.getElementById('simpleGameScore').textContent = `得分：0 | 钓到：0条 | 连击：0`;
+            document.getElementById('simpleGameControls').innerHTML = `
+                <button class="btn btn-start btn-control" id="fishBtn" onclick="fishAction(event)">抛竿</button>
+                <button class="btn btn-back btn-control" onclick="backToMenu(event)">返回菜单</button>
+            `;
+        }
+
+        function getFishByChance() {
+            const rand = Math.random();
+            let cumulative = 0;
+            for (const fish of fishTypes) {
+                cumulative += fish.chance;
+                if (rand < cumulative) return fish;
+            }
+            return fishTypes[0];
+        }
+
+        function fishAction(event) {
+            if (event) event.stopPropagation();
+            const btn = document.getElementById('fishBtn');
+
+            if (!simpleGameData.fishing) {
+                simpleGameData.fishing = true;
+                btn.textContent = '等待...';
+                btn.disabled = true;
+                document.getElementById('simpleGameContent').innerHTML = '<div style="font-size: 5em;">🎣 等待...</div>';
+
+                const waitTime = Math.random() * 3000 + 1500;
+                simpleGameData.timeout = setTimeout(() => {
+                    if (simpleGameData.fishing) {
+                        simpleGameData.currentFish = getFishByChance();
+                        document.getElementById('simpleGameContent').innerHTML =
+                            `<div style="font-size: 5em; color: #2ecc71; animation: bounce 0.5s infinite;">${simpleGameData.currentFish.emoji}</div>
+                            <div style="font-size: 1.5em; margin-top: 10px;">上钩了！</div>
+                            <style>
+                                @keyframes bounce {
+                                    0%, 100% { transform: translateY(0); }
+                                    50% { transform: translateY(-10px); }
+                                }
+                            </style>`;
+                        btn.textContent = '快收竿！';
+                        btn.disabled = false;
+                        simpleGameData.waitTime = Date.now();
+
+                        simpleGameData.escapeTimeout = setTimeout(() => {
+                            if (simpleGameData.fishing) {
+                                document.getElementById('simpleGameContent').innerHTML =
+                                    '<div style="font-size: 3em; color: #e74c3c;">💨 鱼跑了...</div>';
+                                simpleGameData.fishing = false;
+                                simpleGameData.combo = 0;
+                                btn.textContent = '抛竿';
+                                updateFishScore();
+                                setTimeout(() => {
+                                    document.getElementById('simpleGameContent').innerHTML = '<div style="font-size: 5em;">🌊</div>';
+                                }, 1000);
+                            }
+                        }, 2500);
+                    }
+                }, waitTime);
+            } else {
+                clearTimeout(simpleGameData.escapeTimeout);
+                const reactionTime = Date.now() - simpleGameData.waitTime;
+
+                if (reactionTime < 2500 && simpleGameData.currentFish) {
+                    const fish = simpleGameData.currentFish;
+                    simpleGameData.count++;
+                    simpleGameData.combo++;
+                    const comboBonus = Math.min(simpleGameData.combo - 1, 5) * 5;
+                    const totalPoints = fish.points + comboBonus;
+                    simpleGameData.score += totalPoints;
+
+                    document.getElementById('simpleGameContent').innerHTML =
+                        `<div style="font-size: 5em;">${fish.emoji}✨</div>
+                        <div style="font-size: 1.5em; color: #2ecc71;">钓到${fish.name}！+${totalPoints}分</div>
+                        ${simpleGameData.combo > 1 ? `<div style="font-size: 1.2em; color: #ff6b6b;">🔥 连击 x${simpleGameData.combo}!</div>` : ''}`;
+                    updateFishScore();
+                }
+
+                simpleGameData.fishing = false;
+                simpleGameData.currentFish = null;
+                btn.textContent = '抛竿';
+                btn.disabled = false;
+                setTimeout(() => {
+                    document.getElementById('simpleGameContent').innerHTML = '<div style="font-size: 5em;">🌊</div>';
+                }, 1500);
+            }
+        }
+
+        function updateFishScore() {
+            document.getElementById('simpleGameScore').textContent =
+                `得分：${simpleGameData.score} | 钓到：${simpleGameData.count}条 | 连击：${simpleGameData.combo}`;
+        }
+
+        // Fruit Game (切水果)
+        function showFruitGame(event) {
+            if (event) event.stopPropagation();
+            showSimpleGame('fruit', '🍉 切水果大师', initFruitGame);
+        }
+
+        function initFruitGame() {
+            simpleGameData = { score: 0, playing: false, interval: null, combo: 0 };
+            document.getElementById('simpleGameContent').innerHTML = `<div style="font-size: 5em;" id="fruitDisplay">🍎</div>`;
+            document.getElementById('simpleGameScore').textContent = `得分：0 | 连击：0`;
+            document.getElementById('simpleGameControls').innerHTML = `
+                <button class="btn btn-start btn-control" onclick="startFruitGame(event)">开始游戏</button>
+                <button class="btn btn-back btn-control" onclick="backToMenu(event)">返回菜单</button>
+            `;
+        }
+
+        function startFruitGame(event) {
+            if (event) event.stopPropagation();
+            if (simpleGameData.playing) return;
+
+            simpleGameData.playing = true;
+            simpleGameData.score = 0;
+            simpleGameData.combo = 0;
+            simpleGameData.lastClick = 0;
+            const fruits = ['🍎', '🍊', '🍋', '🍉', '🍇', '🍓', '⭐', '💎', '💣'];
+            let timeLeft = 20;
+
+            document.getElementById('simpleGameControls').innerHTML = `
+                <button class="btn btn-restart btn-control">时间：${timeLeft}秒</button>
+                <button class="btn btn-back btn-control" onclick="backToMenu(event)">返回菜单</button>
+            `;
+
+            const countdown = setInterval(() => {
+                timeLeft--;
+                document.getElementById('simpleGameControls').innerHTML = `
+                    <button class="btn btn-restart btn-control">时间：${timeLeft}秒</button>
+                    <button class="btn btn-back btn-control" onclick="backToMenu(event)">返回菜单</button>
+                `;
+                if (timeLeft <= 0) {
+                    clearInterval(countdown);
+                    clearInterval(simpleGameData.interval);
+                    simpleGameData.playing = false;
+                    document.getElementById('fruitDisplay').innerHTML = `<div style="font-size:2em;">结束！得分：${simpleGameData.score}</div>`;
+                    setTimeout(() => initFruitGame(), 3000);
+                }
+            }, 1000);
+
+            simpleGameData.interval = setInterval(() => {
+                const rand = Math.random();
+                let fruit = '';
+                if (rand < 0.05) fruit = '💎';
+                else if (rand < 0.1) fruit = '⭐';
+                else if (rand < 0.25) fruit = '💣';
+                else fruit = fruits[Math.floor(Math.random() * 6)];
+
+                const display = document.getElementById('fruitDisplay');
+                display.textContent = fruit;
+                display.onclick = function (e) {
+                    e.stopPropagation();
+                    const now = Date.now();
+
+                    if (fruit === '💣') {
+                        simpleGameData.score = Math.max(0, simpleGameData.score - 10);
+                        simpleGameData.combo = 0;
+                        display.textContent = '💥';
+                    } else {
+                        if (now - simpleGameData.lastClick < 1000) {
+                            simpleGameData.combo++;
+                        } else {
+                            simpleGameData.combo = 1;
+                        }
+                        simpleGameData.lastClick = now;
+
+                        let points = 1;
+                        if (fruit === '⭐') points = 5;
+                        else if (fruit === '💎') points = 10;
+
+                        const bonus = Math.floor(simpleGameData.combo / 3);
+                        simpleGameData.score += points + bonus;
+                        display.textContent = '✨';
+                    }
+                    document.getElementById('simpleGameScore').textContent =
+                        `得分：${simpleGameData.score} | 连击：${simpleGameData.combo} ${simpleGameData.combo >= 5 ? '🔥' : ''}`;
+
+                    setTimeout(() => {
+                        const rand2 = Math.random();
+                        let newFruit = '';
+                        if (rand2 < 0.05) newFruit = '💎';
+                        else if (rand2 < 0.1) newFruit = '⭐';
+                        else if (rand2 < 0.25) newFruit = '💣';
+                        else newFruit = fruits[Math.floor(Math.random() * 6)];
+                        display.textContent = newFruit;
+                    }, 200);
+                };
+            }, 800);
+        }
+
+        // RPS Game (猜拳)
+        function showRPSGame(event) {
+            if (event) event.stopPropagation();
+            showSimpleGame('rps', '✊ 石头剪刀布大师', initRPSGame);
+        }
+
+        function initRPSGame() {
+            simpleGameData = { wins: 0, losses: 0, ties: 0, winStreak: 0, bestStreak: 0 };
+            document.getElementById('simpleGameContent').innerHTML = `<div style="font-size: 5em;">✊ ✋ ✌️</div>`;
+            document.getElementById('simpleGameScore').textContent = `胜：0 / 负：0 / 平：0 | 连胜：0`;
+            document.getElementById('simpleGameControls').innerHTML = `
+                <button class="btn btn-start btn-control" onclick="playRPS(event, 0)">✊石头</button>
+                <button class="btn btn-start btn-control" onclick="playRPS(event, 1)">✋布</button>
+                <button class="btn btn-start btn-control" onclick="playRPS(event, 2)">✌️剪刀</button>
+                <button class="btn btn-back btn-control" onclick="backToMenu(event)">返回菜单</button>
+            `;
+        }
+
+        function playRPS(event, playerChoice) {
+            if (event) event.stopPropagation();
+            const choices = ['✊', '✋', '✌️'];
+            const names = ['石头', '布', '剪刀'];
+            const cpuChoice = Math.floor(Math.random() * 3);
+
+            let result = '';
+            let emoji = '';
+
+            if (playerChoice === cpuChoice) {
+                simpleGameData.ties++;
+                result = '平局！';
+                emoji = '😐';
+            } else if ((playerChoice === 0 && cpuChoice === 2) ||
+                (playerChoice === 1 && cpuChoice === 0) ||
+                (playerChoice === 2 && cpuChoice === 1)) {
+                simpleGameData.wins++;
+                simpleGameData.winStreak++;
+                if (simpleGameData.winStreak > simpleGameData.bestStreak) {
+                    simpleGameData.bestStreak = simpleGameData.winStreak;
+                }
+                result = '你赢了！🎉';
+                emoji = '😊';
+
+                if (simpleGameData.winStreak >= 5) {
+                    result += '<br>🔥🔥🔥 连胜5场！太强了！';
+                } else if (simpleGameData.winStreak >= 3) {
+                    result += '<br>🔥 连胜3场！继续加油！';
+                }
+            } else {
+                simpleGameData.losses++;
+                simpleGameData.winStreak = 0;
+                result = '你输了！😢';
+                emoji = '😢';
+            }
+
+            document.getElementById('simpleGameContent').innerHTML =
+                `<div style="font-size: 3em;">你：${choices[playerChoice]} ${emoji} ${choices[cpuChoice]} :电脑</div>
+                <div style="font-size: 1.5em; margin-top: 20px;">${result}</div>`;
+
+            document.getElementById('simpleGameScore').textContent =
+                `胜：${simpleGameData.wins} / 负：${simpleGameData.losses} / 平：${simpleGameData.ties} | 连胜：${simpleGameData.winStreak} 🏆最佳：${simpleGameData.bestStreak}`;
+
+            setTimeout(() => {
+                document.getElementById('simpleGameContent').innerHTML = '<div style="font-size: 5em;">✊ ✋ ✌️</div>';
+            }, 2000);
+        }
+
+        // Piano Game (音符记忆)
+        function showPianoGame(event) {
+            if (event) event.stopPropagation();
+            showSimpleGame('piano', '🎹 音符记忆大师', initPianoGame);
+        }
+
+        function initPianoGame() {
+            simpleGameData = { sequence: [], userInput: [], level: 1, playing: false, lives: 3, bestLevel: 1 };
+            const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12'];
+            const keyCount = Math.min(4 + Math.floor((simpleGameData.level - 1) / 3), 6);
+
+            document.getElementById('simpleGameContent').innerHTML = `
+                <div style="font-size: 2em; margin-bottom: 20px;">关卡：${simpleGameData.level} | ❤️ x${simpleGameData.lives}</div>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-width: 400px; margin: 0 auto;">
+                    <button class="btn btn-start" style="height: 80px; font-size: 2em; background: #e74c3c;" onclick="pianoKey(event, 0)">🎵</button>
+                    <button class="btn btn-start" style="height: 80px; font-size: 2em; background: #3498db;" onclick="pianoKey(event, 1)">🎶</button>
+                    <button class="btn btn-start" style="height: 80px; font-size: 2em; background: #2ecc71;" onclick="pianoKey(event, 2)">🎼</button>
+                    <button class="btn btn-start" style="height: 80px; font-size: 2em; background: #f39c12;" onclick="pianoKey(event, 3)">🎸</button>
+                </div>
+            `;
+            document.getElementById('simpleGameScore').textContent = `最高记录：${simpleGameData.bestLevel}关`;
+            document.getElementById('simpleGameControls').innerHTML = `
+                <button class="btn btn-start btn-control" onclick="startPianoLevel(event)">开始第${simpleGameData.level}关</button>
+                <button class="btn btn-back btn-control" onclick="backToMenu(event)">返回菜单</button>
+            `;
+        }
+
+        function startPianoLevel(event) {
+            if (event) event.stopPropagation();
+            if (simpleGameData.playing) return;
+
+            simpleGameData.playing = true;
+            simpleGameData.userInput = [];
+            simpleGameData.sequence.push(Math.floor(Math.random() * 4));
+
+            document.getElementById('simpleGameScore').textContent = `👀 观看并记住...（序列长度：${simpleGameData.sequence.length}）`;
+
+            let i = 0;
+            const showSequence = setInterval(() => {
+                if (i < simpleGameData.sequence.length) {
+                    const buttons = document.querySelectorAll('#simpleGameContent button');
+                    buttons[simpleGameData.sequence[i]].style.transform = 'scale(1.3)';
+                    buttons[simpleGameData.sequence[i]].style.boxShadow = '0 0 20px yellow';
+                    setTimeout(() => {
+                        buttons[simpleGameData.sequence[i]].style.transform = 'scale(1)';
+                        buttons[simpleGameData.sequence[i]].style.boxShadow = 'none';
+                    }, 400);
+                    i++;
+                } else {
+                    clearInterval(showSequence);
+                    document.getElementById('simpleGameScore').textContent = `🎮 现在轮到你了！`;
+                }
+            }, 700);
+        }
+
+        function pianoKey(event, key) {
+            if (event) event.stopPropagation();
+            if (!simpleGameData.playing || simpleGameData.userInput.length >= simpleGameData.sequence.length) return;
+
+            simpleGameData.userInput.push(key);
+
+            const buttons = document.querySelectorAll('#simpleGameContent button');
+            buttons[key].style.transform = 'scale(1.2)';
+            setTimeout(() => buttons[key].style.transform = 'scale(1)', 200);
+
+            if (simpleGameData.userInput[simpleGameData.userInput.length - 1] !==
+                simpleGameData.sequence[simpleGameData.userInput.length - 1]) {
+                simpleGameData.lives--;
+                if (simpleGameData.lives <= 0) {
+                    document.getElementById('simpleGameScore').textContent = `💔 游戏结束！最终关卡：${simpleGameData.level}`;
+                    simpleGameData.playing = false;
+                    simpleGameData.sequence = [];
+                    simpleGameData.level = 1;
+                    simpleGameData.lives = 3;
+                    setTimeout(() => initPianoGame(), 3000);
+                } else {
+                    document.getElementById('simpleGameScore').textContent = `❌ 错了！剩余生命：${simpleGameData.lives}`;
+                    simpleGameData.playing = false;
+                    simpleGameData.userInput = [];
+                    setTimeout(() => {
+                        document.getElementById('simpleGameContent').innerHTML =
+                            `<div style="font-size: 2em; margin-bottom: 20px;">关卡：${simpleGameData.level} | ❤️ x${simpleGameData.lives}</div>` +
+                            document.getElementById('simpleGameContent').innerHTML.split('</div>').slice(1).join('</div>');
+                        document.getElementById('simpleGameScore').textContent = `最高记录：${simpleGameData.bestLevel}关`;
+                    }, 2000);
+                }
+                return;
+            }
+
+            if (simpleGameData.userInput.length === simpleGameData.sequence.length) {
+                simpleGameData.level++;
+                if (simpleGameData.level > simpleGameData.bestLevel) {
+                    simpleGameData.bestLevel = simpleGameData.level;
+                }
+                let bonus = '';
+                if (simpleGameData.level % 5 === 0) {
+                    simpleGameData.lives = Math.min(simpleGameData.lives + 1, 5);
+                    bonus = ' 奖励+1生命！';
+                }
+                document.getElementById('simpleGameScore').textContent = `✅ 正确！进入关卡 ${simpleGameData.level}${bonus}`;
+                document.getElementById('simpleGameContent').innerHTML =
+                    `<div style="font-size: 2em; margin-bottom: 20px;">关卡：${simpleGameData.level} | ❤️ x${simpleGameData.lives}</div>` +
+                    document.getElementById('simpleGameContent').innerHTML.split('</div>').slice(1).join('</div>');
+                simpleGameData.playing = false;
+                setTimeout(() => startPianoLevel(), 2000);
+            }
+        }
+
+        // Catch Game (接东西)
+        const catchItems = {
+            normal: [
+                { emoji: '🍎', points: 1, name: '苹果' },
+                { emoji: '🍊', points: 1, name: '橘子' },
+                { emoji: '🍋', points: 1, name: '柠檬' },
+                { emoji: '🍉', points: 2, name: '西瓜' },
+                { emoji: '🍇', points: 1, name: '葡萄' }
+            ],
+            special: [
+                { emoji: '⭐', points: 5, name: '星星' },
+                { emoji: '💎', points: 10, name: '钻石' },
+                { emoji: '🎁', effect: 'slow', name: '礼物' }
+            ],
+            bad: [
+                { emoji: '💣', points: -10, name: '炸弹' },
+                { emoji: '☠️', points: -5, name: '骷髅' }
+            ]
+        };
+
+        function showCatchGame(event) {
+            if (event) event.stopPropagation();
+            showSimpleGame('catch', '🎯 接东西大师', initCatchGame);
+        }
+
+        function initCatchGame() {
+            simpleGameData = { score: 0, playing: false, position: 50, interval: null, combo: 0, speed: 1 };
+            document.getElementById('simpleGameContent').innerHTML = `
+                <div style="position: relative; width: 400px; height: 300px; margin: 0 auto; border: 2px solid #333; background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 100%);">
+                    <div id="fallingItem" style="position: absolute; top: 0; left: 50%; font-size: 3em;">🍎</div>
+                    <div id="basket" style="position: absolute; bottom: 0; left: 45%; font-size: 3em;">🧺</div>
+                </div>
+            `;
+            document.getElementById('simpleGameScore').textContent = `得分：0 | 连击：0`;
+            document.getElementById('simpleGameControls').innerHTML = `
+                <button class="btn btn-start btn-control" onclick="startCatchGame(event)">开始游戏</button>
+                <button class="btn btn-restart btn-control" onclick="moveBasket(event, -1)">← 左移</button>
+                <button class="btn btn-restart btn-control" onclick="moveBasket(event, 1)">右移 →</button>
+                <button class="btn btn-back btn-control" onclick="backToMenu(event)">返回菜单</button>
+            `;
+        }
+
+        function getRandomCatchItem() {
+            const rand = Math.random();
+            if (rand < 0.05) return catchItems.special[Math.floor(Math.random() * catchItems.special.length)];
+            if (rand < 0.2) return catchItems.bad[Math.floor(Math.random() * catchItems.bad.length)];
+            return catchItems.normal[Math.floor(Math.random() * catchItems.normal.length)];
+        }
+
+        function startCatchGame(event) {
+            if (event) event.stopPropagation();
+            if (simpleGameData.playing) return;
+
+            simpleGameData.playing = true;
+            simpleGameData.score = 0;
+            simpleGameData.combo = 0;
+            simpleGameData.speed = 1;
+            simpleGameData.position = 50;
+            let timeLeft = 30;
+
+            const countdown = setInterval(() => {
+                timeLeft--;
+                document.getElementById('simpleGameScore').textContent =
+                    `得分：${simpleGameData.score} | 连击：${simpleGameData.combo} | 时间：${timeLeft}秒`;
+                if (timeLeft <= 0) {
+                    clearInterval(countdown);
+                    clearInterval(simpleGameData.interval);
+                    simpleGameData.playing = false;
+                    document.getElementById('fallingItem').innerHTML =
+                        `<div style="font-size: 0.6em; text-align: center; margin-top: 100px;">游戏结束！<br>最终得分：${simpleGameData.score}</div>`;
+                    setTimeout(initCatchGame, 3000);
+                }
+            }, 1000);
+
+            simpleGameData.interval = setInterval(() => {
+                const item = getRandomCatchItem();
+                const itemPos = Math.random() * 80 + 10;
+                const fallingEl = document.getElementById('fallingItem');
+                fallingEl.textContent = item.emoji;
+                fallingEl.style.left = itemPos + '%';
+                fallingEl.style.top = '0';
+
+                let fallPos = 0;
+                const fallSpeed = 5 * simpleGameData.speed;
+                const fallInterval = setInterval(() => {
+                    fallPos += fallSpeed;
+                    fallingEl.style.top = fallPos + 'px';
+
+                    if (fallPos >= 250) {
+                        clearInterval(fallInterval);
+                        if (Math.abs(itemPos - simpleGameData.position) < 15) {
+                            if (item.effect === 'slow') {
+                                simpleGameData.speed = 0.7;
+                                fallingEl.textContent = '🎁 减速！';
+                                setTimeout(() => { simpleGameData.speed = 1; }, 5000);
+                            } else if (item.points < 0) {
+                                simpleGameData.score = Math.max(0, simpleGameData.score + item.points);
+                                simpleGameData.combo = 0;
+                                fallingEl.textContent = `💥 ${item.points}`;
+                            } else {
+                                simpleGameData.combo++;
+                                const bonus = Math.floor(simpleGameData.combo / 5);
+                                simpleGameData.score += item.points + bonus;
+                                fallingEl.textContent = `✨ +${item.points + bonus}`;
+                            }
+                            document.getElementById('simpleGameScore').textContent =
+                                `得分：${simpleGameData.score} | 连击：${simpleGameData.combo} ${simpleGameData.combo >= 5 ? '🔥' : ''}| 时间：${timeLeft}秒`;
+                        } else {
+                            if (item.points > 0) simpleGameData.combo = 0;
+                        }
+                    }
+                }, 50);
+            }, 1200 / simpleGameData.speed);
+        }
+
+        function moveBasket(event, direction) {
+            if (event) event.stopPropagation();
+            simpleGameData.position = Math.max(5, Math.min(85, simpleGameData.position + direction * 10));
+            document.getElementById('basket').style.left = simpleGameData.position + '%';
+        }
+
+        // ========== 通用游戏数据 ==========
+        let universalGameData = {
+            currentGame: '',
+            score: 0,
+            gameInterval: null,
+            gameData: {} // 每个游戏专用数据
+        };
+
+        function showUniversalGame(gameName, initFunction) {
+            if (event) event.stopPropagation();
+            hideAllScreens();
+            document.getElementById('universalGame').classList.remove('hidden');
+            universalGameData.currentGame = gameName;
+            universalGameData.score = 0;
+            universalGameData.gameData = {};
+            gameState = 'universal_' + gameName;
+            initFunction();
+        }
+
+        // ========== 1. 调酒师游戏（升级版）==========
+        function showBartenderGame(event) {
+            showUniversalGame('bartender', initBartenderGame);
+        }
+
+        function initBartenderGame() {
+            document.getElementById('universalGameTitle').textContent = '🍹 调酒师酒吧';
+
+            universalGameData.gameData = {
+                money: 200,
+                reputation: 100,
+                completed: 0,
+                failed: 0,
+                customers: [],
+                currentDrink: [],
+                shaking: false,
+                shakeTime: 0,
+                drinks: {
+                    '马天尼': { ingredients: ['🍸伏特加', '🌿苦艾酒'], needShake: true, price: 80, difficulty: 1 },
+                    '莫吉托': { ingredients: ['🥃朗姆酒', '🍋青柠', '🌿薄荷', '🧊冰块'], needShake: false, price: 70, difficulty: 1 },
+                    '玛格丽特': { ingredients: ['🥃龙舌兰', '🍋青柠', '🧂盐'], needShake: true, price: 75, difficulty: 1 },
+                    '长岛冰茶': { ingredients: ['🍸伏特加', '🥃朗姆酒', '🥃龙舌兰', '🍋柠檬', '🥤可乐'], needShake: true, price: 90, difficulty: 2 }
+                }
+            };
+
+            if (universalGameData.gameInterval) clearInterval(universalGameData.gameInterval);
+            universalGameData.gameInterval = setInterval(updateBar, 1000);
+
+            generateBarCustomer();
+            renderBartenderUI();
+        }
+
+        function updateBar() {
+            const data = universalGameData.gameData;
+
+            data.customers.forEach((customer, index) => {
+                customer.patience--;
+                if (customer.patience <= 0) {
+                    data.customers.splice(index, 1);
+                    data.failed++;
+                    data.reputation -= 10;
+                    alert('❌ 顾客等太久离开了！声誉-10');
+                }
+            });
+
+            if (data.shaking && data.shakeTime > 0) {
+                data.shakeTime--;
+                if (data.shakeTime === 0) {
+                    data.shaking = false;
+                }
+            }
+
+            renderBartenderUI();
+        }
+
+        function generateBarCustomer() {
+            const data = universalGameData.gameData;
+            if (data.customers.length >= 4) return;
+
+            const drinkNames = Object.keys(data.drinks);
+            const drinkName = drinkNames[Math.floor(Math.random() * drinkNames.length)];
+            const drink = data.drinks[drinkName];
+
+            data.customers.push({
+                name: drinkName,
+                recipe: drink,
+                patience: 25,
+                maxPatience: 25,
+                satisfaction: 100
+            });
+
+            setTimeout(() => generateBarCustomer(), Math.random() * 8000 + 5000);
+        }
+
+        function addBarIngredient(ingredient) {
+            if (event) event.stopPropagation();
+            const data = universalGameData.gameData;
+
+            if (data.shaking) {
+                alert('正在摇晃中！等一下！');
+                return;
+            }
+
+            data.currentDrink.push(ingredient);
+            renderBartenderUI();
+        }
+
+        function shakeDrink() {
+            if (event) event.stopPropagation();
+            const data = universalGameData.gameData;
+
+            if (data.currentDrink.length === 0) {
+                alert('杯子是空的！');
+                return;
+            }
+
+            data.shaking = true;
+            data.shakeTime = 3;
+            renderBartenderUI();
+        }
+
+        function serveBarDrink() {
+            if (event) event.stopPropagation();
+            const data = universalGameData.gameData;
+
+            if (data.shaking) {
+                alert('还在摇晃！等一下！');
+                return;
+            }
+
+            if (data.currentDrink.length === 0) {
+                alert('杯子是空的！');
+                return;
+            }
+
+            let matched = null;
+            for (const customer of data.customers) {
+                const sorted1 = [...data.currentDrink].sort();
+                const sorted2 = [...customer.recipe.ingredients].sort();
+                if (sorted1.length === sorted2.length && sorted1.every((val, idx) => val === sorted2[idx])) {
+                    matched = customer;
+                    break;
+                }
+            }
+
+            if (matched) {
+                const patienceBonus = Math.floor(matched.patience / matched.maxPatience * 20);
+                const shakeBonus = matched.recipe.needShake && data.shakeTime === 0 ? 10 : 0;
+                const totalEarning = matched.recipe.price + patienceBonus + shakeBonus;
+
+                data.money += totalEarning;
+                data.completed++;
+                data.reputation += 3;
+                alert(`✅ 完美！赚了 ${totalEarning} 元！${shakeBonus > 0 ? '\n摇晃技巧+10！' : ''}`);
+                data.customers = data.customers.filter(c => c !== matched);
+            } else {
+                data.money -= 25;
+                data.failed++;
+                data.reputation -= 5;
+                alert('❌ 调错了！赔了25元！');
+            }
+
+            data.currentDrink = [];
+            renderBartenderUI();
+        }
+
+        function clearBarDrink() {
+            if (event) event.stopPropagation();
+            universalGameData.gameData.currentDrink = [];
+            renderBartenderUI();
+        }
+
+        function renderBartenderUI() {
+            const data = universalGameData.gameData;
+
+            let html = '';
+
+            html += `
+                <div style="background: #fff3cd; padding: 10px; border-radius: 10px; margin-bottom: 15px;">
+                    <strong>🧑‍🤝‍🧑 顾客 (${data.customers.length}/4)</strong>
+                    ${data.customers.length === 0 ? '<div style="text-align: center; color: #999; margin-top: 8px;">等待顾客中...</div>' : ''}
+                    ${data.customers.map(c => {
+                const pPercent = (c.patience / c.maxPatience * 100).toFixed(0);
+                return `
+                            <div style="background: white; padding: 8px; border-radius: 5px; margin-top: 8px;">
+                                <div style="display: flex; justify-content: space-between;">
+                                    <strong>${c.name}</strong>
+                                    <span>${c.recipe.price}元</span>
+                                </div>
+                                <div style="font-size: 0.85em; color: #666;">
+                                    ${c.recipe.ingredients.join(' + ')} ${c.recipe.needShake ? '🥃摇晃' : ''}
+                                </div>
+                                <div style="margin-top: 5px;">
+                                    <strong style="font-size: 0.9em;">耐心：${c.patience}秒</strong>
+                                    <div style="background: #ddd; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 3px;">
+                                        <div style="background: ${c.patience > 12 ? '#28a745' : '#dc3545'}; height: 100%; width: ${pPercent}%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+            }).join('')}
+                </div>
+            `;
+
+            html += `
+                <div style="background: ${data.shaking ? '#ffcccc' : '#e7f3ff'}; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                    <strong>🍸 调酒台</strong>
+                    <div style="background: white; padding: 15px; border-radius: 5px; margin: 10px 0; min-height: 60px;">
+                        <div style="font-size: 1.3em; text-align: center;">
+                            ${data.currentDrink.length > 0 ? data.currentDrink.join(' + ') : '空杯子'}
+                            ${data.shaking ? `<br><span style="color: #ff6b6b;">🥃 摇晃中... ${data.shakeTime}秒</span>` : ''}
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                        <button class="btn" onclick="shakeDrink()" style="background: #ffc107;" ${data.shaking ? 'disabled' : ''}>🥃 摇晃 (3秒)</button>
+                        <button class="btn" onclick="serveBarDrink()" style="background: #28a745;">✅ 上酒</button>
+                        <button class="btn" onclick="clearBarDrink()" style="background: #dc3545;">🗑️ 倒掉</button>
+                    </div>
+                </div>
+            `;
+
+            html += `
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                    <strong>🧪 原料库</strong>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px;">
+                        <button class="btn" onclick="addBarIngredient('🍸伏特加')" ${data.shaking ? 'disabled' : ''}>🍸伏特加</button>
+                        <button class="btn" onclick="addBarIngredient('🥃朗姆酒')" ${data.shaking ? 'disabled' : ''}>🥃朗姆酒</button>
+                        <button class="btn" onclick="addBarIngredient('🥃龙舌兰')" ${data.shaking ? 'disabled' : ''}>🥃龙舌兰</button>
+                        <button class="btn" onclick="addBarIngredient('🌿苦艾酒')" ${data.shaking ? 'disabled' : ''}>🌿苦艾酒</button>
+                        <button class="btn" onclick="addBarIngredient('🌿薄荷')" ${data.shaking ? 'disabled' : ''}>🌿薄荷</button>
+                        <button class="btn" onclick="addBarIngredient('🍋青柠')" ${data.shaking ? 'disabled' : ''}>🍋青柠</button>
+                        <button class="btn" onclick="addBarIngredient('🍋柠檬')" ${data.shaking ? 'disabled' : ''}>🍋柠檬</button>
+                        <button class="btn" onclick="addBarIngredient('🧂盐')" ${data.shaking ? 'disabled' : ''}>🧂盐</button>
+                        <button class="btn" onclick="addBarIngredient('🧊冰块')" ${data.shaking ? 'disabled' : ''}>🧊冰块</button>
+                        <button class="btn" onclick="addBarIngredient('🥤可乐')" ${data.shaking ? 'disabled' : ''}>🥤可乐</button>
+                    </div>
+                </div>
+
+                <div style="background: #d1ecf1; padding: 10px; border-radius: 10px; font-size: 0.85em; text-align: center;">
+                    💡 加原料→需要的话摇晃→上酒！<br>
+                    摇晃需要3秒，正确摇晃有额外奖励！
+                </div>
+            `;
+
+            document.getElementById('universalGameContent').innerHTML = html;
+            document.getElementById('universalGameScore').textContent =
+                `💰 ${data.money}元 | ⭐ ${data.reputation}声誉 | ✅ ${data.completed}杯 | ❌ ${data.failed}杯`;
+        }
+
+        // ========== 2. 咖啡店游戏 ==========
+        function showCafeGame(event) {
+            showUniversalGame('cafe', initCafeGame);
+        }
+
+        function initCafeGame() {
+            document.getElementById('universalGameTitle').textContent = '☕ 咖啡店';
+
+            const coffeeTypes = {
+                '美式咖啡': { steps: ['☕咖啡', '💧热水'], price: 25 },
+                '拿铁': { steps: ['☕咖啡', '🥛牛奶'], price: 35 },
+                '卡布奇诺': { steps: ['☕咖啡', '🥛牛奶', '🫧奶泡'], price: 38 },
+                '摩卡': { steps: ['☕咖啡', '🥛牛奶', '🍫巧克力'], price: 40 }
+            };
+
+            universalGameData.gameData = {
+                coffeeTypes: coffeeTypes,
+                currentOrder: null,
+                currentCup: [],
+                money: 0,
+                completed: 0
+            };
+
+            renderCafeUI();
+            generateCafeOrder();
+        }
+
+        function generateCafeOrder() {
+            const types = Object.keys(universalGameData.gameData.coffeeTypes);
+            const coffeeName = types[Math.floor(Math.random() * types.length)];
+            universalGameData.gameData.currentOrder = {
+                name: coffeeName,
+                recipe: universalGameData.gameData.coffeeTypes[coffeeName]
+            };
+            renderCafeUI();
+        }
+
+        function addCoffeeStep(step) {
+            if (event) event.stopPropagation();
+            universalGameData.gameData.currentCup.push(step);
+            renderCafeUI();
+        }
+
+        function serveCoffee() {
+            if (event) event.stopPropagation();
+            const order = universalGameData.gameData.currentOrder;
+            const current = universalGameData.gameData.currentCup;
+
+            const sorted1 = [...current].sort();
+            const sorted2 = [...order.recipe.steps].sort();
+            const isCorrect = sorted1.length === sorted2.length &&
+                sorted1.every((val, idx) => val === sorted2[idx]);
+
+            if (isCorrect) {
+                universalGameData.gameData.money += order.recipe.price;
+                universalGameData.gameData.completed++;
+                alert(`✅ 完美！赚了 ${order.recipe.price} 元！`);
+            } else {
+                universalGameData.gameData.money -= 15;
+                alert(`❌ 错误！赔了 15 元！`);
+            }
+
+            universalGameData.gameData.currentCup = [];
+            generateCafeOrder();
+        }
+
+        function clearCoffee() {
+            if (event) event.stopPropagation();
+            universalGameData.gameData.currentCup = [];
+            renderCafeUI();
+        }
+
+        function renderCafeUI() {
+            const data = universalGameData.gameData;
+            const order = data.currentOrder;
+
+            let html = `
+                <div style="background: #fff3cd; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                    <strong>📋 客人点单：${order.name}</strong><br>
+                    <span style="color: #666;">需要：${order.recipe.steps.join(' → ')}</span><br>
+                    <span style="color: #28a745;">💰 ${order.recipe.price}元</span>
+                </div>
+
+                <div style="background: #e7f3ff; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                    <strong>☕ 当前制作：</strong><br>
+                    <div style="font-size: 1.5em; margin: 10px 0; min-height: 40px;">
+                        ${data.currentCup.join(' + ') || '空杯子'}
+                    </div>
+                    <button class="btn" onclick="serveCoffee()" style="background: #28a745; margin-right: 5px;">✅ 上咖啡</button>
+                    <button class="btn" onclick="clearCoffee()" style="background: #dc3545;">🗑️ 倒掉</button>
+                </div>
+
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 10px;">
+                    <strong>☕ 材料：</strong><br>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px;">
+                        <button class="btn" onclick="addCoffeeStep('☕咖啡')">☕咖啡</button>
+                        <button class="btn" onclick="addCoffeeStep('💧热水')">💧热水</button>
+                        <button class="btn" onclick="addCoffeeStep('🥛牛奶')">🥛牛奶</button>
+                        <button class="btn" onclick="addCoffeeStep('🫧奶泡')">🫧奶泡</button>
+                        <button class="btn" onclick="addCoffeeStep('🍫巧克力')">🍫巧克力</button>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('universalGameContent').innerHTML = html;
+            document.getElementById('universalGameScore').textContent =
+                `💰 ${data.money}元 | 完成: ${data.completed} 杯`;
+        }
+
+        // ========== 3. 农场游戏 ==========
+        function showFarmGame(event) {
+            showUniversalGame('farm', initFarmGame);
+        }
+
+        function initFarmGame() {
+            document.getElementById('universalGameTitle').textContent = '🌾 农场';
+
+            universalGameData.gameData = {
+                money: 100,
+                plots: [
+                    { id: 0, crop: null, stage: 0, maxStage: 3 },
+                    { id: 1, crop: null, stage: 0, maxStage: 3 },
+                    { id: 2, crop: null, stage: 0, maxStage: 3 },
+                    { id: 3, crop: null, stage: 0, maxStage: 3 }
+                ],
+                crops: {
+                    '🌾小麦': { cost: 20, sellPrice: 50, emoji: '🌾', stages: ['🟫', '🌱', '🌿', '🌾'] },
+                    '🥕萝卜': { cost: 30, sellPrice: 70, emoji: '🥕', stages: ['🟫', '🌱', '🌿', '🥕'] },
+                    '🌽玉米': { cost: 40, sellPrice: 100, emoji: '🌽', stages: ['🟫', '🌱', '🌿', '🌽'] }
+                }
+            };
+
+            renderFarmUI();
+        }
+
+        function plantCrop(plotId, cropName) {
+            if (event) event.stopPropagation();
+            const data = universalGameData.gameData;
+            const plot = data.plots[plotId];
+            const crop = data.crops[cropName];
+
+            if (plot.crop) {
+                alert('这块地已经种了东西！');
+                return;
+            }
+
+            if (data.money < crop.cost) {
+                alert('钱不够！');
+                return;
+            }
+
+            data.money -= crop.cost;
+            plot.crop = cropName;
+            plot.stage = 1;
+            renderFarmUI();
+        }
+
+        function waterCrop(plotId) {
+            if (event) event.stopPropagation();
+            const plot = universalGameData.gameData.plots[plotId];
+
+            if (!plot.crop) {
+                alert('这块地没种东西！');
+                return;
+            }
+
+            if (plot.stage >= plot.maxStage) {
+                alert('已经成熟了！快收获吧！');
+                return;
+            }
+
+            plot.stage++;
+            renderFarmUI();
+        }
+
+        function harvestCrop(plotId) {
+            if (event) event.stopPropagation();
+            const data = universalGameData.gameData;
+            const plot = data.plots[plotId];
+
+            if (!plot.crop) {
+                alert('这块地没种东西！');
+                return;
+            }
+
+            if (plot.stage < plot.maxStage) {
+                alert('还没成熟！');
+                return;
+            }
+
+            const crop = data.crops[plot.crop];
+            data.money += crop.sellPrice;
+            alert(`✅ 收获了${crop.emoji}！卖了 ${crop.sellPrice} 元！`);
+
+            plot.crop = null;
+            plot.stage = 0;
+            renderFarmUI();
+        }
+
+        function renderFarmUI() {
+            const data = universalGameData.gameData;
+
+            let plotsHtml = '';
+            data.plots.forEach(plot => {
+                const crop = plot.crop ? data.crops[plot.crop] : null;
+                const stageEmoji = crop ? crop.stages[plot.stage] : '🟫';
+                const canHarvest = plot.crop && plot.stage >= plot.maxStage;
+
+                plotsHtml += `
+                    <div style="background: #8B4513; padding: 15px; border-radius: 10px; text-align: center;">
+                        <div style="font-size: 3em; margin: 10px 0;">${stageEmoji}</div>
+                        <div style="margin-top: 5px;">
+                            ${!plot.crop ? `
+                                <select id="cropSelect${plot.id}" style="padding: 5px; margin-bottom: 5px; width: 100%;">
+                                    <option value="">选择作物</option>
+                                    ${Object.keys(data.crops).map(name =>
+                    `<option value="${name}">${name} (${data.crops[name].cost}元)</option>`
+                ).join('')}
+                                </select>
+                                <button class="btn" onclick="plantCrop(${plot.id}, document.getElementById('cropSelect${plot.id}').value)" style="font-size: 0.8em; padding: 5px 10px; width: 100%;">播种</button>
+                            ` : canHarvest ? `
+                                <button class="btn" onclick="harvestCrop(${plot.id})" style="background: #28a745; font-size: 0.8em; padding: 5px 10px; width: 100%;">🌾 收获</button>
+                            ` : `
+                                <button class="btn" onclick="waterCrop(${plot.id})" style="background: #17a2b8; font-size: 0.8em; padding: 5px 10px; width: 100%;">💧 浇水</button>
+                            `}
+                        </div>
+                    </div>
+                `;
+            });
+
+            let html = `
+                <div style="background: #d4edda; padding: 15px; border-radius: 10px; margin-bottom: 15px; text-align: center;">
+                    <strong>💰 农场资金：${data.money} 元</strong>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                    ${plotsHtml}
+                </div>
+
+                <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 10px; font-size: 0.9em;">
+                    <strong>💡 提示：</strong>播种 → 浇水 → 浇水 → 收获
+                </div>
+            `;
+
+            document.getElementById('universalGameContent').innerHTML = html;
+            document.getElementById('universalGameScore').textContent = `💰 ${data.money}元`;
+        }
+
+        // ========== 4. 便利店游戏（升级版）==========
+        function showConvenienceGame(event) {
+            showUniversalGame('convenience', initConvenienceGame);
+        }
+
+        function initConvenienceGame() {
+            document.getElementById('universalGameTitle').textContent = '🏪 便利店经营';
+
+            universalGameData.gameData = {
+                money: 200,
+                reputation: 100,
+                day: 1,
+                customersServed: 0,
+                customersLost: 0,
+                customerQueue: [],
+                currentCustomer: null,
+                inventory: {
+                    '🍞面包': { stock: 10, shelfStock: 5, price: 8, cost: 3 },
+                    '🥛牛奶': { stock: 10, shelfStock: 5, price: 12, cost: 5 },
+                    '🍫巧克力': { stock: 10, shelfStock: 5, price: 10, cost: 4 },
+                    '🍎苹果': { stock: 10, shelfStock: 5, price: 6, cost: 2 },
+                    '🥤饮料': { stock: 10, shelfStock: 5, price: 10, cost: 4 },
+                    '🍜泡面': { stock: 0, shelfStock: 0, price: 15, cost: 6, unlocked: false }
+                },
+                stage: 'waiting', // waiting, serving, restocking
+                nextCustomerTime: 5
+            };
+
+            // 开始游戏循环
+            if (universalGameData.gameInterval) clearInterval(universalGameData.gameInterval);
+            universalGameData.gameInterval = setInterval(updateConvenienceStore, 1000);
+
+            renderConvenienceUI();
+        }
+
+        function updateConvenienceStore() {
+            const data = universalGameData.gameData;
+
+            // 生成新顾客
+            data.nextCustomerTime--;
+            if (data.nextCustomerTime <= 0 && data.customerQueue.length < 3) {
+                generateStoreCustomer();
+                data.nextCustomerTime = Math.floor(Math.random() * 5) + 3;
+            }
+
+            // 顾客等待超时
+            data.customerQueue.forEach((customer, index) => {
+                customer.patience--;
+                if (customer.patience <= 0) {
+                    data.customerQueue.splice(index, 1);
+                    data.customersLost++;
+                    data.reputation -= 5;
+                    alert('❌ 顾客等太久离开了！声誉-5');
+                }
+            });
+
+            // 自动服务第一个顾客
+            if (data.stage === 'waiting' && data.customerQueue.length > 0 && !data.currentCustomer) {
+                data.currentCustomer = data.customerQueue.shift();
+                data.stage = 'serving';
+            }
+
+            renderConvenienceUI();
+        }
+
+        function generateStoreCustomer() {
+            const data = universalGameData.gameData;
+            const availableItems = Object.keys(data.inventory).filter(name => {
+                const item = data.inventory[name];
+                return item.shelfStock > 0 && (item.unlocked !== false);
+            });
+
+            if (availableItems.length === 0) {
+                alert('⚠️ 货架空了！快补货！');
+                return;
+            }
+
+            const numItems = Math.floor(Math.random() * 2) + 1;
+            const wantedItems = [];
+            for (let i = 0; i < numItems; i++) {
+                const itemName = availableItems[Math.floor(Math.random() * availableItems.length)];
+                wantedItems.push({
+                    name: itemName,
+                    price: data.inventory[itemName].price
+                });
+            }
+
+            data.customerQueue.push({
+                items: wantedItems,
+                patience: 15,
+                maxPatience: 15
+            });
+        }
+
+        function serveCustomer() {
+            if (event) event.stopPropagation();
+            const data = universalGameData.gameData;
+            const customer = data.currentCustomer;
+
+            if (!customer) return;
+
+            // 检查库存
+            let canServe = true;
+            customer.items.forEach(item => {
+                if (data.inventory[item.name].shelfStock <= 0) {
+                    canServe = false;
+                }
+            });
+
+            if (!canServe) {
+                alert('❌ 货架上没货了！请先补货！');
+                return;
+            }
+
+            // 扣除库存
+            let total = 0;
+            customer.items.forEach(item => {
+                data.inventory[item.name].shelfStock--;
+                total += item.price;
+            });
+
+            // 找零计算
+            const userChange = parseInt(document.getElementById('changeInput').value);
+            const payment = total + Math.floor(Math.random() * 15) + 5;
+            const correctChange = payment - total;
+
+            if (userChange === correctChange) {
+                data.money += total;
+                data.customersServed++;
+                data.reputation += 2;
+                alert(`✅ 正确！赚了 ${total} 元！`);
+
+                data.currentCustomer = null;
+                data.stage = 'waiting';
+            } else {
+                alert(`❌ 找零错误！应该找 ${correctChange} 元！\n声誉-3`);
+                data.reputation -= 3;
+            }
+
+            renderConvenienceUI();
+        }
+
+        function restockShelf(itemName) {
+            if (event) event.stopPropagation();
+            const data = universalGameData.gameData;
+            const item = data.inventory[itemName];
+
+            if (item.stock <= 0) {
+                alert('仓库没货了！请先进货！');
+                return;
+            }
+
+            const amount = Math.min(5, item.stock);
+            item.stock -= amount;
+            item.shelfStock += amount;
+
+            renderConvenienceUI();
+        }
+
+        function purchaseStock(itemName) {
+            if (event) event.stopPropagation();
+            const data = universalGameData.gameData;
+            const item = data.inventory[itemName];
+
+            const purchaseAmount = 10;
+            const totalCost = item.cost * purchaseAmount;
+
+            if (data.money < totalCost) {
+                alert(`钱不够！需要 ${totalCost} 元！`);
+                return;
+            }
+
+            data.money -= totalCost;
+            item.stock += purchaseAmount;
+            alert(`✅ 进货成功！花费 ${totalCost} 元`);
+
+            renderConvenienceUI();
+        }
+
+        function unlockNewProduct() {
+            if (event) event.stopPropagation();
+            const data = universalGameData.gameData;
+
+            if (data.inventory['🍜泡面'].unlocked) {
+                alert('已经解锁了！');
+                return;
+            }
+
+            if (data.money < 100) {
+                alert('钱不够！需要 100 元！');
+                return;
+            }
+
+            data.money -= 100;
+            data.inventory['🍜泡面'].unlocked = true;
+            data.inventory['🍜泡面'].stock = 10;
+            data.inventory['🍜泡面'].shelfStock = 5;
+            alert('✅ 解锁新商品：🍜泡面！');
+
+            renderConvenienceUI();
+        }
+
+        function renderConvenienceUI() {
+            const data = universalGameData.gameData;
+
+            let html = '';
+
+            // 当前服务的顾客
+            if (data.currentCustomer) {
+                const customer = data.currentCustomer;
+                const patiencePercent = (customer.patience / customer.maxPatience * 100).toFixed(0);
+                const total = customer.items.reduce((sum, item) => sum + item.price, 0);
+                const payment = total + Math.floor(Math.random() * 15) + 5;
+
+                html += `
+                    <div style="background: #fff3cd; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 3px solid #ff6b6b;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <strong>🧑 当前顾客</strong>
+                            <div>
+                                <strong>耐心：${customer.patience}秒</strong>
+                                <div style="background: #ddd; height: 8px; width: 100px; border-radius: 5px; overflow: hidden; display: inline-block; margin-left: 10px;">
+                                    <div style="background: ${customer.patience > 5 ? '#28a745' : '#dc3545'}; height: 100%; width: ${patiencePercent}%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="background: white; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+                            ${customer.items.map(item => `${item.name} ${item.price}元`).join('<br>')}
+                        </div>
+                        <div style="border-top: 2px solid #000; padding-top: 8px; margin-bottom: 10px;">
+                            <strong>总计：${total} 元</strong><br>
+                            <strong style="color: #007bff;">顾客支付：${payment} 元</strong>
+                        </div>
+                        <input type="number" id="changeInput" placeholder="输入找零金额" style="width: 100%; padding: 8px; margin-bottom: 8px; font-size: 1em; border: 2px solid #007bff; border-radius: 5px;">
+                        <button class="btn" onclick="serveCustomer()" style="background: #28a745; width: 100%; padding: 10px;">💵 收银结账</button>
+                    </div>
+                `;
+            }
+
+            // 排队顾客
+            if (data.customerQueue.length > 0) {
+                html += `
+                    <div style="background: #e7f3ff; padding: 10px; border-radius: 10px; margin-bottom: 15px;">
+                        <strong>👥 排队中：${data.customerQueue.length} 人</strong>
+                        <div style="margin-top: 8px;">
+                            ${data.customerQueue.map((c, i) => `
+                                <div style="display: inline-block; margin: 3px; padding: 5px 10px; background: white; border-radius: 5px; font-size: 0.85em;">
+                                    🧑 ${c.patience}秒
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            } else if (!data.currentCustomer) {
+                html += `
+                    <div style="background: #d4edda; padding: 15px; border-radius: 10px; margin-bottom: 15px; text-align: center;">
+                        <strong>✓ 暂无顾客</strong><br>
+                        <span style="font-size: 0.9em; color: #666;">下一个顾客 ${data.nextCustomerTime} 秒后到达</span>
+                    </div>
+                `;
+            }
+
+            // 货架库存
+            html += `
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                    <strong>🏪 货架管理</strong>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 10px;">
+                        ${Object.entries(data.inventory).filter(([_, item]) => item.unlocked !== false).map(([name, item]) => `
+                            <div style="background: white; padding: 8px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong>${name}</strong> ${item.price}元
+                                    <div style="font-size: 0.85em; color: #666;">
+                                        货架：${item.shelfStock} | 仓库：${item.stock}
+                                    </div>
+                                </div>
+                                <div>
+                                    <button class="btn" onclick="restockShelf('${name}')" style="background: #17a2b8; font-size: 0.8em; padding: 5px 10px; margin-right: 3px;">📦 补货</button>
+                                    <button class="btn" onclick="purchaseStock('${name}')" style="background: #ffc107; font-size: 0.8em; padding: 5px 10px;">💰 进货(${item.cost * 10}元)</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div style="background: #d1ecf1; padding: 10px; border-radius: 10px; margin-bottom: 15px;">
+                    <strong>🎁 商店升级</strong><br>
+                    <button class="btn" onclick="unlockNewProduct()" style="background: #ff6b6b; margin-top: 8px; font-size: 0.9em; padding: 8px 15px;"
+                        ${data.inventory['🍜泡面'].unlocked ? 'disabled' : ''}>
+                        ${data.inventory['🍜泡面'].unlocked ? '✓ 已解锁泡面' : '🔓 解锁新商品：🍜泡面 (100元)'}
+                    </button>
+                </div>
+
+                <div style="background: #fff3cd; padding: 10px; border-radius: 10px; font-size: 0.85em; text-align: center;">
+                    💡 及时补货上架！服务顾客要算准找零！<br>
+                    进货有成本，卖出才赚钱！
+                </div>
+            `;
+
+            document.getElementById('universalGameContent').innerHTML = html;
+            document.getElementById('universalGameScore').textContent =
+                `💰 ${data.money}元 | ⭐ ${data.reputation}声誉 | ✅ ${data.customersServed}人 | ❌ ${data.customersLost}人`;
+        }
+
+        // ========== 5. 蛋糕店游戏（升级版）==========
+        function showCakeGame(event) {
+            showUniversalGame('cake', initCakeGame);
+        }
+
+        function initCakeGame() {
+            document.getElementById('universalGameTitle').textContent = '🎂 蛋糕店烘焙';
+
+            universalGameData.gameData = {
+                money: 300,
+                reputation: 100,
+                completed: 0,
+                failed: 0,
+                orders: [],
+                oven: null,
+                stage: 'idle',
+                recipes: {
+                    '草莓蛋糕': { base: '🍰蛋糕胚', toppings: ['🍓草莓', '🍦奶油'], bakeTime: 8, price: 80 },
+                    '巧克力蛋糕': { base: '🍫巧克力胚', toppings: ['🍫巧克力酱'], bakeTime: 10, price: 90 },
+                    '水果蛋糕': { base: '🍰蛋糕胚', toppings: ['🍓草莓', '🫐蓝莓', '🍌香蕉'], bakeTime: 8, price: 120 },
+                    '奶油蛋糕': { base: '🍰蛋糕胚', toppings: ['🍦奶油', '🍒樱桃'], bakeTime: 8, price: 85 }
+                }
+            };
+
+            if (universalGameData.gameInterval) clearInterval(universalGameData.gameInterval);
+            universalGameData.gameInterval = setInterval(updateCakeShop, 1000);
+
+            renderCakeUI();
+            generateCakeOrder();
+        }
+
+        function updateCakeShop() {
+            const data = universalGameData.gameData;
+
+            // 订单超时
+            data.orders.forEach((order, index) => {
+                order.timeLeft--;
+                if (order.timeLeft <= 0) {
+                    data.orders.splice(index, 1);
+                    data.failed++;
+                    data.reputation -= 10;
+                    alert('❌ 订单超时！声誉-10');
+                }
+            });
+
+            // 烘焙进度
+            if (data.oven && data.oven.baking) {
+                data.oven.timeLeft--;
+                if (data.oven.timeLeft <= 0) {
+                    data.oven.baking = false;
+                    data.oven.done = true;
+                }
+            }
+
+            renderCakeUI();
+        }
+
+        function generateCakeOrder() {
+            const data = universalGameData.gameData;
+            if (data.orders.length >= 3) return;
+
+            const recipeNames = Object.keys(data.recipes);
+            const recipeName = recipeNames[Math.floor(Math.random() * recipeNames.length)];
+            const recipe = data.recipes[recipeName];
+
+            data.orders.push({
+                name: recipeName,
+                recipe: recipe,
+                timeLeft: 30,
+                maxTime: 30
+            });
+
+            setTimeout(() => generateCakeOrder(), Math.random() * 10000 + 5000);
+        }
+
+        function startBaking(cakeType) {
+            if (event) event.stopPropagation();
+            const data = universalGameData.gameData;
+
+            if (data.oven && (data.oven.baking || data.oven.done)) {
+                alert('烤箱还有蛋糕！先取出来！');
+                return;
+            }
+
+            const recipe = data.recipes[cakeType];
+            data.oven = {
+                cakeType: cakeType,
+                base: recipe.base,
+                toppings: [],
+                baking: true,
+                done: false,
+                timeLeft: recipe.bakeTime,
+                maxTime: recipe.bakeTime
+            };
+
+            renderCakeUI();
+        }
+
+        function takeFromOven() {
+            if (event) event.stopPropagation();
+            const data = universalGameData.gameData;
+
+            if (!data.oven || !data.oven.done) {
+                alert('蛋糕还没烤好！');
+                return;
+            }
+
+            data.oven.baking = false;
+            data.stage = 'decorating';
+            renderCakeUI();
+        }
+
+        function addTopping(topping) {
+            if (event) event.stopPropagation();
+            const data = universalGameData.gameData;
+
+            if (!data.oven || data.oven.baking) {
+                alert('请先从烤箱取出蛋糕！');
+                return;
+            }
+
+            data.oven.toppings.push(topping);
+            renderCakeUI();
+        }
+
+        function serveCakeOrder() {
+            if (event) event.stopPropagation();
+            const data = universalGameData.gameData;
+
+            if (!data.oven || data.oven.baking) {
+                alert('还没做好蛋糕！');
+                return;
+            }
+
+            // 查找匹配的订单
+            let matchedOrder = null;
+            for (const order of data.orders) {
+                const recipe = order.recipe;
+                if (data.oven.base === recipe.base) {
+                    const sorted1 = [...data.oven.toppings].sort();
+                    const sorted2 = [...recipe.toppings].sort();
+                    if (sorted1.length === sorted2.length && sorted1.every((val, idx) => val === sorted2[idx])) {
+                        matchedOrder = order;
+                        break;
+                    }
+                }
+            }
+
+            if (matchedOrder) {
+                const timeBonus = Math.floor(matchedOrder.timeLeft / matchedOrder.maxTime * 30);
+                const totalEarning = matchedOrder.recipe.price + timeBonus;
+                data.money += totalEarning;
+                data.completed++;
+                data.reputation += 5;
+                alert(`✅ 完美！赚了 ${totalEarning} 元！`);
+                data.orders = data.orders.filter(o => o !== matchedOrder);
+            } else {
+                data.money -= 30;
+                data.failed++;
+                data.reputation -= 5;
+                alert('❌ 蛋糕不对！赔了30元！');
+            }
+
+            data.oven = null;
+            data.stage = 'idle';
+            renderCakeUI();
+        }
+
+        function renderCakeUI() {
+            const data = universalGameData.gameData;
+
+            let html = '';
+
+            // 订单列表
+            html += `
+                <div style="background: #fff3cd; padding: 10px; border-radius: 10px; margin-bottom: 15px;">
+                    <strong>📋 订单列表 (${data.orders.length}/3)</strong>
+                    ${data.orders.length === 0 ? '<div style="text-align: center; color: #999; margin-top: 8px;">等待订单中...</div>' : ''}
+                    ${data.orders.map(order => {
+                const timePercent = (order.timeLeft / order.maxTime * 100).toFixed(0);
+                return `
+                            <div style="background: white; padding: 8px; border-radius: 5px; margin-top: 8px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                    <strong>${order.name}</strong>
+                                    <span>${order.recipe.price}元</span>
+                                </div>
+                                <div style="font-size: 0.85em; color: #666;">需要：${order.recipe.base} + ${order.recipe.toppings.join('、')}</div>
+                                <div style="margin-top: 5px;">
+                                    <strong style="font-size: 0.9em;">剩余：${order.timeLeft}秒</strong>
+                                    <div style="background: #ddd; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 3px;">
+                                        <div style="background: ${order.timeLeft > 15 ? '#28a745' : '#dc3545'}; height: 100%; width: ${timePercent}%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+            }).join('')}
+                </div>
+            `;
+
+            // 烤箱区域
+            if (!data.oven) {
+                html += `
+                    <div style="background: #ffe7f0; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                        <strong>🔥 烤箱（空闲）</strong>
+                        <div style="margin-top: 10px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                            ${Object.keys(data.recipes).map(name => `
+                                <button class="btn" onclick="startBaking('${name}')" style="background: #ff6b6b; font-size: 0.9em; padding: 10px;">
+                                    烤${name}
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            } else if (data.oven.baking) {
+                const progress = ((data.oven.maxTime - data.oven.timeLeft) / data.oven.maxTime * 100).toFixed(0);
+                html += `
+                    <div style="background: #ffcccc; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                        <strong>🔥 烤箱（烘焙中：${data.oven.cakeType}）</strong>
+                        <div style="font-size: 2em; text-align: center; margin: 15px 0;">🔥</div>
+                        <div style="margin-top: 10px;">
+                            <strong>烘焙进度：${data.oven.timeLeft}秒</strong>
+                            <div style="background: #ddd; height: 15px; border-radius: 10px; overflow: hidden; margin-top: 5px;">
+                                <div style="background: #ff6b6b; height: 100%; width: ${progress}%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (data.oven.done) {
+                html += `
+                    <div style="background: #d4edda; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                        <strong>✓ 烤箱（烘焙完成）</strong>
+                        <div style="font-size: 2em; text-align: center; margin: 15px 0;">${data.oven.base}</div>
+                        <button class="btn" onclick="takeFromOven()" style="background: #28a745; width: 100%; padding: 12px;">📤 取出蛋糕</button>
+                    </div>
+                `;
+            } else if (data.stage === 'decorating') {
+                html += `
+                    <div style="background: #e7f3ff; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                        <strong>🎨 装饰蛋糕</strong>
+                        <div style="background: white; padding: 15px; border-radius: 5px; margin: 10px 0;">
+                            <div style="font-size: 1.5em; text-align: center;">
+                                ${data.oven.base}
+                                ${data.oven.toppings.length > 0 ? '<br>+<br>' + data.oven.toppings.join(' + ') : ''}
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px;">
+                            <button class="btn" onclick="addTopping('🍓草莓')" style="background: #ff6b6b;">🍓草莓</button>
+                            <button class="btn" onclick="addTopping('🫐蓝莓')" style="background: #4169e1;">🫐蓝莓</button>
+                            <button class="btn" onclick="addTopping('🍌香蕉')" style="background: #ffd700;">🍌香蕉</button>
+                            <button class="btn" onclick="addTopping('🍫巧克力酱')" style="background: #8b4513;">🍫巧克力酱</button>
+                            <button class="btn" onclick="addTopping('🍦奶油')" style="background: #f0e68c;">🍦奶油</button>
+                            <button class="btn" onclick="addTopping('🍒樱桃')" style="background: #dc143c;">🍒樱桃</button>
+                        </div>
+                        <button class="btn" onclick="serveCakeOrder()" style="background: #28a745; width: 100%; padding: 12px;">✅ 交付订单</button>
+                    </div>
+                `;
+            }
+
+            html += `
+                <div style="background: #d1ecf1; padding: 10px; border-radius: 10px; font-size: 0.85em; text-align: center;">
+                    💡 选蛋糕→放烤箱→取出→装饰→交付！<br>
+                    及时完成订单有时间奖励！
+                </div>
+            `;
+
+            document.getElementById('universalGameContent').innerHTML = html;
+            document.getElementById('universalGameScore').textContent =
+                `💰 ${data.money}元 | ⭐ ${data.reputation}声誉 | ✅ ${data.completed}个 | ❌ ${data.failed}个`;
+        }
+
+        // ========== 6. 挖矿游戏 ==========
+        function showMiningGame(event) {
+            showUniversalGame('mining', initMiningGame);
+        }
+
+        function initMiningGame() {
+            document.getElementById('universalGameTitle').textContent = '⛏️ 挖矿';
+
+            universalGameData.gameData = {
+                money: 0,
+                energy: 100,
+                pickaxeLevel: 1,
+                ores: {
+                    '🪨石头': { chance: 0.5, value: 2 },
+                    '🟫铜矿': { chance: 0.25, value: 10 },
+                    '⚪铁矿': { chance: 0.15, value: 25 },
+                    '🟡金矿': { chance: 0.08, value: 50 },
+                    '💎钻石': { chance: 0.02, value: 200 }
+                }
+            };
+
+            renderMiningUI();
+        }
+
+        function mineOre() {
+            if (event) event.stopPropagation();
+            const data = universalGameData.gameData;
+
+            if (data.energy <= 0) {
+                alert('体力不足！升级镐子减少体力消耗！');
+                return;
+            }
+
+            data.energy -= Math.max(1, 10 - data.pickaxeLevel);
+
+            // 随机挖到矿石
+            const rand = Math.random();
+            let cumulative = 0;
+            let found = null;
+
+            for (const [name, ore] of Object.entries(data.ores)) {
+                cumulative += ore.chance;
+                if (rand <= cumulative) {
+                    found = { name, value: ore.value };
+                    break;
+                }
+            }
+
+            if (found) {
+                data.money += found.value;
+                alert(`⛏️ 挖到了 ${found.name}！+${found.value}元！`);
+            }
+
+            renderMiningUI();
+        }
+
+        function upgradePickaxe() {
+            if (event) event.stopPropagation();
+            const data = universalGameData.gameData;
+            const cost = data.pickaxeLevel * 100;
+
+            if (data.money < cost) {
+                alert(`钱不够！需要 ${cost} 元！`);
+                return;
+            }
+
+            data.money -= cost;
+            data.pickaxeLevel++;
+            alert(`✅ 升级成功！镐子等级：${data.pickaxeLevel}`);
+            renderMiningUI();
+        }
+
+        function restEnergy() {
+            if (event) event.stopPropagation();
+            universalGameData.gameData.energy = 100;
+            renderMiningUI();
+        }
+
+        function renderMiningUI() {
+            const data = universalGameData.gameData;
+
+            let html = `
+                <div style="background: #6c757d; color: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; text-align: center;">
+                    <div style="font-size: 1.2em; margin-bottom: 10px;">
+                        💪 体力：${data.energy}/100
+                    </div>
+                    <div style="background: #495057; height: 20px; border-radius: 10px; overflow: hidden;">
+                        <div style="background: linear-gradient(90deg, #28a745, #20c997); height: 100%; width: ${data.energy}%; transition: width 0.3s;"></div>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin: 30px 0;">
+                    <div style="font-size: 5em; margin-bottom: 20px;">⛰️</div>
+                    <button class="btn" onclick="mineOre()" style="background: #ff6b6b; font-size: 1.3em; padding: 15px 40px;">
+                        ⛏️ 挖矿
+                    </button>
+                </div>
+
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-top: 15px;">
+                    <strong>🔧 镐子等级：${data.pickaxeLevel}</strong><br>
+                    <span style="color: #666; font-size: 0.9em;">每次消耗体力：${Math.max(1, 10 - data.pickaxeLevel)}</span><br>
+                    <button class="btn" onclick="upgradePickaxe()" style="background: #ffc107; margin-top: 10px;">
+                        ⬆️ 升级镐子 (${data.pickaxeLevel * 100}元)
+                    </button>
+                    <button class="btn" onclick="restEnergy()" style="background: #17a2b8; margin-top: 10px; margin-left: 5px;">
+                        😴 休息恢复
+                    </button>
+                </div>
+
+                <div style="background: #d1ecf1; padding: 10px; border-radius: 10px; margin-top: 10px; font-size: 0.85em;">
+                    <strong>💎 矿石价值：</strong>
+                    ${Object.entries(data.ores).map(([name, ore]) =>
+                `${name} ${ore.value}元`
+            ).join(' | ')}
+                </div>
+            `;
+
+            document.getElementById('universalGameContent').innerHTML = html;
+            document.getElementById('universalGameScore').textContent = `💰 ${data.money}元`;
+        }
+
+        // ========== 7. 宠物店游戏 ==========
+        function showPetGame(event) {
+            showUniversalGame('pet', initPetGame);
+        }
+
+        function initPetGame() {
+            document.getElementById('universalGameTitle').textContent = '🐶 宠物店';
+
+            universalGameData.gameData = {
+                money: 0,
+                pet: {
+                    type: '🐶',
+                    name: '旺财',
+                    hunger: 50,
+                    happiness: 50,
+                    cleanliness: 50
+                },
+                customers: 0
+            };
+
+            renderPetUI();
+        }
+
+        function feedPet() {
+            if (event) event.stopPropagation();
+            const pet = universalGameData.gameData.pet;
+            pet.hunger = Math.min(100, pet.hunger + 30);
+            pet.happiness = Math.min(100, pet.happiness + 10);
+            renderPetUI();
+        }
+
+        function playWithPet() {
+            if (event) event.stopPropagation();
+            const pet = universalGameData.gameData.pet;
+            pet.happiness = Math.min(100, pet.happiness + 30);
+            pet.hunger = Math.max(0, pet.hunger - 10);
+            renderPetUI();
+        }
+
+        function bathePet() {
+            if (event) event.stopPropagation();
+            const pet = universalGameData.gameData.pet;
+            pet.cleanliness = 100;
+            pet.happiness = Math.min(100, pet.happiness + 10);
+            renderPetUI();
+        }
+
+        function adoptPet() {
+            if (event) event.stopPropagation();
+            const data = universalGameData.gameData;
+            const pet = data.pet;
+
+            if (pet.hunger < 70 || pet.happiness < 70 || pet.cleanliness < 70) {
+                alert('宠物状态不够好，没人领养！需要三项都≥70！');
+                return;
+            }
+
+            const price = Math.floor((pet.hunger + pet.happiness + pet.cleanliness) / 3);
+            data.money += price;
+            data.customers++;
+            alert(`✅ 领养成功！赚了 ${price} 元！`);
+
+            // 重置宠物
+            pet.hunger = 50;
+            pet.happiness = 50;
+            pet.cleanliness = 50;
+            renderPetUI();
+        }
+
+        function renderPetUI() {
+            const data = universalGameData.gameData;
+            const pet = data.pet;
+
+            let html = `
+                <div style="text-align: center; margin: 20px 0;">
+                    <div style="font-size: 5em;">${pet.type}</div>
+                    <div style="font-size: 1.2em; margin-top: 10px;">${pet.name}</div>
+                </div>
+
+                <div style="background: #fff3cd; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                    <div style="margin-bottom: 10px;">
+                        <strong>🍖 饥饿度：${pet.hunger}</strong>
+                        <div style="background: #ddd; height: 15px; border-radius: 10px; overflow: hidden; margin-top: 5px;">
+                            <div style="background: ${pet.hunger > 50 ? '#28a745' : '#dc3545'}; height: 100%; width: ${pet.hunger}%; transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                        <strong>😊 快乐度：${pet.happiness}</strong>
+                        <div style="background: #ddd; height: 15px; border-radius: 10px; overflow: hidden; margin-top: 5px;">
+                            <div style="background: ${pet.happiness > 50 ? '#ffc107' : '#dc3545'}; height: 100%; width: ${pet.happiness}%; transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <strong>🛁 清洁度：${pet.cleanliness}</strong>
+                        <div style="background: #ddd; height: 15px; border-radius: 10px; overflow: hidden; margin-top: 5px;">
+                            <div style="background: ${pet.cleanliness > 50 ? '#17a2b8' : '#dc3545'}; height: 100%; width: ${pet.cleanliness}%; transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px;">
+                    <button class="btn" onclick="feedPet()" style="background: #28a745;">🍖 喂食</button>
+                    <button class="btn" onclick="playWithPet()" style="background: #ffc107;">🎾 玩耍</button>
+                    <button class="btn" onclick="bathePet()" style="background: #17a2b8;">🛁 洗澡</button>
+                    <button class="btn" onclick="adoptPet()" style="background: #ff6b6b;">💝 送养</button>
+                </div>
+
+                <div style="background: #d4edda; padding: 10px; border-radius: 10px; text-align: center; font-size: 0.9em;">
+                    💡 三项都≥70才能送养！
+                </div>
+            `;
+
+            document.getElementById('universalGameContent').innerHTML = html;
+            document.getElementById('universalGameScore').textContent =
+                `💰 ${data.money}元 | 送养: ${data.customers} 只`;
+        }
+
+        // ========== 8. 美术馆游戏 ==========
+        function showArtGame(event) {
+            showUniversalGame('art', initArtGame);
+        }
+
+        function initArtGame() {
+            document.getElementById('universalGameTitle').textContent = '🎨 美术馆';
+
+            universalGameData.gameData = {
+                money: 0,
+                fame: 0,
+                currentPainting: {
+                    colors: [],
+                    value: 0
+                }
+            };
+
+            renderArtUI();
+        }
+
+        function addColor(color) {
+            if (event) event.stopPropagation();
+            const painting = universalGameData.gameData.currentPainting;
+
+            if (painting.colors.length >= 6) {
+                alert('画布满了！');
+                return;
+            }
+
+            painting.colors.push(color);
+            painting.value += 10;
+            renderArtUI();
+        }
+
+        function sellPainting() {
+            if (event) event.stopPropagation();
+            const data = universalGameData.gameData;
+            const painting = data.currentPainting;
+
+            if (painting.colors.length === 0) {
+                alert('还没开始画！');
+                return;
+            }
+
+            const bonus = painting.colors.length >= 5 ? 50 : 0;
+            const totalValue = painting.value + bonus + data.fame * 2;
+
+            data.money += totalValue;
+            data.fame += Math.floor(painting.colors.length / 2);
+
+            alert(`🎨 卖了 ${totalValue} 元！${bonus > 0 ? '色彩丰富+50！' : ''}`);
+
+            painting.colors = [];
+            painting.value = 0;
+            renderArtUI();
+        }
+
+        function clearCanvas() {
+            if (event) event.stopPropagation();
+            universalGameData.gameData.currentPainting = {
+                colors: [],
+                value: 0
+            };
+            renderArtUI();
+        }
+
+        function renderArtUI() {
+            const data = universalGameData.gameData;
+            const painting = data.currentPainting;
+
+            let html = `
+                <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 15px; border: 3px solid #333; min-height: 150px;">
+                    <strong>🖼️ 当前画作：</strong><br>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin: 15px 0; min-height: 60px;">
+                        ${painting.colors.map(color =>
+                `<div style="width: 50px; height: 50px; background: ${color}; border-radius: 5px; border: 2px solid #666;"></div>`
+            ).join('')}
+                    </div>
+                    <div style="color: #666;">
+                        价值：${painting.value + (painting.colors.length >= 5 ? 50 : 0) + data.fame * 2} 元
+                        ${painting.colors.length >= 5 ? '✨(色彩丰富+50)' : ''}
+                    </div>
+                </div>
+
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                    <strong>🎨 调色盘：</strong><br>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px;">
+                        <button class="btn" onclick="addColor('red')" style="background: red; color: white;">红</button>
+                        <button class="btn" onclick="addColor('blue')" style="background: blue; color: white;">蓝</button>
+                        <button class="btn" onclick="addColor('yellow')" style="background: yellow;">黄</button>
+                        <button class="btn" onclick="addColor('green')" style="background: green; color: white;">绿</button>
+                        <button class="btn" onclick="addColor('purple')" style="background: purple; color: white;">紫</button>
+                        <button class="btn" onclick="addColor('orange')" style="background: orange;">橙</button>
+                        <button class="btn" onclick="addColor('pink')" style="background: pink;">粉</button>
+                        <button class="btn" onclick="addColor('brown')" style="background: brown; color: white;">棕</button>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <button class="btn" onclick="sellPainting()" style="background: #28a745;">💰 卖画</button>
+                    <button class="btn" onclick="clearCanvas()" style="background: #dc3545;">🗑️ 清空</button>
+                </div>
+
+                <div style="background: #d1ecf1; padding: 10px; border-radius: 10px; margin-top: 10px; text-align: center;">
+                    ⭐ 名气：${data.fame} (每卖一幅画增加名气，名气越高画越值钱！)
+                </div>
+            `;
+
+            document.getElementById('universalGameContent').innerHTML = html;
+            document.getElementById('universalGameScore').textContent =
+                `💰 ${data.money}元 | ⭐ ${data.fame} 名气`;
+        }
+
+        // ========== 9. 医院游戏（重构版）==========
+        function showHospitalGame(event) {
+            showUniversalGame('hospital', initHospitalGame);
+        }
+
+        function initHospitalGame() {
+            document.getElementById('universalGameTitle').textContent = '🏥 医院诊疗模拟';
+
+            universalGameData.gameData = {
+                money: 500,
+                reputation: 100,
+                patientsCured: 0,
+                patientsDied: 0,
+                currentPatient: null,
+                stage: 'waiting', // waiting, examining, diagnosed, treating
+                checkResults: {},
+                diagnosis: null,
+                treatmentProgress: 0,
+                equipment: {
+                    '🌡️体温计': { owned: true, cost: 0, accuracy: 0.7 },
+                    '🩺听诊器': { owned: true, cost: 0, accuracy: 0.7 },
+                    '💉注射器': { owned: true, cost: 0, accuracy: 0.8 },
+                    '🔬显微镜': { owned: false, cost: 200, accuracy: 0.9 },
+                    '📷X光机': { owned: false, cost: 500, accuracy: 0.95 },
+                    '💊药柜': { owned: false, cost: 300, accuracy: 1.0 }
+                },
+                medicines: {
+                    '💊基础药品': { owned: true, cost: 0, effectiveness: 0.6 },
+                    '💊高级药品': { owned: false, cost: 150, effectiveness: 0.85 },
+                    '💉特效针剂': { owned: false, cost: 250, effectiveness: 1.0 }
+                }
+            };
+
+            generateHospitalPatient();
+        }
+
+        function generateHospitalPatient() {
+            const diseases = [
+                {
+                    name: '普通感冒',
+                    emoji: '🤧',
+                    symptoms: ['流鼻涕', '轻微发热', '咳嗽'],
+                    checkResults: { '🌡️体温计': '37.5℃ 轻微发热', '🩺听诊器': '呼吸音正常', '🔬显微镜': '白细胞正常', '📷X光机': '肺部正常' },
+                    correctTreatment: ['💊基础药品', '观察休息'],
+                    health: 80,
+                    maxHealth: 100,
+                    price: 100,
+                    urgency: 'low'
+                },
+                {
+                    name: '重度流感',
+                    emoji: '🤒',
+                    symptoms: ['高烧', '全身酸痛', '严重咳嗽'],
+                    checkResults: { '🌡️体温计': '39.5℃ 高烧！', '🩺听诊器': '肺部有杂音', '🔬显微镜': '白细胞偏高', '📷X光机': '肺部轻微感染' },
+                    correctTreatment: ['💊高级药品', '💉特效针剂', '观察休息'],
+                    health: 50,
+                    maxHealth: 100,
+                    price: 200,
+                    urgency: 'medium'
+                },
+                {
+                    name: '急性肺炎',
+                    emoji: '😷',
+                    symptoms: ['呼吸困难', '胸痛', '高烧不退'],
+                    checkResults: { '🌡️体温计': '40℃ 危险高烧！', '🩺听诊器': '肺部严重杂音', '🔬显微镜': '白细胞严重超标', '📷X光机': '肺部严重感染' },
+                    correctTreatment: ['💉特效针剂', '💊高级药品', '💊基础药品'],
+                    health: 30,
+                    maxHealth: 100,
+                    price: 350,
+                    urgency: 'high'
+                },
+                {
+                    name: '胃炎',
+                    emoji: '🤢',
+                    symptoms: ['腹痛', '恶心', '食欲不振'],
+                    checkResults: { '🌡️体温计': '36.8℃ 正常', '🩺听诊器': '肠鸣音异常', '🔬显微镜': '胃部炎症', '📷X光机': '胃部轻微病变' },
+                    correctTreatment: ['💊高级药品', '观察休息'],
+                    health: 70,
+                    maxHealth: 100,
+                    price: 150,
+                    urgency: 'low'
+                },
+                {
+                    name: '骨折',
+                    emoji: '🤕',
+                    symptoms: ['剧烈疼痛', '肿胀', '无法活动'],
+                    checkResults: { '🌡️体温计': '37℃ 正常', '🩺听诊器': '无异常', '🔬显微镜': '无感染', '📷X光机': '骨骼断裂！' },
+                    correctTreatment: ['💉特效针剂', '手术治疗'],
+                    health: 40,
+                    maxHealth: 100,
+                    price: 300,
+                    urgency: 'high'
+                }
+            ];
+
+            const disease = diseases[Math.floor(Math.random() * diseases.length)];
+            universalGameData.gameData.currentPatient = {
+                ...disease,
+                timeLeft: disease.urgency === 'high' ? 30 : disease.urgency === 'medium' ? 45 : 60,
+                maxTime: disease.urgency === 'high' ? 30 : disease.urgency === 'medium' ? 45 : 60
+            };
+            universalGameData.gameData.stage = 'examining';
+            universalGameData.gameData.checkResults = {};
+            universalGameData.gameData.diagnosis = null;
+            universalGameData.gameData.treatmentProgress = 0;
+
+            // 开始倒计时
+            if (universalGameData.gameInterval) clearInterval(universalGameData.gameInterval);
+            universalGameData.gameInterval = setInterval(updatePatientCondition, 1000);
+
+            renderHospitalUI();
+        }
+
+        function updatePatientCondition() {
+            const patient = universalGameData.gameData.currentPatient;
+            if (!patient) return;
+
+            patient.timeLeft--;
+
+            // 病情恶化
+            if (universalGameData.gameData.stage !== 'treating') {
+                if (patient.urgency === 'high') {
+                    patient.health -= 2;
+                } else if (patient.urgency === 'medium') {
+                    patient.health -= 1;
+                }
+            }
+
+            // 病人死亡
+            if (patient.health <= 0 || patient.timeLeft <= 0) {
+                clearInterval(universalGameData.gameInterval);
+                universalGameData.gameData.patientsDied++;
+                universalGameData.gameData.reputation -= 20;
+                universalGameData.gameData.money -= 100;
+                alert('❌ 病人抢救失败！\n声誉-20，赔偿-100元');
+                generateHospitalPatient();
+                return;
+            }
+
+            renderHospitalUI();
+        }
+
+        function useEquipment(equipName) {
+            if (event) event.stopPropagation();
+            const data = universalGameData.gameData;
+            const equip = data.equipment[equipName];
+            const patient = data.currentPatient;
+
+            if (!equip.owned) {
+                alert('还没购买这个设备！');
+                return;
+            }
+
+            if (data.checkResults[equipName]) {
+                alert('已经检查过了！');
+                return;
+            }
+
+            // 根据设备准确度随机显示结果
+            const result = Math.random() < equip.accuracy
+                ? patient.checkResults[equipName]
+                : '检查结果不明确';
+
+            data.checkResults[equipName] = result;
+            alert(`${equipName} 检查完成：\n${result}`);
+            renderHospitalUI();
+        }
+
+        function makeDiagnosis(diseaseName) {
+            if (event) event.stopPropagation();
+            const data = universalGameData.gameData;
+            const patient = data.currentPatient;
+
+            // 至少要做2项检查才能诊断
+            if (Object.keys(data.checkResults).length < 2) {
+                alert('请先做至少2项检查！');
+                return;
+            }
+
+            data.diagnosis = diseaseName;
+
+            if (diseaseName === patient.name) {
+                alert('✅ 诊断正确！开始治疗！');
+                data.stage = 'treating';
+                data.treatmentProgress = 0;
+            } else {
+                alert('❌ 诊断错误！病情恶化！');
+                patient.health -= 20;
+                data.reputation -= 10;
+                data.diagnosis = null;
+            }
+
+            renderHospitalUI();
+        }
+
+        function applyTreatment(treatmentName) {
+            if (event) event.stopPropagation();
+            const data = universalGameData.gameData;
+            const patient = data.currentPatient;
+
+            if (data.stage !== 'treating') {
+                alert('请先完成诊断！');
+                return;
+            }
+
+            // 检查是否有这个治疗手段
+            if (treatmentName !== '观察休息' && treatmentName !== '手术治疗') {
+                const medicine = data.medicines[treatmentName];
+                if (!medicine || !medicine.owned) {
+                    alert('没有这个药品！');
+                    return;
+                }
+            }
+
+            // 判断治疗是否正确
+            if (patient.correctTreatment.includes(treatmentName)) {
+                const effectiveness = treatmentName === '观察休息' || treatmentName === '手术治疗'
+                    ? 0.3
+                    : data.medicines[treatmentName].effectiveness;
+
+                data.treatmentProgress += effectiveness * 100;
+                patient.health = Math.min(patient.maxHealth, patient.health + 10);
+
+                alert(`✅ 治疗有效！\n进度：${Math.floor(data.treatmentProgress)}%`);
+
+                // 治疗完成
+                if (data.treatmentProgress >= 100) {
+                    clearInterval(universalGameData.gameInterval);
+
+                    // 根据剩余时间计算奖励
+                    const timeBonus = Math.floor(patient.timeLeft / patient.maxTime * 100);
+                    const totalEarning = patient.price + timeBonus;
+
+                    data.money += totalEarning;
+                    data.patientsCured++;
+                    data.reputation += 10;
+
+                    alert(`🎉 治愈成功！\n获得：${totalEarning}元\n（基础${patient.price} + 速度奖励${timeBonus}）\n声誉+10`);
+
+                    generateHospitalPatient();
+                }
+            } else {
+                alert('❌ 治疗方案不当！');
+                patient.health -= 15;
+                data.reputation -= 5;
+            }
+
+            renderHospitalUI();
+        }
+
+        function buyHospitalItem(category, itemName) {
+            if (event) event.stopPropagation();
+            const data = universalGameData.gameData;
+            const item = data[category][itemName];
+
+            if (item.owned) {
+                alert('已经拥有了！');
+                return;
+            }
+
+            if (data.money < item.cost) {
+                alert(`钱不够！需要 ${item.cost} 元！`);
+                return;
+            }
+
+            data.money -= item.cost;
+            item.owned = true;
+            alert(`✅ 购买成功：${itemName}`);
+            renderHospitalUI();
+        }
+
+        function renderHospitalUI() {
+            const data = universalGameData.gameData;
+            const patient = data.currentPatient;
+
+            let html = '';
+
+            // 病人信息区
+            if (patient) {
+                const healthPercent = (patient.health / patient.maxHealth * 100).toFixed(0);
+                const timePercent = (patient.timeLeft / patient.maxTime * 100).toFixed(0);
+                const urgencyColor = patient.urgency === 'high' ? '#dc3545' : patient.urgency === 'medium' ? '#ffc107' : '#28a745';
+
+                html += `
+                    <div style="background: #fff3cd; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <div>
+                                <span style="font-size: 2.5em;">${patient.emoji}</span>
+                                <strong style="font-size: 1.2em; margin-left: 10px;">${patient.name}</strong>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="color: ${urgencyColor}; font-weight: bold;">
+                                    ${patient.urgency === 'high' ? '⚠️ 紧急' : patient.urgency === 'medium' ? '⚡ 中等' : '✓ 稳定'}
+                                </div>
+                                <div style="color: #28a745;">💰 ${patient.price}元</div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-bottom: 8px;">
+                            <strong>❤️ 健康：${patient.health}/${patient.maxHealth}</strong>
+                            <div style="background: #ddd; height: 15px; border-radius: 10px; overflow: hidden; margin-top: 3px;">
+                                <div style="background: ${patient.health > 50 ? '#28a745' : '#dc3545'}; height: 100%; width: ${healthPercent}%; transition: width 0.3s;"></div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <strong>⏱️ 剩余时间：${patient.timeLeft}秒</strong>
+                            <div style="background: #ddd; height: 15px; border-radius: 10px; overflow: hidden; margin-top: 3px;">
+                                <div style="background: ${urgencyColor}; height: 100%; width: ${timePercent}%; transition: width 0.3s;"></div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ccc;">
+                            <strong>🔍 症状：</strong>${patient.symptoms.join('、')}
+                        </div>
+                    </div>
+                `;
+
+                // 检查阶段
+                if (data.stage === 'examining') {
+                    html += `
+                        <div style="background: #e7f3ff; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                            <strong>🔬 使用设备检查：</strong>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px;">
+                                ${Object.entries(data.equipment).map(([name, equip]) => `
+                                    <button class="btn" onclick="useEquipment('${name}')" 
+                                        style="background: ${equip.owned ? (data.checkResults[name] ? '#28a745' : '#007bff') : '#6c757d'}; font-size: 0.9em; padding: 8px;"
+                                        ${!equip.owned ? 'disabled' : ''}>
+                                        ${name} ${data.checkResults[name] ? '✓' : ''}
+                                        ${!equip.owned ? '🔒' : ''}
+                                    </button>
+                                `).join('')}
+                            </div>
+
+                            ${Object.keys(data.checkResults).length > 0 ? `
+                                <div style="margin-top: 10px; padding: 10px; background: #fff; border-radius: 5px; font-size: 0.9em;">
+                                    <strong>📋 检查结果：</strong><br>
+                                    ${Object.entries(data.checkResults).map(([name, result]) =>
+                        `• ${name}: ${result}`
+                    ).join('<br>')}
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        <div style="background: #fff3cd; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                            <strong>🩺 做出诊断：</strong>
+                            <div style="display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 10px;">
+                                <button class="btn" onclick="makeDiagnosis('普通感冒')" style="background: #17a2b8;">普通感冒</button>
+                                <button class="btn" onclick="makeDiagnosis('重度流感')" style="background: #ffc107;">重度流感</button>
+                                <button class="btn" onclick="makeDiagnosis('急性肺炎')" style="background: #dc3545;">急性肺炎</button>
+                                <button class="btn" onclick="makeDiagnosis('胃炎')" style="background: #28a745;">胃炎</button>
+                                <button class="btn" onclick="makeDiagnosis('骨折')" style="background: #6c757d;">骨折</button>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // 治疗阶段
+                if (data.stage === 'treating') {
+                    html += `
+                        <div style="background: #d4edda; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                            <strong>💊 进行治疗（诊断：${data.diagnosis}）</strong>
+                            <div style="margin: 10px 0;">
+                                <strong>治疗进度：${Math.floor(data.treatmentProgress)}%</strong>
+                                <div style="background: #ddd; height: 20px; border-radius: 10px; overflow: hidden; margin-top: 5px;">
+                                    <div style="background: #28a745; height: 100%; width: ${data.treatmentProgress}%; transition: width 0.3s;"></div>
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 10px;">
+                                ${Object.entries(data.medicines).map(([name, med]) => `
+                                    <button class="btn" onclick="applyTreatment('${name}')" 
+                                        style="background: ${med.owned ? '#007bff' : '#6c757d'};"
+                                        ${!med.owned ? 'disabled' : ''}>
+                                        ${name} ${!med.owned ? '🔒' : `(效果${(med.effectiveness * 100).toFixed(0)}%)`}
+                                    </button>
+                                `).join('')}
+                                <button class="btn" onclick="applyTreatment('观察休息')" style="background: #17a2b8;">🛏️ 观察休息</button>
+                                <button class="btn" onclick="applyTreatment('手术治疗')" style="background: #dc3545;">🔪 手术治疗</button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            // 商店区
+            html += `
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                    <strong>🏪 医疗商店</strong>
+                    <div style="margin-top: 10px; font-size: 0.9em;">
+                        <div style="margin-bottom: 8px;"><strong>设备：</strong></div>
+                        ${Object.entries(data.equipment).filter(([_, e]) => !e.owned).map(([name, equip]) => `
+                            <button class="btn" onclick="buyHospitalItem('equipment', '${name}')" 
+                                style="background: #ffc107; font-size: 0.85em; padding: 6px; margin: 2px;">
+                                ${name} ${equip.cost}元 (准确度${(equip.accuracy * 100).toFixed(0)}%)
+                            </button>
+                        `).join('')}
+                        ${Object.entries(data.equipment).every(([_, e]) => e.owned) ? '<span style="color: #999;">全部拥有</span>' : ''}
+                        
+                        <div style="margin: 8px 0;"><strong>药品：</strong></div>
+                        ${Object.entries(data.medicines).filter(([_, m]) => !m.owned).map(([name, med]) => `
+                            <button class="btn" onclick="buyHospitalItem('medicines', '${name}')" 
+                                style="background: #28a745; font-size: 0.85em; padding: 6px; margin: 2px;">
+                                ${name} ${med.cost}元 (效果${(med.effectiveness * 100).toFixed(0)}%)
+                            </button>
+                        `).join('')}
+                        ${Object.entries(data.medicines).every(([_, m]) => m.owned) ? '<span style="color: #999;">全部拥有</span>' : ''}
+                    </div>
+                </div>
+
+                <div style="background: #d1ecf1; padding: 10px; border-radius: 10px; font-size: 0.85em; text-align: center;">
+                    💡 先用设备检查 → 做出诊断 → 选择治疗方案！<br>
+                    购买更好的设备和药品可以提高成功率！
+                </div>
+            `;
+
+            document.getElementById('universalGameContent').innerHTML = html;
+            document.getElementById('universalGameScore').textContent =
+                `💰 ${data.money}元 | ⭐ ${data.reputation}声誉 | ✅ ${data.patientsCured}人 | ❌ ${data.patientsDied}人`;
+        }
+
+        // ========== 10. 马戏团游戏 ==========
+        function showCircusGame(event) {
+            showUniversalGame('circus', initCircusGame);
+        }
+
+        function initCircusGame() {
+            document.getElementById('universalGameTitle').textContent = '🎪 马戏团';
+
+            universalGameData.gameData = {
+                money: 0,
+                shows: 0,
+                performance: []
+            };
+
+            renderCircusUI();
+        }
+
+        function addPerformance(act) {
+            if (event) event.stopPropagation();
+            const data = universalGameData.gameData;
+
+            if (data.performance.length >= 5) {
+                alert('节目太多了！');
+                return;
+            }
+
+            data.performance.push(act);
+            renderCircusUI();
+        }
+
+        function startShow() {
+            if (event) event.stopPropagation();
+            const data = universalGameData.gameData;
+
+            if (data.performance.length < 3) {
+                alert('至少需要3个节目！');
+                return;
+            }
+
+            const basePrice = data.performance.length * 30;
+            const variety = new Set(data.performance).size;
+            const varietyBonus = variety >= 4 ? 50 : 0;
+            const totalEarnings = basePrice + varietyBonus;
+
+            data.money += totalEarnings;
+            data.shows++;
+
+            alert(`🎪 演出成功！赚了 ${totalEarnings} 元！${varietyBonus > 0 ? '\n节目丰富+50！' : ''}`);
+
+            data.performance = [];
+            renderCircusUI();
+        }
+
+        function clearPerformance() {
+            if (event) event.stopPropagation();
+            universalGameData.gameData.performance = [];
+            renderCircusUI();
+        }
+
+        function renderCircusUI() {
+            const data = universalGameData.gameData;
+
+            let html = `
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; margin-bottom: 15px;">
+                    <strong style="font-size: 1.2em;">🎪 今日节目单：</strong><br>
+                    <div style="font-size: 1.5em; margin: 15px 0; min-height: 60px;">
+                        ${data.performance.length > 0 ? data.performance.join(' → ') : '还没安排节目'}
+                    </div>
+                    <div style="font-size: 0.9em; opacity: 0.9;">
+                        节目数：${data.performance.length}/5 | 
+                        预计收入：${data.performance.length * 30 + (new Set(data.performance).size >= 4 ? 50 : 0)}元
+                    </div>
+                </div>
+
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                    <strong>🎭 选择节目：</strong><br>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px;">
+                        <button class="btn" onclick="addPerformance('🤹杂耍')" style="background: #ff6b6b;">🤹 杂耍</button>
+                        <button class="btn" onclick="addPerformance('🎪魔术')" style="background: #4ecdc4;">🎪 魔术</button>
+                        <button class="btn" onclick="addPerformance('🦁驯兽')" style="background: #feca57;">🦁 驯兽</button>
+                        <button class="btn" onclick="addPerformance('🎯飞刀')" style="background: #a29bfe;">🎯 飞刀</button>
+                        <button class="btn" onclick="addPerformance('🎪小丑')" style="background: #fd79a8;">🎪 小丑</button>
+                        <button class="btn" onclick="addPerformance('🎠旋转木马')" style="background: #74b9ff;">🎠 木马</button>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <button class="btn" onclick="startShow()" style="background: #28a745; font-size: 1.1em; padding: 12px;">
+                        🎉 开始演出
+                    </button>
+                    <button class="btn" onclick="clearPerformance()" style="background: #dc3545;">🗑️ 清空</button>
+                </div>
+
+                <div style="background: #d1ecf1; padding: 10px; border-radius: 10px; margin-top: 10px; text-align: center; font-size: 0.9em;">
+                    💡 至少3个节目才能演出！节目种类越多，收入越高！
+                </div>
+            `;
+
+            document.getElementById('universalGameContent').innerHTML = html;
+            document.getElementById('universalGameScore').textContent =
+                `💰 ${data.money}元 | 演出: ${data.shows} 场`;
+        }
+
+        document.body.addEventListener('click', handleClick);
+        document.body.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && gameState !== 'timer' && gameState !== 'math') {
+                e.preventDefault();
+                handleClick();
+            }
+            if (e.code === 'Enter' && gameState === 'math') {
+                e.preventDefault();
+                submitAnswer();
+            }
+        });
+    </script>
+</body>
+
+</html>
