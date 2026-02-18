@@ -497,6 +497,71 @@
             color: #c92a2a;
         }
 
+        /* 积分单位输入 */
+        .score-unit-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 12px 0 8px;
+        }
+
+        .score-unit-row .unit-label {
+            font-size: 14px;
+            color: #666;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .score-unit-row input {
+            flex: 1;
+            min-width: 140px;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            outline: none;
+            text-align: center;
+        }
+
+        .score-unit-row input:focus {
+            border-color: #667eea;
+        }
+
+        .score-unit-row .unit-reset {
+            padding: 10px 12px;
+            border: none;
+            border-radius: 12px;
+            background: #f1f1f1;
+            color: #666;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .score-unit-hint {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .score-btn.score-input-btn {
+            background: #e7f5ff;
+            color: #1c7ed6;
+        }
+
+        .score-input-preview {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin: 10px 0 18px;
+        }
+
+        .score-input-preview .value {
+            font-weight: 800;
+            color: #333;
+        }
+
         .exchange-input-group input {
             flex: 1;
             padding: 12px 15px;
@@ -2122,6 +2187,36 @@
                 <div class="current-score">积分: <span id="menuScore">0</span></div>
             </div>
 
+            <div class="score-unit-row">
+                <span class="unit-label">单位</span>
+                <input type="text" id="scoreUnitInput" list="scoreUnitList" placeholder="个">
+                <button class="unit-reset" onclick="resetScoreUnit()">个</button>
+            </div>
+            <div class="score-unit-hint">提示：输入单位（如 万/亿/那由他），再点下面圆圈加/扣</div>
+            <datalist id="scoreUnitList">
+                <option value="个"></option>
+                <option value="十"></option>
+                <option value="百"></option>
+                <option value="千"></option>
+                <option value="万"></option>
+                <option value="亿"></option>
+                <option value="兆"></option>
+                <option value="京"></option>
+                <option value="垓"></option>
+                <option value="秭"></option>
+                <option value="穰"></option>
+                <option value="沟"></option>
+                <option value="涧"></option>
+                <option value="正"></option>
+                <option value="载"></option>
+                <option value="极"></option>
+                <option value="恒河沙"></option>
+                <option value="阿僧祇"></option>
+                <option value="那由他"></option>
+                <option value="不可思议"></option>
+                <option value="无量大数"></option>
+            </datalist>
+
             <div class="score-section">
                 <h3>➕ 加积分</h3>
                 <div class="score-buttons">
@@ -2135,6 +2230,7 @@
                     <button class="score-btn add" onclick="addScore(8)">+8</button>
                     <button class="score-btn add" onclick="addScore(9)">+9</button>
                     <button class="score-btn add" onclick="addScore(10)">+10</button>
+                    <button class="score-btn score-input-btn" onclick="openScoreInputModal('add')">输入+</button>
                 </div>
             </div>
 
@@ -2151,9 +2247,33 @@
                     <button class="score-btn sub" onclick="subScore(8)">-8</button>
                     <button class="score-btn sub" onclick="subScore(9)">-9</button>
                     <button class="score-btn sub" onclick="subScore(10)">-10</button>
+                    <button class="score-btn score-input-btn" onclick="openScoreInputModal('sub')">输入-</button>
                 </div>
             </div>
 
+        </div>
+    </div>
+
+    <!-- 输入加/扣积分弹窗 -->
+    <div class="modal-overlay" id="scoreInputModal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeScoreInputModal()">✕</button>
+            <h2 id="scoreInputTitle">输入积分</h2>
+
+            <div class="input-group">
+                <label>数值</label>
+                <input type="text" id="scoreInputAmount" placeholder="请输入数字" inputmode="numeric">
+            </div>
+
+            <div class="input-group">
+                <label>单位</label>
+                <input type="text" id="scoreInputUnit" list="scoreUnitList" placeholder="个">
+            </div>
+
+            <div class="score-input-preview" id="scoreInputPreview"></div>
+
+            <button class="btn btn-primary" id="scoreInputConfirmBtn" onclick="confirmScoreInput()">确认</button>
+            <button class="btn btn-cancel" onclick="closeScoreInputModal()">取消</button>
         </div>
     </div>
 
@@ -2437,8 +2557,150 @@
         // 管理密码
         const ADMIN_PASSWORD = '123456';
 
+        // 积分单位（10进制幂）
+        const SCORE_UNIT_DEFINITIONS = [
+            { name: '个', exp: 0 },
+            { name: '十', exp: 1 },
+            { name: '百', exp: 2 },
+            { name: '千', exp: 3 },
+            { name: '万', exp: 4 },
+            { name: '亿', exp: 8 },
+            { name: '兆', exp: 12 },
+            { name: '京', exp: 16 },
+            { name: '垓', exp: 20 },
+            { name: '秭', exp: 24 },
+            { name: '穰', exp: 28 },
+            { name: '沟', exp: 32 },
+            { name: '涧', exp: 36 },
+            { name: '正', exp: 40 },
+            { name: '载', exp: 44 },
+            { name: '极', exp: 48 },
+            { name: '恒河沙', exp: 52 },
+            { name: '阿僧祇', exp: 56 },
+            { name: '那由他', exp: 60 },
+            { name: '不可思议', exp: 64 },
+            { name: '无量大数', exp: 68 },
+        ];
+
+        const SCORE_UNIT_MULTIPLIER = Object.fromEntries(
+            SCORE_UNIT_DEFINITIONS.map(u => [u.name, 10n ** BigInt(u.exp)])
+        );
+
+        function bigIntReplacer(key, value) {
+            return typeof value === 'bigint' ? value.toString() : value;
+        }
+
+        function parseBigIntValue(value, fallback = 0n) {
+            if (typeof value === 'bigint') return value;
+            if (typeof value === 'number') {
+                if (!Number.isFinite(value)) return fallback;
+                return BigInt(Math.trunc(value));
+            }
+            if (typeof value === 'string') {
+                const trimmed = value.trim();
+                if (trimmed === '') return fallback;
+                if (/^-?\d+$/.test(trimmed)) return BigInt(trimmed);
+            }
+            return fallback;
+        }
+
+        function formatScore(value) {
+            const big = parseBigIntValue(value, 0n);
+            const sign = big < 0n ? '-' : '';
+            const abs = big < 0n ? -big : big;
+
+            if (abs < 10000n) return sign + abs.toString();
+
+            let selected = SCORE_UNIT_DEFINITIONS[4]; // 万
+            for (let i = 4; i < SCORE_UNIT_DEFINITIONS.length; i++) {
+                const unit = SCORE_UNIT_DEFINITIONS[i];
+                const multiplier = SCORE_UNIT_MULTIPLIER[unit.name];
+                if (abs >= multiplier) selected = unit;
+            }
+
+            const multiplier = SCORE_UNIT_MULTIPLIER[selected.name];
+            const intPart = abs / multiplier;
+            const remainder = abs % multiplier;
+
+            let decimals = '';
+            if (remainder !== 0n) {
+                const decimalValue = (remainder * 100n) / multiplier;
+                const decimalText = decimalValue.toString().padStart(2, '0').replace(/0+$/, '');
+                if (decimalText) decimals = '.' + decimalText;
+            }
+
+            return sign + intPart.toString() + decimals + selected.name;
+        }
+
+        function getUnitNameOrDefault(input) {
+            const trimmed = (input || '').trim();
+            return trimmed || '个';
+        }
+
+        function getUnitMultiplierOrNull(unitName) {
+            const normalized = getUnitNameOrDefault(unitName);
+            return SCORE_UNIT_MULTIPLIER[normalized] || null;
+        }
+
+        function getActiveScoreUnit() {
+            const input = document.getElementById('scoreUnitInput');
+            return getUnitNameOrDefault(input ? input.value : '');
+        }
+
+        function saveActiveScoreUnit() {
+            localStorage.setItem('scoreUnit', getActiveScoreUnit());
+        }
+
+        function resetScoreUnit() {
+            const input = document.getElementById('scoreUnitInput');
+            if (!input) return;
+            input.value = '个';
+            saveActiveScoreUnit();
+        }
+
+        function loadStudentsFromStorage() {
+            const raw = localStorage.getItem('students');
+            if (!raw) return [];
+            let parsed;
+            try {
+                parsed = JSON.parse(raw);
+            } catch {
+                return [];
+            }
+            if (!Array.isArray(parsed)) return [];
+
+            return parsed.map(s => ({
+                ...s,
+                score: parseBigIntValue(s.score, 0n),
+                totalAdded: parseBigIntValue(s.totalAdded, 0n),
+                totalSubtracted: parseBigIntValue(s.totalSubtracted, 0n),
+                totalExchanged: parseBigIntValue(s.totalExchanged, 0n),
+            }));
+        }
+
+        function loadRecordsFromStorage() {
+            const raw = localStorage.getItem('records');
+            if (!raw) return [];
+            let parsed;
+            try {
+                parsed = JSON.parse(raw);
+            } catch {
+                return [];
+            }
+            if (!Array.isArray(parsed)) return [];
+
+            return parsed.map(r => ({
+                ...r,
+                amount: parseBigIntValue(r.amount, 0n),
+            }));
+        }
+
+        function loadBigIntFromStorage(key, fallback = 0n) {
+            return parseBigIntValue(localStorage.getItem(key), fallback);
+        }
+
         // 操作记录
-        let records = JSON.parse(localStorage.getItem('records') || '[]');
+        let records = loadRecordsFromStorage();
 
         // 商品数据
         const shopItems = [
@@ -2663,14 +2925,17 @@
         }
 
         // 数据
-        let students = JSON.parse(localStorage.getItem('students') || '[]');
-        let totalExchanged = parseInt(localStorage.getItem('totalExchanged') || '0');
+        let students = loadStudentsFromStorage();
+        let totalExchanged = loadBigIntFromStorage('totalExchanged', 0n);
         let inventory = JSON.parse(localStorage.getItem('inventory') || '{}');
         let currentStudentId = null;
+        let currentScoreInputType = null;
         let selectedGender = null;
 
         // 初始化
         function init() {
+            initScoreUnitInput();
+            initScoreInputModal();
             renderStudents();
             updateClassStats();
             renderShop();
@@ -2748,15 +3013,16 @@
             const list = document.getElementById('selectStudentList');
             list.innerHTML = '';
 
+            const itemPrice = BigInt(item.price);
             students.forEach(student => {
-                const canAfford = student.score >= item.price;
+                const canAfford = student.score >= itemPrice;
                 const div = document.createElement('div');
                 div.className = 'select-student-item' + (canAfford ? '' : ' disabled');
                 div.innerHTML = `
                     <div class="student-avatar">${student.avatar}</div>
                     <div class="student-info">
                         <div class="name">${student.name}</div>
-                        <div class="score">积分: ${student.score}</div>
+                        <div class="score">积分: ${formatScore(student.score)}</div>
                         ${!canAfford ? '<div class="not-enough">积分不足</div>' : ''}
                     </div>
                 `;
@@ -2774,17 +3040,18 @@
 
             if (!student || !item) return;
 
-            if (student.score < item.price) {
+            const itemPrice = BigInt(item.price);
+            if (student.score < itemPrice) {
                 alert('积分不足！');
                 return;
             }
 
             // 扣除积分
-            student.score -= item.price;
+            student.score -= itemPrice;
 
             // 累计兑换积分
-            totalExchanged += item.price;
-            student.totalExchanged = (student.totalExchanged || 0) + item.price;
+            totalExchanged += itemPrice;
+            student.totalExchanged = (student.totalExchanged || 0n) + itemPrice;
 
             // 特殊处理：新场景
             if (item.id === 'new_scene') {
@@ -2792,7 +3059,7 @@
                 const newSceneId = unlockNewScene(studentId);
                 if (newSceneId !== null) {
                     // 添加记录
-                    addRecord('buy', student.name, item.price, `${item.name} (场景${newSceneId + 1})`);
+                    addRecord('buy', student.name, itemPrice, `${item.name} (场景${newSceneId + 1})`);
 
                     saveData();
                     renderStudents();
@@ -2813,9 +3080,9 @@
                     }, 1500);
                 } else {
                     // 已经全部解锁了，退还积分
-                    student.score += item.price;
-                    totalExchanged -= item.price;
-                    student.totalExchanged -= item.price;
+                    student.score += itemPrice;
+                    totalExchanged -= itemPrice;
+                    student.totalExchanged -= itemPrice;
                     alert('该学生已解锁全部100个场景！');
                 }
                 return;
@@ -2825,7 +3092,7 @@
             inventory[item.id] = (inventory[item.id] || 0) + 1;
 
             // 添加记录
-            addRecord('buy', student.name, item.price, item.name);
+            addRecord('buy', student.name, itemPrice, item.name);
 
             saveData();
             saveInventory();
@@ -3214,7 +3481,7 @@
                     <div class="student-avatar">${student.avatar}</div>
                     <div class="student-info">
                         <div class="name">${student.name}</div>
-                        <div class="score">积分: ${student.score}</div>
+                        <div class="score">积分: ${formatScore(student.score)}</div>
                     </div>
                 `;
                 div.onclick = () => enterRoom(student.id);
@@ -3782,7 +4049,7 @@
 
         // 保存记录
         function saveRecords() {
-            localStorage.setItem('records', JSON.stringify(records));
+            localStorage.setItem('records', JSON.stringify(records, bigIntReplacer));
         }
 
         // 添加记录
@@ -3791,7 +4058,7 @@
                 id: Date.now(),
                 type: type, // 'add', 'sub', 'buy'
                 studentName: studentName,
-                amount: amount,
+                amount: parseBigIntValue(amount, 0n),
                 itemName: itemName,
                 time: new Date().toLocaleString('zh-CN')
             };
@@ -3853,15 +4120,15 @@
                 if (record.type === 'add') {
                     iconClass = 'add';
                     iconEmoji = '➕';
-                    text = `${record.studentName} 加了 ${record.amount} 积分`;
+                    text = `${record.studentName} 加了 ${formatScore(record.amount)} 积分`;
                 } else if (record.type === 'sub') {
                     iconClass = 'sub';
                     iconEmoji = '➖';
-                    text = `${record.studentName} 扣了 ${record.amount} 积分`;
+                    text = `${record.studentName} 扣了 ${formatScore(record.amount)} 积分`;
                 } else if (record.type === 'buy') {
                     iconClass = 'buy';
                     iconEmoji = '🛒';
-                    text = `${record.studentName} 购买了 ${record.itemName}（${record.amount}积分）`;
+                    text = `${record.studentName} 购买了 ${record.itemName}（${formatScore(record.amount)}积分）`;
                 }
 
                 div.innerHTML = `
@@ -3883,13 +4150,14 @@
 
             const student = students.find(s => s.name === record.studentName);
 
+            const amountText = formatScore(record.amount);
             let confirmMsg = '';
             if (record.type === 'add') {
-                confirmMsg = `确定撤销"${record.studentName}加${record.amount}积分"吗？\n（将扣回${record.amount}积分）`;
+                confirmMsg = `确定撤销"${record.studentName}加${amountText}积分"吗？\n（将扣回${amountText}积分）`;
             } else if (record.type === 'sub') {
-                confirmMsg = `确定撤销"${record.studentName}扣${record.amount}积分"吗？\n（将返还${record.amount}积分）`;
+                confirmMsg = `确定撤销"${record.studentName}扣${amountText}积分"吗？\n（将返还${amountText}积分）`;
             } else if (record.type === 'buy') {
-                confirmMsg = `确定撤销"${record.studentName}购买${record.itemName}"吗？\n（将返还${record.amount}积分，移除1个${record.itemName}）`;
+                confirmMsg = `确定撤销"${record.studentName}购买${record.itemName}"吗？\n（将返还${amountText}积分，移除1个${record.itemName}）`;
             }
 
             if (!confirm(confirmMsg)) return;
@@ -3925,20 +4193,20 @@
 
         // 更新全班统计
         function updateClassStats() {
-            let totalScore = 0;
-            let totalAdded = 0;
-            let totalSubtracted = 0;
+            let totalScore = 0n;
+            let totalAdded = 0n;
+            let totalSubtracted = 0n;
 
             students.forEach(student => {
-                totalScore += student.score || 0;
-                totalAdded += student.totalAdded || 0;
-                totalSubtracted += student.totalSubtracted || 0;
+                totalScore += student.score || 0n;
+                totalAdded += student.totalAdded || 0n;
+                totalSubtracted += student.totalSubtracted || 0n;
             });
 
-            document.getElementById('classTotalScore').textContent = totalScore;
-            document.getElementById('classTotalAdded').textContent = '+' + totalAdded;
-            document.getElementById('classTotalSubtracted').textContent = '-' + totalSubtracted;
-            document.getElementById('classTotalExchanged').textContent = totalExchanged;
+            document.getElementById('classTotalScore').textContent = formatScore(totalScore);
+            document.getElementById('classTotalAdded').textContent = '+' + formatScore(totalAdded);
+            document.getElementById('classTotalSubtracted').textContent = '-' + formatScore(totalSubtracted);
+            document.getElementById('classTotalExchanged').textContent = formatScore(totalExchanged);
         }
 
         // 渲染学生列表
@@ -3965,29 +4233,30 @@
             // 渲染已有学生
             students.forEach(student => {
                 // 兼容旧数据
-                if (student.totalAdded === undefined) student.totalAdded = 0;
-                if (student.totalSubtracted === undefined) student.totalSubtracted = 0;
-                if (student.totalExchanged === undefined) student.totalExchanged = 0;
+                if (student.score === undefined) student.score = 0n;
+                if (student.totalAdded === undefined) student.totalAdded = 0n;
+                if (student.totalSubtracted === undefined) student.totalSubtracted = 0n;
+                if (student.totalExchanged === undefined) student.totalExchanged = 0n;
 
                 const card = document.createElement('div');
                 card.className = 'student-card';
                 card.onclick = () => openScoreModal(student.id);
 
-                const scoreClass = student.score >= 0 ? 'positive' : '';
+                const scoreClass = student.score >= 0n ? 'positive' : '';
                 card.innerHTML = `
                     <div class="avatar">
                         ${student.avatar}
-                        <span class="score-badge ${scoreClass}">${student.score}</span>
+                        <span class="score-badge ${scoreClass}">${formatScore(student.score)}</span>
                     </div>
                     <div class="student-name">${student.name}</div>
                     <div class="student-stats">
-                        <span class="total">总${student.score}</span>
-                        <span class="added">+${student.totalAdded}</span>
-                        <span class="subtracted">-${student.totalSubtracted}</span>
+                        <span class="total">总${formatScore(student.score)}</span>
+                        <span class="added">+${formatScore(student.totalAdded)}</span>
+                        <span class="subtracted">-${formatScore(student.totalSubtracted)}</span>
                     </div>
                     <div class="student-exchange">
                         ${coinSvg}
-                        <span class="exchange-num">${student.totalExchanged}</span>
+                        <span class="exchange-num">${formatScore(student.totalExchanged)}</span>
                     </div>
                 `;
                 grid.appendChild(card);
@@ -4006,7 +4275,7 @@
 
         // 保存数据
         function saveData() {
-            localStorage.setItem('students', JSON.stringify(students));
+            localStorage.setItem('students', JSON.stringify(students, bigIntReplacer));
             localStorage.setItem('totalExchanged', totalExchanged.toString());
             updateClassStats();
         }
@@ -4049,10 +4318,10 @@
                 name: name,
                 gender: selectedGender,
                 avatar: generateRandomAvatar(selectedGender),
-                score: 0,
-                totalAdded: 0,
-                totalSubtracted: 0,
-                totalExchanged: 0
+                score: 0n,
+                totalAdded: 0n,
+                totalSubtracted: 0n,
+                totalExchanged: 0n
             };
 
             students.push(newStudent);
@@ -4069,7 +4338,7 @@
 
             document.getElementById('menuAvatar').innerHTML = student.avatar;
             document.getElementById('menuName').textContent = student.name;
-            document.getElementById('menuScore').textContent = student.score;
+            document.getElementById('menuScore').textContent = formatScore(student.score);
             document.getElementById('scoreModal').classList.add('active');
         }
 
@@ -4083,7 +4352,7 @@
         function updateScoreDisplay() {
             const student = students.find(s => s.id === currentStudentId);
             if (student) {
-                document.getElementById('menuScore').textContent = student.score;
+                document.getElementById('menuScore').textContent = formatScore(student.score);
             }
         }
 
@@ -4091,7 +4360,8 @@
         function showScoreAnimation(amount, isPositive) {
             const popup = document.createElement('div');
             popup.className = `score-popup ${isPositive ? 'positive' : 'negative'}`;
-            popup.textContent = isPositive ? `+${amount}` : `-${amount}`;
+            const formatted = formatScore(amount);
+            popup.textContent = isPositive ? `+${formatted}` : `-${formatted}`;
 
             const modal = document.querySelector('#scoreModal .modal');
             const rect = modal.getBoundingClientRect();
@@ -4102,32 +4372,178 @@
             setTimeout(() => popup.remove(), 800);
         }
 
+        function initScoreUnitInput() {
+            const input = document.getElementById('scoreUnitInput');
+            if (!input) return;
+
+            input.value = getUnitNameOrDefault(localStorage.getItem('scoreUnit'));
+            input.addEventListener('change', () => {
+                const normalized = getUnitNameOrDefault(input.value);
+                input.value = normalized;
+                saveActiveScoreUnit();
+            });
+        }
+
+        function initScoreInputModal() {
+            const amountInput = document.getElementById('scoreInputAmount');
+            const unitInput = document.getElementById('scoreInputUnit');
+            if (!amountInput || !unitInput) return;
+
+            const refreshPreview = () => updateScoreInputPreview();
+            amountInput.addEventListener('input', refreshPreview);
+            unitInput.addEventListener('input', refreshPreview);
+
+            amountInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    confirmScoreInput();
+                }
+            });
+
+            unitInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    confirmScoreInput();
+                }
+            });
+        }
+
+        function openScoreInputModal(type) {
+            currentScoreInputType = type;
+            const modal = document.getElementById('scoreInputModal');
+            const title = document.getElementById('scoreInputTitle');
+            const amountInput = document.getElementById('scoreInputAmount');
+            const unitInput = document.getElementById('scoreInputUnit');
+            const preview = document.getElementById('scoreInputPreview');
+            if (!modal || !title || !amountInput || !unitInput || !preview) return;
+
+            title.textContent = type === 'sub' ? '输入扣积分' : '输入加积分';
+            amountInput.value = '';
+            unitInput.value = getActiveScoreUnit();
+            preview.textContent = '';
+            modal.classList.add('active');
+            setTimeout(() => amountInput.focus(), 0);
+        }
+
+        function closeScoreInputModal() {
+            const modal = document.getElementById('scoreInputModal');
+            if (modal) modal.classList.remove('active');
+            currentScoreInputType = null;
+        }
+
+        function updateScoreInputPreview() {
+            const preview = document.getElementById('scoreInputPreview');
+            const amountInput = document.getElementById('scoreInputAmount');
+            const unitInput = document.getElementById('scoreInputUnit');
+            if (!preview || !amountInput || !unitInput) return;
+
+            const amountStr = amountInput.value.trim();
+            if (!/^\d+$/.test(amountStr)) {
+                preview.textContent = '';
+                return;
+            }
+
+            const unitName = getUnitNameOrDefault(unitInput.value);
+            const multiplier = getUnitMultiplierOrNull(unitName);
+            if (!multiplier) {
+                preview.textContent = '';
+                return;
+            }
+
+            const base = BigInt(amountStr);
+            const delta = base * multiplier;
+            const sign = currentScoreInputType === 'sub' ? '-' : '+';
+            preview.innerHTML = `本次：<span class="value">${sign}${formatScore(delta)}</span>`;
+        }
+
+        function confirmScoreInput() {
+            const amountInput = document.getElementById('scoreInputAmount');
+            const unitInput = document.getElementById('scoreInputUnit');
+            if (!amountInput || !unitInput) return;
+
+            const amountStr = amountInput.value.trim();
+            if (!/^\d+$/.test(amountStr)) {
+                alert('请输入正确的数字');
+                amountInput.focus();
+                return;
+            }
+
+            const base = BigInt(amountStr);
+            if (base <= 0n) {
+                alert('数值必须大于0');
+                amountInput.focus();
+                return;
+            }
+
+            const unitName = getUnitNameOrDefault(unitInput.value);
+            const multiplier = getUnitMultiplierOrNull(unitName);
+            if (!multiplier) {
+                alert('单位不正确，请从列表中选择或输入正确单位');
+                unitInput.focus();
+                return;
+            }
+
+            const activeUnitInput = document.getElementById('scoreUnitInput');
+            if (activeUnitInput) activeUnitInput.value = unitName;
+            saveActiveScoreUnit();
+
+            const delta = base * multiplier;
+            applyScoreDelta(delta, currentScoreInputType === 'sub' ? 'sub' : 'add');
+            closeScoreInputModal();
+        }
+
+        function applyScoreDelta(delta, type) {
+            const student = students.find(s => s.id === currentStudentId);
+            if (!student) return;
+            if (delta <= 0n) return;
+
+            if (type === 'sub') {
+                student.score -= delta;
+                student.totalSubtracted = (student.totalSubtracted || 0n) + delta;
+                addRecord('sub', student.name, delta);
+                showScoreAnimation(delta, false);
+            } else {
+                student.score += delta;
+                student.totalAdded = (student.totalAdded || 0n) + delta;
+                addRecord('add', student.name, delta);
+                showScoreAnimation(delta, true);
+            }
+
+            saveData();
+            updateScoreDisplay();
+            renderStudents();
+        }
+
         // 加积分
         function addScore(amount) {
-            const student = students.find(s => s.id === currentStudentId);
-            if (student) {
-                student.score += amount;
-                student.totalAdded = (student.totalAdded || 0) + amount;
-                addRecord('add', student.name, amount);
-                saveData();
-                updateScoreDisplay();
-                renderStudents();
-                showScoreAnimation(amount, true);
+            const unitName = getActiveScoreUnit();
+            const multiplier = getUnitMultiplierOrNull(unitName);
+            if (!multiplier) {
+                alert('单位不正确，请从列表中选择或输入正确单位');
+                const unitInput = document.getElementById('scoreUnitInput');
+                if (unitInput) unitInput.focus();
+                return;
             }
+
+            saveActiveScoreUnit();
+            const delta = BigInt(amount) * multiplier;
+            applyScoreDelta(delta, 'add');
         }
 
         // 扣积分
         function subScore(amount) {
-            const student = students.find(s => s.id === currentStudentId);
-            if (student) {
-                student.score -= amount;
-                student.totalSubtracted = (student.totalSubtracted || 0) + amount;
-                addRecord('sub', student.name, amount);
-                saveData();
-                updateScoreDisplay();
-                renderStudents();
-                showScoreAnimation(amount, false);
+            const unitName = getActiveScoreUnit();
+            const multiplier = getUnitMultiplierOrNull(unitName);
+            if (!multiplier) {
+                alert('单位不正确，请从列表中选择或输入正确单位');
+                const unitInput = document.getElementById('scoreUnitInput');
+                if (unitInput) unitInput.focus();
+                return;
             }
+
+            saveActiveScoreUnit();
+            const delta = BigInt(amount) * multiplier;
+            applyScoreDelta(delta, 'sub');
         }
 
         // 初始化
