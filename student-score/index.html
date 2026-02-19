@@ -2561,6 +2561,32 @@
             <div class="select-student-list" id="selectRoomStudentList">
                 <!-- 学生列表会动态生成 -->
             </div>
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; text-align: center;">
+                <button class="btn btn-primary" onclick="openRoomPasswordSettingModal()" style="font-size: 14px; padding: 10px 20px;">🔐 老师设置房间密码</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 房间密码设置弹窗（老师专用） -->
+    <div class="modal-overlay password-modal" id="roomPasswordSettingModal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeRoomPasswordSettingModal()">✕</button>
+            <h2>🔐 设置房间密码</h2>
+            <p style="color: #666; font-size: 14px; margin: 15px 0;">此密码用于保护学生的房间，防止他人进入。设置后无法修改，请牢记密码！</p>
+            <input type="password" class="password-input" id="roomPasswordInput" placeholder="请输入4位数字密码" maxlength="4" inputmode="numeric">
+            <input type="password" class="password-input" id="roomPasswordConfirmInput" placeholder="再次确认密码" maxlength="4" inputmode="numeric" style="margin-top: 10px;">
+            <button class="btn btn-primary" onclick="saveRoomPassword()">设置密码</button>
+        </div>
+    </div>
+
+    <!-- 房间密码验证弹窗 -->
+    <div class="modal-overlay password-modal" id="roomPasswordVerifyModal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeRoomPasswordVerifyModal()">✕</button>
+            <h2>🔐 输入房间密码</h2>
+            <p style="color: #666; font-size: 14px; margin: 15px 0;">该房间已设置密码保护，请输入密码进入</p>
+            <input type="password" class="password-input" id="roomPasswordVerifyInput" placeholder="请输入4位密码" maxlength="4" inputmode="numeric">
+            <button class="btn btn-primary" onclick="verifyRoomPassword()">进入房间</button>
         </div>
     </div>
 
@@ -3154,6 +3180,30 @@
             renderRoomCabinet();
             detectControlType();
             initVirtualJoystick();
+            initRoomPasswordInputs();
+        }
+
+        // 初始化房间密码输入框事件
+        function initRoomPasswordInputs() {
+            // 密码设置 - 确认密码输入框回车
+            const confirmInput = document.getElementById('roomPasswordConfirmInput');
+            if (confirmInput) {
+                confirmInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        saveRoomPassword();
+                    }
+                });
+            }
+
+            // 密码验证输入框回车
+            const verifyInput = document.getElementById('roomPasswordVerifyInput');
+            if (verifyInput) {
+                verifyInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        verifyRoomPassword();
+                    }
+                });
+            }
         }
 
         // 保存库存数据
@@ -3366,6 +3416,10 @@
         let planeCrashTimer = null;    // 坠毁检测定时器
         let indoorPlanePos = { x: 50, y: 50, z: 30 }; // 室内飞机3D位置 (x%, y%, z高度%)
         let planeVelocity = { x: 0, y: 0, z: 0 };     // 飞机速度向量
+
+        // 房间密码系统
+        let roomPassword = localStorage.getItem('roomPassword') || '';  // 房间密码
+        let pendingStudentId = null;  // 待进入房间的学生ID（等待密码验证）
         let carryingItems = [];
         let isDigging = false;
 
@@ -3711,6 +3765,23 @@
 
         // 进入房间
         function enterRoom(studentId) {
+            const student = students.find(s => s.id === studentId);
+            if (!student) return;
+
+            // 检查是否设置了房间密码
+            if (roomPassword && roomPassword.length > 0) {
+                // 需要验证密码
+                pendingStudentId = studentId;
+                openRoomPasswordVerifyModal();
+                return;
+            }
+
+            // 没有设置密码，直接进入
+            doEnterRoom(studentId);
+        }
+
+        // 真正进入房间（密码验证通过后）
+        function doEnterRoom(studentId) {
             currentRoomStudentId = studentId;
             const student = students.find(s => s.id === studentId);
             if (!student) return;
@@ -3746,6 +3817,75 @@
 
             // 添加键盘监听
             document.addEventListener('keydown', handleRoomKeydown);
+        }
+
+        // 打开房间密码设置弹窗（老师专用）
+        function openRoomPasswordSettingModal() {
+            // 检查是否已设置密码
+            if (roomPassword && roomPassword.length > 0) {
+                alert('房间密码已设置！如需修改，请联系程序管理员。');
+                return;
+            }
+            document.getElementById('roomPasswordInput').value = '';
+            document.getElementById('roomPasswordConfirmInput').value = '';
+            document.getElementById('roomPasswordSettingModal').classList.add('active');
+        }
+
+        // 关闭房间密码设置弹窗
+        function closeRoomPasswordSettingModal() {
+            document.getElementById('roomPasswordSettingModal').classList.remove('active');
+        }
+
+        // 保存房间密码
+        function saveRoomPassword() {
+            const password = document.getElementById('roomPasswordInput').value.trim();
+            const confirmPassword = document.getElementById('roomPasswordConfirmInput').value.trim();
+
+            // 验证密码格式
+            if (!/^\d{4}$/.test(password)) {
+                alert('密码必须是4位数字！');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                alert('两次输入的密码不一致！');
+                return;
+            }
+
+            // 保存密码
+            roomPassword = password;
+            localStorage.setItem('roomPassword', roomPassword);
+            alert('房间密码设置成功！请告诉学生密码，之后进入房间需要输入此密码。');
+            closeRoomPasswordSettingModal();
+        }
+
+        // 打开房间密码验证弹窗
+        function openRoomPasswordVerifyModal() {
+            document.getElementById('roomPasswordVerifyInput').value = '';
+            document.getElementById('roomPasswordVerifyModal').classList.add('active');
+        }
+
+        // 关闭房间密码验证弹窗
+        function closeRoomPasswordVerifyModal() {
+            document.getElementById('roomPasswordVerifyModal').classList.remove('active');
+            pendingStudentId = null;
+        }
+
+        // 验证房间密码
+        function verifyRoomPassword() {
+            const inputPassword = document.getElementById('roomPasswordVerifyInput').value.trim();
+
+            if (inputPassword !== roomPassword) {
+                alert('密码错误！无法进入房间。');
+                return;
+            }
+
+            // 密码正确，进入房间
+            closeRoomPasswordVerifyModal();
+            if (pendingStudentId) {
+                doEnterRoom(pendingStudentId);
+                pendingStudentId = null;
+            }
         }
 
         // 渲染室内玩家
