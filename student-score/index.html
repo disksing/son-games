@@ -3205,8 +3205,42 @@
         // 数据
         let students = loadStudentsFromStorage();
         let totalExchanged = loadBigIntFromStorage('totalExchanged', 0n);
+        // 库存已改为每个学生独立存储在 student.inventory 中
+        // 保留此变量用于兼容旧版本数据迁移
         let inventory = JSON.parse(localStorage.getItem('inventory') || '{}');
         let currentStudentId = null;
+
+        // 获取指定学生的库存（如果不存在则初始化）
+        function getStudentInventory(studentId) {
+            const student = students.find(s => s.id === studentId);
+            if (!student) return {};
+            if (!student.inventory) {
+                student.inventory = {};
+            }
+            return student.inventory;
+        }
+
+        // 获取当前房间学生的库存
+        function getCurrentRoomInventory() {
+            return getStudentInventory(currentRoomStudentId);
+        }
+
+        // 旧版本数据迁移：将全局库存迁移到第一个学生
+        function migrateOldInventory() {
+            if (inventory && Object.keys(inventory).length > 0 && students.length > 0) {
+                // 检查是否已有学生有库存
+                const hasAnyInventory = students.some(s => s.inventory && Object.keys(s.inventory).length > 0);
+                if (!hasAnyInventory) {
+                    // 将全局库存迁移到第一个学生
+                    students[0].inventory = { ...inventory };
+                    saveData();
+                    console.log('已将旧版本库存迁移到第一个学生:', students[0].name);
+                }
+                // 清除旧的全局库存
+                localStorage.removeItem('inventory');
+                inventory = {};
+            }
+        }
         let currentScoreInputType = null;
         let selectedGender = null;
 
@@ -3217,6 +3251,8 @@
             renderStudents();
             updateClassStats();
             renderShop();
+            // 迁移旧版本库存数据
+            migrateOldInventory();
             renderRoomCabinet();
             detectControlType();
             initVirtualJoystick();
@@ -3256,9 +3292,10 @@
             }
         }
 
-        // 保存库存数据
+        // 保存库存数据（现在库存保存在学生数据中）
         function saveInventory() {
-            localStorage.setItem('inventory', JSON.stringify(inventory));
+            // 库存已保存在学生对象中，通过 saveData() 保存
+            saveData();
         }
 
         // 渲染商店
@@ -3402,16 +3439,21 @@
                 return;
             }
 
-            // 普通物品添加到库存
-            inventory[item.id] = (inventory[item.id] || 0) + 1;
+            // 普通物品添加到该学生的库存
+            if (!student.inventory) {
+                student.inventory = {};
+            }
+            student.inventory[item.id] = (student.inventory[item.id] || 0) + 1;
 
             // 添加记录
             addRecord('buy', student.name, itemPrice, item.name);
 
             saveData();
-            saveInventory();
             renderStudents();
-            renderRoomCabinet();
+            // 如果当前正在该学生的房间，刷新柜子显示
+            if (currentRoomStudentId === studentId) {
+                renderRoomCabinet();
+            }
 
             closeSelectStudentModal();
 
@@ -4380,7 +4422,9 @@
             const grid = document.getElementById('roomCabinetGrid');
             grid.innerHTML = '';
 
-            const ownedItems = Object.entries(inventory).filter(([id, count]) => count > 0);
+            // 使用当前房间学生的库存
+            const studentInventory = getCurrentRoomInventory();
+            const ownedItems = Object.entries(studentInventory).filter(([id, count]) => count > 0);
 
             if (ownedItems.length === 0) {
                 grid.innerHTML = '<div style="text-align:center;color:#ffd43b;padding:20px;grid-column:1/-1;">柜子是空的~<br>去商店买些东西吧！</div>';
@@ -4728,9 +4772,10 @@
                             if (index > -1) {
                                 carryingItems.splice(index, 1);
                             }
-                            // 从仓库库存中也移除
-                            if (inventory['rc_plane'] > 0) {
-                                inventory['rc_plane']--;
+                            // 从当前房间学生的库存中移除
+                            const studentInventory = getCurrentRoomInventory();
+                            if (studentInventory['rc_plane'] > 0) {
+                                studentInventory['rc_plane']--;
                                 saveInventory();
                             }
                             planeCrashed = false; // 重置状态，但飞机已从背包移除
@@ -4810,9 +4855,10 @@
                 if (index > -1) {
                     carryingItems.splice(index, 1);
                 }
-                // 从仓库库存中也移除
-                if (inventory['rc_plane'] > 0) {
-                    inventory['rc_plane']--;
+                // 从当前房间学生的库存中移除
+                const studentInventory = getCurrentRoomInventory();
+                if (studentInventory['rc_plane'] > 0) {
+                    studentInventory['rc_plane']--;
                     saveInventory();
                 }
                 planeCrashed = false; // 重置状态，但飞机已从背包移除
@@ -5648,10 +5694,13 @@
                     student.totalSubtracted -= record.amount;
                 } else if (record.type === 'buy') {
                     student.score += record.amount;
-                    // 从库存移除
+                    // 从该学生的库存移除
+                    if (!student.inventory) {
+                        student.inventory = {};
+                    }
                     const item = shopItems.find(i => i.name === record.itemName);
-                    if (item && inventory[item.id] > 0) {
-                        inventory[item.id]--;
+                    if (item && student.inventory[item.id] > 0) {
+                        student.inventory[item.id]--;
                     }
                     saveInventory();
                 }
