@@ -4328,13 +4328,19 @@
                             plane.style.display = 'none';
                             hidePlaneControls();
                             
-                            // 从携带物品中移除损坏的飞机
+                            // 从携带物品和库存中移除损坏的飞机
                             const index = carryingItems.indexOf('rc_plane');
                             if (index > -1) {
                                 carryingItems.splice(index, 1);
                             }
+                            // 从仓库库存中也移除
+                            if (inventory['rc_plane'] > 0) {
+                                inventory['rc_plane']--;
+                                saveInventory();
+                            }
                             planeCrashed = false; // 重置状态，但飞机已从背包移除
                             renderCarryItems();
+                            renderRoomCabinet(); // 重新渲染柜子显示剩余飞机
                             
                             // 只显示简洁的坠毁提示
                             alert('飞机坠毁，你失去了飞机');
@@ -4404,13 +4410,19 @@
                 plane.style.display = 'none';
                 hidePlaneControls();
                 
-                // 从携带物品中移除损坏的飞机
+                // 从携带物品和库存中移除损坏的飞机
                 const index = carryingItems.indexOf('rc_plane');
                 if (index > -1) {
                     carryingItems.splice(index, 1);
                 }
+                // 从仓库库存中也移除
+                if (inventory['rc_plane'] > 0) {
+                    inventory['rc_plane']--;
+                    saveInventory();
+                }
                 planeCrashed = false; // 重置状态，但飞机已从背包移除
                 renderCarryItems();
+                renderRoomCabinet(); // 重新渲染柜子显示剩余飞机
                 
                 // 只显示简洁的坠毁提示
                 alert('飞机坠毁，你失去了飞机');
