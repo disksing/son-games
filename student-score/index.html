@@ -3017,7 +3017,7 @@
             {
                 id: 'rc_plane',
                 name: '遥控飞机',
-                price: 20,
+                price: 50,
                 icon: `<svg viewBox="0 0 100 100">
                     <!-- 机身 -->
                     <ellipse cx="50" cy="50" rx="35" ry="10" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
@@ -4038,6 +4038,9 @@
         function renderCarryItems() {
             const container = document.getElementById('carryItems');
             container.innerHTML = '';
+
+            // 过滤掉无效的物品ID，确保数组紧凑
+            carryingItems = carryingItems.filter(itemId => itemId && shopItems.find(i => i.id === itemId));
 
             carryingItems.forEach((itemId, index) => {
                 const item = shopItems.find(i => i.id === itemId);
