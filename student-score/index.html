@@ -1384,13 +1384,13 @@
             cursor: pointer;
         }
 
-        /* 飞机大号虚拟摇杆（手柄模式） */
+        /* 飞机小号虚拟摇杆（飞行模式指示器） */
         .plane-joystick {
             position: absolute;
-            bottom: 30px;
-            right: 30px;
-            width: 180px;
-            height: 180px;
+            bottom: 20px;
+            left: 160px;  /* 放在普通摇杆右边 */
+            width: 80px;
+            height: 80px;
             z-index: 500;
             display: none;
             touch-action: none;
@@ -1402,23 +1402,23 @@
 
         .plane-joystick .joystick-base {
             background: rgba(255, 100, 100, 0.2);
-            border: 4px solid rgba(255, 100, 100, 0.5);
+            border: 2px solid rgba(255, 100, 100, 0.5);
         }
 
         .plane-joystick .joystick-knob {
-            width: 70px;
-            height: 70px;
+            width: 35px;
+            height: 35px;
             background: linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%);
-            box-shadow: 0 6px 20px rgba(201, 42, 42, 0.4);
+            box-shadow: 0 3px 10px rgba(201, 42, 42, 0.4);
         }
 
         /* 飞机控制面板 */
         .plane-control-panel {
             position: absolute;
-            bottom: 100px;
-            right: 30px;
+            bottom: 20px;
+            right: 20px;
             display: none;
-            flex-direction: column;
+            flex-direction: row;
             gap: 10px;
             z-index: 500;
         }
@@ -1428,14 +1428,15 @@
         }
 
         .plane-btn {
-            padding: 12px 24px;
+            padding: 10px 18px;
             border: none;
-            border-radius: 25px;
-            font-size: 14px;
+            border-radius: 20px;
+            font-size: 13px;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.2s;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            white-space: nowrap;
         }
 
         .plane-btn:hover {
@@ -2670,7 +2671,7 @@
             <div class="joystick-knob" id="joystickKnob"></div>
         </div>
 
-        <!-- 飞机大号虚拟摇杆（手柄模式） -->
+        <!-- 飞机小号虚拟摇杆（飞行模式指示器） -->
         <div class="plane-joystick" id="planeJoystick">
             <div class="joystick-base"></div>
             <div class="joystick-knob" id="planeJoystickKnob"></div>
@@ -2678,8 +2679,8 @@
 
         <!-- 飞机控制面板 -->
         <div class="plane-control-panel" id="planeControlPanel">
-            <button class="plane-btn hover-btn" id="hoverBtn" onclick="toggleHoverMode()">🚁 盘旋观赏</button>
-            <button class="plane-btn land-btn" id="landBtn" onclick="emergencyLand()">🛬 紧急降落</button>
+            <button class="plane-btn hover-btn" id="hoverBtn" onclick="toggleHoverMode()">🚁 盘旋</button>
+            <button class="plane-btn land-btn" id="landBtn" onclick="emergencyLand()">🛬 降落</button>
         </div>
 
         <!-- 地图弹窗 -->
@@ -4163,7 +4164,20 @@
             let warningCount = 0;
             planeWarningTimer = setInterval(() => {
                 warningCount++;
-                showPlaneWarning(`⚠️ 警告：室内飞行危险！${warningCount}秒`);
+                
+                if (warningCount === 1) {
+                    // 第一次警告
+                    showPlaneWarning('⚠️ 警告：室内飞行危险！');
+                } else if (warningCount === 2) {
+                    // 第二次警告
+                    showPlaneWarning('⚠️ 警告：室内飞行！请立即降落！');
+                } else if (warningCount >= 3) {
+                    // 第三次 - 飞机失控坠毁
+                    showPlaneWarning('💥 飞机失控了！');
+                    setTimeout(() => {
+                        crashPlaneAuto();
+                    }, 500);
+                }
             }, 1000);
         }
 
@@ -4198,25 +4212,93 @@
             }
         }
 
-        // 坠毁检测系统
+        // 自动坠毁（警告第三次后触发）
+        function crashPlaneAuto() {
+            if (!planeActive || isOutdoor) return;
+            
+            planeActive = false;
+            planeCrashed = true;
+            stopIndoorWarning();
+            
+            const plane = document.getElementById('indoorPlane');
+            plane.classList.remove('flying');
+            
+            // 坠毁动画：先飞到墙上或屋顶，然后摔下来
+            const crashAnimation = setInterval(() => {
+                // 随机选择撞墙方向
+                const hitWallX = Math.random() > 0.5;
+                
+                if (hitWallX) {
+                    indoorPlanePos.x += (Math.random() > 0.5 ? 2 : -2);
+                } else {
+                    indoorPlanePos.y += (Math.random() > 0.5 ? 2 : -2);
+                }
+                
+                // 向上飞一点然后摔下来
+                if (indoorPlanePos.z < 50) {
+                    indoorPlanePos.z += 2;
+                } else {
+                    // 摔下来
+                    indoorPlanePos.z -= 3;
+                }
+                
+                // 检查是否摔到地面
+                if (indoorPlanePos.z <= 5) {
+                    clearInterval(crashAnimation);
+                    indoorPlanePos.z = 5;
+                    updateIndoorPlanePosition();
+                    
+                    // 显示坠毁效果
+                    const crashEffect = document.createElement('div');
+                    crashEffect.className = 'crash-effect';
+                    crashEffect.textContent = '💥🔥';
+                    crashEffect.style.left = plane.style.left;
+                    crashEffect.style.bottom = plane.style.bottom;
+                    document.getElementById('roomIndoor').appendChild(crashEffect);
+                    
+                    // 显示坠毁提示
+                    showPlaneWarning('💥 撞到墙然后摔在地上！飞机摔得稀巴烂！');
+                    
+                    // 3秒后显示最终结果
+                    setTimeout(() => {
+                        alert('飞机彻底损坏了！你需要去商店重新购买遥控飞机。');
+                        crashEffect.remove();
+                        plane.style.display = 'none';
+                        hidePlaneControls();
+                        
+                        // 从携带物品中移除损坏的飞机
+                        const index = carryingItems.indexOf('rc_plane');
+                        if (index > -1) {
+                            carryingItems.splice(index, 1);
+                        }
+                        planeCrashed = false; // 重置状态，但飞机已从背包移除
+                        renderCarryItems();
+                    }, 1000);
+                } else {
+                    updateIndoorPlanePosition();
+                }
+            }, 50);
+        }
+
+        // 坠毁检测系统（保留用于检测用户主动撞墙）
         function startCrashDetection() {
             planeCrashTimer = setInterval(() => {
                 if (!planeActive || isOutdoor) return;
                 
-                // 检查边界碰撞
+                // 检查边界碰撞（用户主动控制撞墙）
                 const bounds = {
-                    xMin: 10, xMax: 90,  // 左右墙
-                    yMin: 10, yMax: 90,  // 前后墙
-                    zMin: 5,  zMax: 60   // 地板和天花板
+                    xMin: 5, xMax: 95,  // 左右墙
+                    yMin: 5, yMax: 95,  // 前后墙
+                    zMin: 5,  zMax: 65  // 地板和天花板
                 };
                 
                 const hitWall = indoorPlanePos.x <= bounds.xMin || indoorPlanePos.x >= bounds.xMax ||
                                indoorPlanePos.y <= bounds.yMin || indoorPlanePos.y >= bounds.yMax;
                 const hitCeiling = indoorPlanePos.z >= bounds.zMax;
-                const hitFloor = indoorPlanePos.z <= bounds.zMin;
+                const hitFloor = indoorPlanePos.z <= bounds.zMin && indoorPlanePos.z > 0;
                 
                 if (hitWall || hitCeiling || hitFloor) {
-                    crashPlane(hitWall ? 'wall' : hitCeiling ? 'ceiling' : 'floor');
+                    crashPlaneManual(hitWall ? 'wall' : hitCeiling ? 'ceiling' : 'floor');
                 }
                 
                 // 更新位置
@@ -4232,8 +4314,8 @@
             }
         }
 
-        // 飞机坠毁
-        function crashPlane(hitType) {
+        // 手动坠毁（用户控制撞墙）
+        function crashPlaneManual(hitType) {
             planeActive = false;
             planeCrashed = true;
             stopIndoorWarning();
@@ -4387,7 +4469,7 @@
             
             let startX, startY;
             let joystickCenterX, joystickCenterY;
-            const maxDistance = 50;
+            const maxDistance = 22; // 适应小号摇杆（80px）
 
             function handleTouchStart(e) {
                 e.preventDefault();
@@ -4438,66 +4520,6 @@
             joystick.addEventListener('touchend', handleTouchEnd, { passive: false });
             joystick.addEventListener('touchcancel', handleTouchEnd, { passive: false });
         }
-
-        // 飞机控制循环（用于摇杆）
-        function startPlaneControlLoop() {
-            function update() {
-                if (planeActive && (planeJoystickActive || planeJoystickVector.x !== 0 || planeJoystickVector.y !== 0)) {
-                    const speed = 0.3;
-                    
-                    if (isOutdoor) {
-                        // 户外飞机控制
-                        const plane = document.getElementById('rcPlane');
-                        let moved = false;
-
-                        if (Math.abs(planeJoystickVector.y) > 0.1) {
-                            if (planeJoystickVector.y > 0) {
-                                planePos.y = Math.min(90, planePos.y + speed * Math.abs(planeJoystickVector.y));
-                            } else {
-                                planePos.y = Math.max(20, planePos.y - speed * Math.abs(planeJoystickVector.y));
-                            }
-                            moved = true;
-                        }
-                        
-                        if (Math.abs(planeJoystickVector.x) > 0.1) {
-                            if (planeJoystickVector.x < 0) {
-                                planePos.x = Math.max(5, planePos.x - speed * Math.abs(planeJoystickVector.x));
-                            } else {
-                                planePos.x = Math.min(95, planePos.x + speed * Math.abs(planeJoystickVector.x));
-                            }
-                            moved = true;
-                        }
-
-                        if (moved) {
-                            plane.style.left = planePos.x + '%';
-                            plane.style.bottom = planePos.y + '%';
-                        }
-                    } else {
-                        // 室内飞机控制（3D）
-                        if (Math.abs(planeJoystickVector.y) > 0.1) {
-                            // 前后移动（Y轴）
-                            indoorPlanePos.y += planeJoystickVector.y * speed;
-                            indoorPlanePos.y = Math.max(10, Math.min(90, indoorPlanePos.y));
-                        }
-                        
-                        if (Math.abs(planeJoystickVector.x) > 0.1) {
-                            // 左右移动（X轴）
-                            indoorPlanePos.x += planeJoystickVector.x * speed;
-                            indoorPlanePos.x = Math.max(10, Math.min(90, indoorPlanePos.x));
-                        }
-                        
-                        updateIndoorPlanePosition();
-                    }
-                }
-                
-                requestAnimationFrame(update);
-            }
-            
-            update();
-        }
-
-        // 启动飞机控制循环
-        startPlaneControlLoop();
 
         // 检查是否在沙坑附近
         function isNearSandbox() {
@@ -4719,10 +4741,60 @@
             // 摇杆每帧更新约 60fps，需要平滑移动
             const indoorSpeed = 0.15;   // 室内：较慢，约 0.15% 每帧 ≈ 走路速度
             const outdoorSpeed = 0.12;  // 户外：更慢，约 0.12% 每帧（花园更大）
-            const planeSpeed = 0.25;    // 飞机：较快
+            const planeSpeed = 0.3;     // 飞机：较快
             
             function update() {
-                if (joystickActive && controlType === 'touch') {
+                // 飞机控制：使用普通摇杆或飞机摇杆都可以控制飞机
+                if (planeActive && (joystickActive || planeJoystickActive)) {
+                    // 合并两个摇杆的输入（取最大值）
+                    const controlX = Math.abs(joystickVector.x) > Math.abs(planeJoystickVector.x) ? joystickVector.x : planeJoystickVector.x;
+                    const controlY = Math.abs(joystickVector.y) > Math.abs(planeJoystickVector.y) ? joystickVector.y : planeJoystickVector.y;
+                    
+                    if (!isOutdoor) {
+                        // 室内飞机控制（3D）
+                        if (Math.abs(controlY) > 0.1) {
+                            // 前后移动（Y轴）
+                            indoorPlanePos.y += controlY * planeSpeed;
+                            indoorPlanePos.y = Math.max(10, Math.min(90, indoorPlanePos.y));
+                        }
+                        
+                        if (Math.abs(controlX) > 0.1) {
+                            // 左右移动（X轴）
+                            indoorPlanePos.x += controlX * planeSpeed;
+                            indoorPlanePos.x = Math.max(10, Math.min(90, indoorPlanePos.x));
+                        }
+                        
+                        updateIndoorPlanePosition();
+                    } else {
+                        // 户外飞机控制
+                        const plane = document.getElementById('rcPlane');
+                        let moved = false;
+
+                        if (Math.abs(controlY) > 0.1) {
+                            if (controlY > 0) {
+                                planePos.y = Math.min(90, planePos.y + planeSpeed * Math.abs(controlY));
+                            } else {
+                                planePos.y = Math.max(20, planePos.y - planeSpeed * Math.abs(controlY));
+                            }
+                            moved = true;
+                        }
+                        
+                        if (Math.abs(controlX) > 0.1) {
+                            if (controlX < 0) {
+                                planePos.x = Math.max(5, planePos.x - planeSpeed * Math.abs(controlX));
+                            } else {
+                                planePos.x = Math.min(95, planePos.x + planeSpeed * Math.abs(controlX));
+                            }
+                            moved = true;
+                        }
+
+                        if (moved) {
+                            plane.style.left = planePos.x + '%';
+                            plane.style.bottom = planePos.y + '%';
+                        }
+                    }
+                } else if (joystickActive && controlType === 'touch') {
+                    // 玩家控制（飞机未激活时）
                     if (!isOutdoor) {
                         // 室内移动
                         const player = document.getElementById('indoorPlayer');
@@ -4756,73 +4828,43 @@
                             }
                         }
                     } else {
-                        // 户外移动
-                        if (planeActive) {
-                            // 控制飞机
-                            const plane = document.getElementById('rcPlane');
-                            let moved = false;
+                        // 户外移动 - 玩家
+                        const player = document.getElementById('player');
+                        let moved = false;
 
-                            if (Math.abs(joystickVector.y) > 0.2) {
-                                if (joystickVector.y > 0) {
-                                    planePos.y = Math.min(90, planePos.y + planeSpeed * Math.abs(joystickVector.y));
-                                } else {
-                                    planePos.y = Math.max(20, planePos.y - planeSpeed * Math.abs(joystickVector.y));
-                                }
-                                moved = true;
+                        if (Math.abs(joystickVector.y) > 0.2) {
+                            if (joystickVector.y > 0) {
+                                playerPos.y = Math.min(55, playerPos.y + outdoorSpeed * Math.abs(joystickVector.y));
+                            } else {
+                                playerPos.y = Math.max(18, playerPos.y - outdoorSpeed * Math.abs(joystickVector.y));
                             }
-                            
-                            if (Math.abs(joystickVector.x) > 0.2) {
-                                if (joystickVector.x < 0) {
-                                    planePos.x = Math.max(5, planePos.x - planeSpeed * Math.abs(joystickVector.x));
-                                } else {
-                                    planePos.x = Math.min(95, planePos.x + planeSpeed * Math.abs(joystickVector.x));
-                                }
-                                moved = true;
+                            moved = true;
+                        }
+                        
+                        if (Math.abs(joystickVector.x) > 0.2) {
+                            if (joystickVector.x < 0) {
+                                playerPos.x = Math.max(5, playerPos.x - outdoorSpeed * Math.abs(joystickVector.x));
+                            } else {
+                                playerPos.x = Math.min(95, playerPos.x + outdoorSpeed * Math.abs(joystickVector.x));
                             }
+                            moved = true;
+                        }
 
-                            if (moved) {
-                                plane.style.left = planePos.x + '%';
-                                plane.style.bottom = planePos.y + '%';
-                            }
-                        } else {
-                            // 控制玩家
-                            const player = document.getElementById('player');
-                            let moved = false;
+                        if (moved) {
+                            player.style.left = playerPos.x + '%';
+                            player.style.bottom = playerPos.y + '%';
 
-                            if (Math.abs(joystickVector.y) > 0.2) {
-                                if (joystickVector.y > 0) {
-                                    playerPos.y = Math.min(55, playerPos.y + outdoorSpeed * Math.abs(joystickVector.y));
-                                } else {
-                                    playerPos.y = Math.max(18, playerPos.y - outdoorSpeed * Math.abs(joystickVector.y));
-                                }
-                                moved = true;
-                            }
-                            
-                            if (Math.abs(joystickVector.x) > 0.2) {
-                                if (joystickVector.x < 0) {
-                                    playerPos.x = Math.max(5, playerPos.x - outdoorSpeed * Math.abs(joystickVector.x));
-                                } else {
-                                    playerPos.x = Math.min(95, playerPos.x + outdoorSpeed * Math.abs(joystickVector.x));
-                                }
-                                moved = true;
+                            // 检查是否走到房子入口
+                            if (playerPos.x > 40 && playerPos.x < 60 && playerPos.y > 52) {
+                                goIndoor();
                             }
 
-                            if (moved) {
-                                player.style.left = playerPos.x + '%';
-                                player.style.bottom = playerPos.y + '%';
+                            // 更新沙坑提示
+                            updateSandboxHint();
 
-                                // 检查是否走到房子入口
-                                if (playerPos.x > 40 && playerPos.x < 60 && playerPos.y > 52) {
-                                    goIndoor();
-                                }
-
-                                // 更新沙坑提示
-                                updateSandboxHint();
-
-                                // 更新地图位置
-                                if (document.getElementById('mapModal').classList.contains('active')) {
-                                    updateMapPosition();
-                                }
+                            // 更新地图位置
+                            if (document.getElementById('mapModal').classList.contains('active')) {
+                                updateMapPosition();
                             }
                         }
                     }
