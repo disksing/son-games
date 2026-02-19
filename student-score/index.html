@@ -2562,7 +2562,33 @@
                 <!-- 学生列表会动态生成 -->
             </div>
             <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; text-align: center;">
-                <button class="btn btn-primary" onclick="openRoomPasswordSettingModal()" style="font-size: 14px; padding: 10px 20px;">🔐 老师设置房间密码</button>
+                <button class="btn btn-primary" onclick="openStudentPasswordSettingFromRoomModal()" style="font-size: 14px; padding: 10px 20px; background: linear-gradient(135deg, #51cf66 0%, #2b8a3e 100%);">🔐 设置/修改我的房间密码</button>
+            </div>
+            <div style="margin-top: 10px; text-align: center;">
+                <button class="btn btn-primary" onclick="openTeacherSelectStudentForPasswordModal()" style="font-size: 14px; padding: 10px 20px;">👨‍🏫 老师设置学生密码</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 学生选择设置自己密码弹窗 -->
+    <div class="modal-overlay select-student-modal" id="studentSelectSelfForPasswordModal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeStudentSelectSelfForPasswordModal()">✕</button>
+            <h2>🔐 选择要设置密码的学生</h2>
+            <div class="select-student-list" id="studentSelectSelfForPasswordList">
+                <!-- 学生列表会动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 老师选择学生设置密码弹窗 -->
+    <div class="modal-overlay select-student-modal" id="teacherSelectStudentForPasswordModal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeTeacherSelectStudentForPasswordModal()">✕</button>
+            <h2>🔐 选择要设置密码的学生</h2>
+            <p style="color: #666; font-size: 14px; margin: 15px 0; text-align: center;">绿色边框的学生已设置密码，无法再次设置</p>
+            <div class="select-student-list" id="teacherSelectStudentForPasswordList">
+                <!-- 学生列表会动态生成 -->
             </div>
         </div>
     </div>
@@ -2572,10 +2598,24 @@
         <div class="modal">
             <button class="modal-close" onclick="closeRoomPasswordSettingModal()">✕</button>
             <h2>🔐 设置房间密码</h2>
-            <p style="color: #666; font-size: 14px; margin: 15px 0;">此密码用于保护学生的房间，防止他人进入。设置后无法修改，请牢记密码！</p>
+            <p style="color: #333; font-size: 16px; margin: 15px 0; font-weight: bold;" id="teacherSettingStudentName"></p>
+            <p style="color: #666; font-size: 14px; margin: 15px 0;">此密码用于保护该学生的房间，防止他人进入。<span style="color: #c92a2a; font-weight: bold;">设置后无法修改</span>，请牢记密码！</p>
             <input type="password" class="password-input" id="roomPasswordInput" placeholder="请输入4位数字密码" maxlength="4" inputmode="numeric">
             <input type="password" class="password-input" id="roomPasswordConfirmInput" placeholder="再次确认密码" maxlength="4" inputmode="numeric" style="margin-top: 10px;">
             <button class="btn btn-primary" onclick="saveRoomPassword()">设置密码</button>
+        </div>
+    </div>
+
+    <!-- 学生自己设置/修改密码弹窗 -->
+    <div class="modal-overlay password-modal" id="studentPasswordSettingModal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeStudentPasswordSettingModal()">✕</button>
+            <h2 id="studentPasswordSettingTitle">🔐 设置房间密码</h2>
+            <p style="color: #666; font-size: 14px; margin: 15px 0;" id="studentPasswordSettingHint">设置4位数字密码保护你的房间</p>
+            <input type="password" class="password-input" id="studentOldPasswordInput" placeholder="请输入原密码" maxlength="4" inputmode="numeric" style="display:none;">
+            <input type="password" class="password-input" id="studentNewPasswordInput" placeholder="请输入4位数字新密码" maxlength="4" inputmode="numeric">
+            <input type="password" class="password-input" id="studentConfirmPasswordInput" placeholder="再次确认新密码" maxlength="4" inputmode="numeric" style="margin-top: 10px;">
+            <button class="btn btn-primary" onclick="saveStudentPassword()">保存密码</button>
         </div>
     </div>
 
@@ -3204,6 +3244,16 @@
                     }
                 });
             }
+
+            // 学生密码设置输入框回车
+            const studentConfirmInput = document.getElementById('studentConfirmPasswordInput');
+            if (studentConfirmInput) {
+                studentConfirmInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        saveStudentPassword();
+                    }
+                });
+            }
         }
 
         // 保存库存数据
@@ -3417,9 +3467,11 @@
         let indoorPlanePos = { x: 50, y: 50, z: 30 }; // 室内飞机3D位置 (x%, y%, z高度%)
         let planeVelocity = { x: 0, y: 0, z: 0 };     // 飞机速度向量
 
-        // 房间密码系统
-        let roomPassword = localStorage.getItem('roomPassword') || '';  // 房间密码
+        // 房间密码系统 - 每个学生有自己的密码
+        // 兼容旧版本：如果存在全局密码，需要迁移
+        let roomPassword = localStorage.getItem('roomPassword') || '';  // 旧版本兼容
         let pendingStudentId = null;  // 待进入房间的学生ID（等待密码验证）
+        let teacherSettingStudentId = null;  // 老师正在为哪个学生设置密码
         let carryingItems = [];
         let isDigging = false;
 
@@ -3749,18 +3801,30 @@
             }
 
             students.forEach(student => {
+                const hasPassword = !!(student.roomPassword && student.roomPassword.length > 0);
                 const div = document.createElement('div');
                 div.className = 'select-student-item';
+                div.onclick = () => enterRoom(student.id);
                 div.innerHTML = `
                     <div class="student-avatar">${student.avatar}</div>
                     <div class="student-info">
                         <div class="name">${student.name}</div>
-                        <div class="score">积分: ${formatScore(student.score)}</div>
+                        <div class="score">
+                            积分: ${formatScore(student.score)}
+                            ${hasPassword ? '<span style="color:#51cf66;margin-left:8px;">🔒已设密码</span>' : ''}
+                        </div>
                     </div>
                 `;
-                div.onclick = () => enterRoom(student.id);
                 list.appendChild(div);
             });
+        }
+
+        // 获取学生的房间密码
+        function getStudentRoomPassword(studentId) {
+            const student = students.find(s => s.id === studentId);
+            if (!student) return '';
+            // 优先使用学生自己的密码，如果没有则兼容旧版本的全局密码
+            return student.roomPassword || (roomPassword && roomPassword.length > 0 ? roomPassword : '');
         }
 
         // 进入房间
@@ -3768,8 +3832,9 @@
             const student = students.find(s => s.id === studentId);
             if (!student) return;
 
-            // 检查是否设置了房间密码
-            if (roomPassword && roomPassword.length > 0) {
+            // 检查该学生是否设置了房间密码
+            const studentPassword = getStudentRoomPassword(studentId);
+            if (studentPassword && studentPassword.length > 0) {
                 // 需要验证密码
                 pendingStudentId = studentId;
                 openRoomPasswordVerifyModal();
@@ -3819,13 +3884,102 @@
             document.addEventListener('keydown', handleRoomKeydown);
         }
 
-        // 打开房间密码设置弹窗（老师专用）
-        function openRoomPasswordSettingModal() {
-            // 检查是否已设置密码
-            if (roomPassword && roomPassword.length > 0) {
-                alert('房间密码已设置！如需修改，请联系程序管理员。');
+        // 打开学生选择设置自己密码弹窗（从房间弹窗进入）
+        function openStudentPasswordSettingFromRoomModal() {
+            renderStudentSelectSelfForPasswordList();
+            document.getElementById('studentSelectSelfForPasswordModal').classList.add('active');
+        }
+
+        // 关闭学生选择设置自己密码弹窗
+        function closeStudentSelectSelfForPasswordModal() {
+            document.getElementById('studentSelectSelfForPasswordModal').classList.remove('active');
+        }
+
+        // 渲染学生选择设置自己密码列表
+        function renderStudentSelectSelfForPasswordList() {
+            const list = document.getElementById('studentSelectSelfForPasswordList');
+            list.innerHTML = '';
+
+            if (students.length === 0) {
+                list.innerHTML = '<div style="text-align:center;color:#999;padding:20px;">还没有学生</div>';
                 return;
             }
+
+            students.forEach(student => {
+                const hasPassword = !!(student.roomPassword && student.roomPassword.length > 0);
+                const div = document.createElement('div');
+                div.className = 'select-student-item';
+                div.innerHTML = `
+                    <div class="student-avatar">${student.avatar}</div>
+                    <div class="student-info">
+                        <div class="name">${student.name}</div>
+                        <div class="score" style="color: ${hasPassword ? '#667eea' : '#51cf66'};">
+                            ${hasPassword ? '点击修改密码' : '点击设置密码'}
+                        </div>
+                    </div>
+                `;
+                div.onclick = () => {
+                    closeStudentSelectSelfForPasswordModal();
+                    openStudentPasswordSettingModal(student.id);
+                };
+                list.appendChild(div);
+            });
+        }
+
+        // 打开老师选择学生设置密码弹窗
+        function openTeacherSelectStudentForPasswordModal() {
+            renderTeacherSelectStudentForPasswordList();
+            document.getElementById('teacherSelectStudentForPasswordModal').classList.add('active');
+        }
+
+        // 关闭老师选择学生设置密码弹窗
+        function closeTeacherSelectStudentForPasswordModal() {
+            document.getElementById('teacherSelectStudentForPasswordModal').classList.remove('active');
+        }
+
+        // 渲染老师选择学生设置密码列表
+        function renderTeacherSelectStudentForPasswordList() {
+            const list = document.getElementById('teacherSelectStudentForPasswordList');
+            list.innerHTML = '';
+
+            if (students.length === 0) {
+                list.innerHTML = '<div style="text-align:center;color:#999;padding:20px;">还没有学生</div>';
+                return;
+            }
+
+            students.forEach(student => {
+                const hasPassword = !!(student.roomPassword && student.roomPassword.length > 0);
+                const div = document.createElement('div');
+                div.className = 'select-student-item';
+                div.style.border = hasPassword ? '2px solid #51cf66' : '2px solid transparent';
+                div.innerHTML = `
+                    <div class="student-avatar">${student.avatar}</div>
+                    <div class="student-info">
+                        <div class="name">${student.name}</div>
+                        <div class="score" style="color: ${hasPassword ? '#51cf66' : '#667eea'};">
+                            ${hasPassword ? '✅ 已设置密码' : '未设置密码'}
+                        </div>
+                    </div>
+                `;
+                div.onclick = () => {
+                    if (hasPassword) {
+                        alert('该学生已设置房间密码，无法再次设置！如需修改，请学生自行修改。');
+                        return;
+                    }
+                    closeTeacherSelectStudentForPasswordModal();
+                    openRoomPasswordSettingModal(student.id);
+                };
+                list.appendChild(div);
+            });
+        }
+
+        // 打开房间密码设置弹窗（老师专用）
+        function openRoomPasswordSettingModal(studentId) {
+            const student = students.find(s => s.id === studentId);
+            if (!student) return;
+
+            teacherSettingStudentId = studentId;
+            document.getElementById('teacherSettingStudentName').textContent = `正在为：${student.name} 设置密码`;
             document.getElementById('roomPasswordInput').value = '';
             document.getElementById('roomPasswordConfirmInput').value = '';
             document.getElementById('roomPasswordSettingModal').classList.add('active');
@@ -3834,9 +3988,10 @@
         // 关闭房间密码设置弹窗
         function closeRoomPasswordSettingModal() {
             document.getElementById('roomPasswordSettingModal').classList.remove('active');
+            teacherSettingStudentId = null;
         }
 
-        // 保存房间密码
+        // 保存房间密码（老师设置）
         function saveRoomPassword() {
             const password = document.getElementById('roomPasswordInput').value.trim();
             const confirmPassword = document.getElementById('roomPasswordConfirmInput').value.trim();
@@ -3852,10 +4007,28 @@
                 return;
             }
 
-            // 保存密码
-            roomPassword = password;
-            localStorage.setItem('roomPassword', roomPassword);
-            alert('房间密码设置成功！请告诉学生密码，之后进入房间需要输入此密码。');
+            // 保存密码到指定学生
+            if (!teacherSettingStudentId) {
+                alert('未选择学生！');
+                return;
+            }
+
+            const student = students.find(s => s.id === teacherSettingStudentId);
+            if (!student) {
+                alert('学生不存在！');
+                return;
+            }
+
+            // 检查是否已有密码（防止重复设置）
+            if (student.roomPassword && student.roomPassword.length > 0) {
+                alert('该学生已设置房间密码，无法再次设置！');
+                closeRoomPasswordSettingModal();
+                return;
+            }
+
+            student.roomPassword = password;
+            saveData();
+            alert(`房间密码设置成功！\n\n学生：${student.name}\n密码：${password}\n\n请告诉学生密码，之后进入房间需要输入此密码。学生也可以自行修改密码。`);
             closeRoomPasswordSettingModal();
         }
 
@@ -3874,18 +4047,100 @@
         // 验证房间密码
         function verifyRoomPassword() {
             const inputPassword = document.getElementById('roomPasswordVerifyInput').value.trim();
+            const correctPassword = getStudentRoomPassword(pendingStudentId);
 
-            if (inputPassword !== roomPassword) {
+            if (inputPassword !== correctPassword) {
                 alert('密码错误！无法进入房间。');
                 return;
             }
 
-            // 密码正确，进入房间
+            // 密码正确，保存学生ID并进入房间
+            const studentId = pendingStudentId;
             closeRoomPasswordVerifyModal();
-            if (pendingStudentId) {
-                doEnterRoom(pendingStudentId);
-                pendingStudentId = null;
+            if (studentId) {
+                doEnterRoom(studentId);
             }
+        }
+
+        // 打开学生设置/修改密码弹窗
+        let studentSettingPasswordId = null;  // 学生正在设置密码的ID（与pendingStudentId分开）
+        
+        function openStudentPasswordSettingModal(studentId) {
+            const student = students.find(s => s.id === studentId);
+            if (!student) return;
+
+            studentSettingPasswordId = studentId;
+            const hasPassword = !!(student.roomPassword && student.roomPassword.length > 0);
+
+            document.getElementById('studentPasswordSettingTitle').textContent = 
+                hasPassword ? '🔐 修改房间密码' : '🔐 设置房间密码';
+            document.getElementById('studentPasswordSettingHint').textContent = 
+                hasPassword ? '输入原密码后可以设置新密码' : '设置4位数字密码保护你的房间';
+
+            // 如果已有密码，显示原密码输入框
+            const oldPasswordInput = document.getElementById('studentOldPasswordInput');
+            if (hasPassword) {
+                oldPasswordInput.style.display = 'block';
+                oldPasswordInput.value = '';
+            } else {
+                oldPasswordInput.style.display = 'none';
+            }
+
+            document.getElementById('studentNewPasswordInput').value = '';
+            document.getElementById('studentConfirmPasswordInput').value = '';
+            document.getElementById('studentPasswordSettingModal').classList.add('active');
+        }
+
+        // 关闭学生设置/修改密码弹窗
+        function closeStudentPasswordSettingModal() {
+            document.getElementById('studentPasswordSettingModal').classList.remove('active');
+            studentSettingPasswordId = null;
+        }
+
+        // 保存学生密码
+        function saveStudentPassword() {
+            const student = students.find(s => s.id === studentSettingPasswordId);
+            if (!student) {
+                alert('学生不存在！');
+                return;
+            }
+
+            const hasPassword = !!(student.roomPassword && student.roomPassword.length > 0);
+            const oldPassword = document.getElementById('studentOldPasswordInput').value.trim();
+            const newPassword = document.getElementById('studentNewPasswordInput').value.trim();
+            const confirmPassword = document.getElementById('studentConfirmPasswordInput').value.trim();
+
+            // 如果已有密码，验证原密码
+            if (hasPassword) {
+                if (oldPassword !== student.roomPassword) {
+                    alert('原密码错误！');
+                    return;
+                }
+            }
+
+            // 验证新密码格式
+            if (!/^\d{4}$/.test(newPassword)) {
+                alert('新密码必须是4位数字！');
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                alert('两次输入的新密码不一致！');
+                return;
+            }
+
+            // 保存新密码
+            student.roomPassword = newPassword;
+            saveData();
+
+            // 兼容旧版本：清除全局密码（因为已经有学生设置了新密码）
+            if (roomPassword && roomPassword.length > 0) {
+                roomPassword = '';
+                localStorage.removeItem('roomPassword');
+            }
+
+            alert('密码保存成功！');
+            closeStudentPasswordSettingModal();
         }
 
         // 渲染室内玩家
