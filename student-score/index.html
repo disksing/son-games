@@ -1346,6 +1346,44 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
         }
 
+        /* 虚拟摇杆 */
+        .virtual-joystick {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 120px;
+            height: 120px;
+            z-index: 400;
+            display: none;
+            touch-action: none;
+        }
+
+        .virtual-joystick.active {
+            display: block;
+        }
+
+        .joystick-base {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .joystick-knob {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(200,200,200,0.9) 100%);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            cursor: pointer;
+        }
+
         /* 玩家徽章 */
         .player-badges {
             position: absolute;
@@ -2501,6 +2539,12 @@
             WASD移动 | Q控制飞机 | M地图
         </div>
 
+        <!-- 虚拟摇杆 -->
+        <div class="virtual-joystick" id="virtualJoystick">
+            <div class="joystick-base"></div>
+            <div class="joystick-knob" id="joystickKnob"></div>
+        </div>
+
         <!-- 地图弹窗 -->
         <div class="map-modal" id="mapModal">
             <span class="map-close" onclick="closeMap()">✕</span>
@@ -2940,6 +2984,8 @@
             updateClassStats();
             renderShop();
             renderRoomCabinet();
+            detectControlType();
+            initVirtualJoystick();
         }
 
         // 保存库存数据
@@ -3514,7 +3560,7 @@
             // 显示室内
             document.getElementById('roomIndoor').style.display = 'block';
             document.getElementById('roomOutdoor').style.display = 'none';
-            document.getElementById('controlHint').innerHTML = 'WASD移动 | 走到门口出门';
+            updateControlUI();
 
             // 渲染柜子和室内玩家
             renderRoomCabinet();
@@ -3560,6 +3606,11 @@
             planeActive = false;
             currentRoomStudentId = null;
             closeMap();
+            // 停止摇杆动画
+            if (joystickAnimationId) {
+                cancelAnimationFrame(joystickAnimationId);
+                joystickAnimationId = null;
+            }
         }
 
         // 去户外（从门口出去）
@@ -3591,17 +3642,19 @@
                 if (!hasUmbrella) {
                     // 没带伞，开始5秒倒计时
                     startRainCountdown();
-                    document.getElementById('controlHint').innerHTML = '⚠️ 下雨了！5秒内回房间！';
+                    const hintText = controlType === 'touch' ? '⚠️ 下雨了！5秒内回房间！' : '⚠️ 下雨了！5秒内回房间！';
+                    document.getElementById('controlHint').innerHTML = hintText;
                 } else {
                     // 带了伞，安全
                     document.getElementById('player').classList.add('player-with-umbrella');
-                    document.getElementById('controlHint').innerHTML = '☂️ 打着伞，雨中漫步~';
+                    const hintText = controlType === 'touch' ? '☂️ 打着伞，雨中漫步~' : '☂️ 打着伞，雨中漫步~';
+                    document.getElementById('controlHint').innerHTML = hintText;
                 }
             } else {
                 weatherIcon.textContent = '☀️';
                 weatherText.textContent = '晴天';
                 stopRain();
-                document.getElementById('controlHint').innerHTML = 'WASD移动 | Q飞机 | M地图';
+                updateControlUI();
             }
         }
 
@@ -3710,7 +3763,7 @@
             document.getElementById('rcPlane').style.display = 'none';
             document.getElementById('roomIndoor').style.display = 'block';
             document.getElementById('roomOutdoor').style.display = 'none';
-            document.getElementById('controlHint').innerHTML = 'WASD移动 | 走到门口出门';
+            updateControlUI();
             indoorPlayerPos = { x: 40, y: 25 };
             renderIndoorPlayer();
             closeMap();
@@ -3830,11 +3883,15 @@
                 planePos = { x: playerPos.x, y: playerPos.y + 15 };
                 plane.style.left = planePos.x + '%';
                 plane.style.bottom = planePos.y + '%';
-                document.getElementById('controlHint').innerHTML = 'WASD控制飞机 | Q放下 | M地图';
+                if (controlType === 'touch') {
+                    document.getElementById('controlHint').innerHTML = '拖动摇杆控制飞机 | Q放下 | M地图';
+                } else {
+                    document.getElementById('controlHint').innerHTML = 'WASD控制飞机 | Q放下 | M地图';
+                }
             } else {
                 plane.style.display = 'none';
                 plane.classList.remove('flying');
-                document.getElementById('controlHint').innerHTML = 'WASD移动 | Q飞机 | M地图';
+                updateControlUI();
             }
             renderCarryItems();
         }
@@ -3921,6 +3978,245 @@
             const mapY = 10 + ((100 - playerPos.y) / 100) * 80;
             mapYou.style.left = mapX + '%';
             mapYou.style.top = mapY + '%';
+        }
+
+        // 控制方式检测
+        let controlType = 'unknown'; // 'keyboard', 'touch'
+        let joystickActive = false;
+        let joystickVector = { x: 0, y: 0 };
+        let joystickAnimationId = null;
+
+        // 检测控制方式
+        function detectControlType() {
+            // 检测是否为触摸设备
+            const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            
+            // 监听键盘事件来检测键盘控制
+            document.addEventListener('keydown', function onKeyDown() {
+                if (controlType !== 'keyboard') {
+                    controlType = 'keyboard';
+                    updateControlUI();
+                }
+            }, { once: true });
+
+            // 监听触摸事件来检测触摸控制
+            document.addEventListener('touchstart', function onTouchStart() {
+                if (controlType !== 'touch') {
+                    controlType = 'touch';
+                    updateControlUI();
+                }
+            }, { once: true });
+
+            // 初始根据设备类型设置
+            if (isTouchDevice) {
+                controlType = 'touch';
+            } else {
+                controlType = 'keyboard';
+            }
+            updateControlUI();
+        }
+
+        // 更新控制UI
+        function updateControlUI() {
+            const joystick = document.getElementById('virtualJoystick');
+            const hint = document.getElementById('controlHint');
+            
+            if (controlType === 'touch') {
+                joystick.classList.add('active');
+                if (isOutdoor) {
+                    hint.innerHTML = '拖动摇杆移动 | Q飞机 | M地图';
+                } else {
+                    hint.innerHTML = '拖动摇杆移动 | 走到门口出门';
+                }
+            } else {
+                joystick.classList.remove('active');
+                if (isOutdoor) {
+                    hint.innerHTML = 'WASD移动 | Q控制飞机 | M地图';
+                } else {
+                    hint.innerHTML = 'WASD移动 | 走到门口出门';
+                }
+            }
+        }
+
+        // 初始化虚拟摇杆
+        function initVirtualJoystick() {
+            const joystick = document.getElementById('virtualJoystick');
+            const knob = document.getElementById('joystickKnob');
+            const base = joystick.querySelector('.joystick-base');
+            
+            let startX, startY;
+            let joystickCenterX, joystickCenterY;
+            const maxDistance = 35; // 摇杆最大移动距离
+
+            function handleTouchStart(e) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = base.getBoundingClientRect();
+                joystickCenterX = rect.left + rect.width / 2;
+                joystickCenterY = rect.top + rect.height / 2;
+                startX = touch.clientX;
+                startY = touch.clientY;
+                joystickActive = true;
+            }
+
+            function handleTouchMove(e) {
+                if (!joystickActive) return;
+                e.preventDefault();
+                
+                const touch = e.touches[0];
+                const dx = touch.clientX - joystickCenterX;
+                const dy = touch.clientY - joystickCenterY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                let moveX = dx;
+                let moveY = dy;
+                
+                if (distance > maxDistance) {
+                    const ratio = maxDistance / distance;
+                    moveX = dx * ratio;
+                    moveY = dy * ratio;
+                }
+                
+                knob.style.transform = `translate(calc(-50% + ${moveX}px), calc(-50% + ${moveY}px))`;
+                
+                // 计算方向向量 (-1 到 1)
+                joystickVector.x = moveX / maxDistance;
+                joystickVector.y = -(moveY / maxDistance); // Y轴反转
+            }
+
+            function handleTouchEnd(e) {
+                e.preventDefault();
+                joystickActive = false;
+                joystickVector.x = 0;
+                joystickVector.y = 0;
+                knob.style.transform = 'translate(-50%, -50%)';
+            }
+
+            // 绑定触摸事件
+            joystick.addEventListener('touchstart', handleTouchStart, { passive: false });
+            joystick.addEventListener('touchmove', handleTouchMove, { passive: false });
+            joystick.addEventListener('touchend', handleTouchEnd, { passive: false });
+            joystick.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+
+            // 启动摇杆更新循环
+            startJoystickLoop();
+        }
+
+        // 摇杆移动循环
+        function startJoystickLoop() {
+            const speed = 3;
+            
+            function update() {
+                if (joystickActive && controlType === 'touch') {
+                    if (!isOutdoor) {
+                        // 室内移动
+                        const player = document.getElementById('indoorPlayer');
+                        let moved = false;
+
+                        if (Math.abs(joystickVector.y) > 0.3) {
+                            if (joystickVector.y > 0) {
+                                indoorPlayerPos.y = Math.min(40, indoorPlayerPos.y + speed * Math.abs(joystickVector.y));
+                            } else {
+                                indoorPlayerPos.y = Math.max(8, indoorPlayerPos.y - speed * Math.abs(joystickVector.y));
+                            }
+                            moved = true;
+                        }
+                        
+                        if (Math.abs(joystickVector.x) > 0.3) {
+                            if (joystickVector.x < 0) {
+                                indoorPlayerPos.x = Math.max(10, indoorPlayerPos.x - speed * Math.abs(joystickVector.x));
+                            } else {
+                                indoorPlayerPos.x = Math.min(90, indoorPlayerPos.x + speed * Math.abs(joystickVector.x));
+                            }
+                            moved = true;
+                        }
+
+                        if (moved) {
+                            player.style.left = indoorPlayerPos.x + '%';
+                            player.style.bottom = indoorPlayerPos.y + '%';
+
+                            // 检查是否走到门口
+                            if (indoorPlayerPos.x > 78) {
+                                goOutdoor();
+                            }
+                        }
+                    } else {
+                        // 户外移动
+                        if (planeActive) {
+                            // 控制飞机
+                            const plane = document.getElementById('rcPlane');
+                            let moved = false;
+
+                            if (Math.abs(joystickVector.y) > 0.3) {
+                                if (joystickVector.y > 0) {
+                                    planePos.y = Math.min(90, planePos.y + speed * 1.5 * Math.abs(joystickVector.y));
+                                } else {
+                                    planePos.y = Math.max(20, planePos.y - speed * 1.5 * Math.abs(joystickVector.y));
+                                }
+                                moved = true;
+                            }
+                            
+                            if (Math.abs(joystickVector.x) > 0.3) {
+                                if (joystickVector.x < 0) {
+                                    planePos.x = Math.max(5, planePos.x - speed * 1.5 * Math.abs(joystickVector.x));
+                                } else {
+                                    planePos.x = Math.min(95, planePos.x + speed * 1.5 * Math.abs(joystickVector.x));
+                                }
+                                moved = true;
+                            }
+
+                            if (moved) {
+                                plane.style.left = planePos.x + '%';
+                                plane.style.bottom = planePos.y + '%';
+                            }
+                        } else {
+                            // 控制玩家
+                            const player = document.getElementById('player');
+                            let moved = false;
+
+                            if (Math.abs(joystickVector.y) > 0.3) {
+                                if (joystickVector.y > 0) {
+                                    playerPos.y = Math.min(55, playerPos.y + speed * Math.abs(joystickVector.y));
+                                } else {
+                                    playerPos.y = Math.max(18, playerPos.y - speed * Math.abs(joystickVector.y));
+                                }
+                                moved = true;
+                            }
+                            
+                            if (Math.abs(joystickVector.x) > 0.3) {
+                                if (joystickVector.x < 0) {
+                                    playerPos.x = Math.max(5, playerPos.x - speed * Math.abs(joystickVector.x));
+                                } else {
+                                    playerPos.x = Math.min(95, playerPos.x + speed * Math.abs(joystickVector.x));
+                                }
+                                moved = true;
+                            }
+
+                            if (moved) {
+                                player.style.left = playerPos.x + '%';
+                                player.style.bottom = playerPos.y + '%';
+
+                                // 检查是否走到房子入口
+                                if (playerPos.x > 40 && playerPos.x < 60 && playerPos.y > 52) {
+                                    goIndoor();
+                                }
+
+                                // 更新沙坑提示
+                                updateSandboxHint();
+
+                                // 更新地图位置
+                                if (document.getElementById('mapModal').classList.contains('active')) {
+                                    updateMapPosition();
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                joystickAnimationId = requestAnimationFrame(update);
+            }
+            
+            update();
         }
 
         // 处理房间键盘事件
@@ -4242,11 +4538,9 @@
                 card.className = 'student-card';
                 card.onclick = () => openScoreModal(student.id);
 
-                const scoreClass = student.score >= 0n ? 'positive' : '';
                 card.innerHTML = `
                     <div class="avatar">
                         ${student.avatar}
-                        <span class="score-badge ${scoreClass}">${formatScore(student.score)}</span>
                     </div>
                     <div class="student-name">${student.name}</div>
                     <div class="student-stats">
