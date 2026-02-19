@@ -4172,11 +4172,9 @@
                     // 第二次警告
                     showPlaneWarning('⚠️ 警告：室内飞行！请立即降落！');
                 } else if (warningCount >= 3) {
-                    // 第三次 - 飞机失控坠毁
-                    showPlaneWarning('💥 飞机失控了！');
-                    setTimeout(() => {
-                        crashPlaneAuto();
-                    }, 500);
+                    // 第三次 - 飞机自动坠毁（撞墙->弹到屋顶->掉到地上）
+                    stopIndoorWarning();
+                    crashPlaneAuto();
                 }
             }, 1000);
         }
@@ -4212,71 +4210,83 @@
             }
         }
 
-        // 自动坠毁（警告第三次后触发）
+        // 自动坠毁（警告第三次后触发）：撞墙 -> 弹到屋顶 -> 掉到地上
         function crashPlaneAuto() {
             if (!planeActive || isOutdoor) return;
             
             planeActive = false;
             planeCrashed = true;
-            stopIndoorWarning();
             
             const plane = document.getElementById('indoorPlane');
             plane.classList.remove('flying');
             
-            // 坠毁动画：先飞到墙上或屋顶，然后摔下来
+            // 坠毁阶段：0=飞向墙壁, 1=撞墙弹到屋顶, 2=掉到地上
+            let crashPhase = 0;
+            
+            // 确定撞墙方向（选择最近的墙）
+            const hitLeftWall = indoorPlanePos.x < 50;
+            
             const crashAnimation = setInterval(() => {
-                // 随机选择撞墙方向
-                const hitWallX = Math.random() > 0.5;
-                
-                if (hitWallX) {
-                    indoorPlanePos.x += (Math.random() > 0.5 ? 2 : -2);
-                } else {
-                    indoorPlanePos.y += (Math.random() > 0.5 ? 2 : -2);
-                }
-                
-                // 向上飞一点然后摔下来
-                if (indoorPlanePos.z < 50) {
-                    indoorPlanePos.z += 2;
-                } else {
-                    // 摔下来
+                if (crashPhase === 0) {
+                    // 阶段1：飞向墙壁
+                    if (hitLeftWall) {
+                        indoorPlanePos.x -= 1.5;
+                        if (indoorPlanePos.x <= 10) crashPhase = 1;
+                    } else {
+                        indoorPlanePos.x += 1.5;
+                        if (indoorPlanePos.x >= 90) crashPhase = 1;
+                    }
+                } else if (crashPhase === 1) {
+                    // 阶段2：撞墙后弹到屋顶
+                    indoorPlanePos.z += 2; // 向上飞到屋顶
+                    // 稍微回弹一点
+                    if (hitLeftWall) {
+                        indoorPlanePos.x += 0.5;
+                    } else {
+                        indoorPlanePos.x -= 0.5;
+                    }
+                    
+                    if (indoorPlanePos.z >= 55) crashPhase = 2;
+                } else if (crashPhase === 2) {
+                    // 阶段3：掉到地上
                     indoorPlanePos.z -= 3;
+                    indoorPlanePos.y -= 0.3; // 稍微向后掉
+                    
+                    if (indoorPlanePos.z <= 5) {
+                        // 坠毁完成
+                        clearInterval(crashAnimation);
+                        indoorPlanePos.z = 5;
+                        updateIndoorPlanePosition();
+                        
+                        // 显示坠毁效果
+                        const crashEffect = document.createElement('div');
+                        crashEffect.className = 'crash-effect';
+                        crashEffect.textContent = '💥🔥';
+                        crashEffect.style.left = plane.style.left;
+                        crashEffect.style.bottom = plane.style.bottom;
+                        document.getElementById('roomIndoor').appendChild(crashEffect);
+                        
+                        // 3秒后清理并提示
+                        setTimeout(() => {
+                            crashEffect.remove();
+                            plane.style.display = 'none';
+                            hidePlaneControls();
+                            
+                            // 从携带物品中移除损坏的飞机
+                            const index = carryingItems.indexOf('rc_plane');
+                            if (index > -1) {
+                                carryingItems.splice(index, 1);
+                            }
+                            planeCrashed = false; // 重置状态，但飞机已从背包移除
+                            renderCarryItems();
+                            
+                            // 只显示简洁的坠毁提示
+                            alert('飞机坠毁，你失去了一架飞机');
+                        }, 1000);
+                    }
                 }
                 
-                // 检查是否摔到地面
-                if (indoorPlanePos.z <= 5) {
-                    clearInterval(crashAnimation);
-                    indoorPlanePos.z = 5;
-                    updateIndoorPlanePosition();
-                    
-                    // 显示坠毁效果
-                    const crashEffect = document.createElement('div');
-                    crashEffect.className = 'crash-effect';
-                    crashEffect.textContent = '💥🔥';
-                    crashEffect.style.left = plane.style.left;
-                    crashEffect.style.bottom = plane.style.bottom;
-                    document.getElementById('roomIndoor').appendChild(crashEffect);
-                    
-                    // 显示坠毁提示
-                    showPlaneWarning('💥 撞到墙然后摔在地上！飞机摔得稀巴烂！');
-                    
-                    // 3秒后显示最终结果
-                    setTimeout(() => {
-                        alert('飞机彻底损坏了！你需要去商店重新购买遥控飞机。');
-                        crashEffect.remove();
-                        plane.style.display = 'none';
-                        hidePlaneControls();
-                        
-                        // 从携带物品中移除损坏的飞机
-                        const index = carryingItems.indexOf('rc_plane');
-                        if (index > -1) {
-                            carryingItems.splice(index, 1);
-                        }
-                        planeCrashed = false; // 重置状态，但飞机已从背包移除
-                        renderCarryItems();
-                    }, 1000);
-                } else {
-                    updateIndoorPlanePosition();
-                }
+                updateIndoorPlanePosition();
             }, 50);
         }
 
@@ -4332,17 +4342,8 @@
             crashEffect.style.bottom = plane.style.bottom;
             document.getElementById('roomIndoor').appendChild(crashEffect);
             
-            // 显示坠毁提示
-            let crashText = '';
-            if (hitType === 'wall') crashText = '💥 撞到墙了！飞机摔得稀巴烂！';
-            else if (hitType === 'ceiling') crashText = '💥 撞到屋顶了！飞机摔得稀巴烂！';
-            else crashText = '💥 坠毁了！飞机摔得稀巴烂！';
-            
-            showPlaneWarning(crashText);
-            
-            // 3秒后显示最终结果
+            // 3秒后清理并提示
             setTimeout(() => {
-                alert('飞机彻底损坏了！你需要去商店重新购买遥控飞机。');
                 crashEffect.remove();
                 plane.style.display = 'none';
                 hidePlaneControls();
@@ -4354,6 +4355,9 @@
                 }
                 planeCrashed = false; // 重置状态，但飞机已从背包移除
                 renderCarryItems();
+                
+                // 只显示简洁的坠毁提示
+                alert('飞机坠毁，你失去了一架飞机');
             }, 1000);
         }
 
@@ -4646,21 +4650,27 @@
             const joystick = document.getElementById('virtualJoystick');
             const hint = document.getElementById('controlHint');
             
+            // 触摸设备始终显示摇杆
+            if (controlType === 'touch') {
+                joystick.classList.add('active');
+            } else {
+                joystick.classList.remove('active');
+            }
+            
             // 如果飞机正在飞行，显示飞机控制提示
             if (planeActive) {
                 updatePlaneControlHint();
                 return;
             }
             
+            // 普通移动提示
             if (controlType === 'touch') {
-                joystick.classList.add('active');
                 if (isOutdoor) {
                     hint.innerHTML = '拖动摇杆移动 | Q飞机 | M地图';
                 } else {
                     hint.innerHTML = '拖动摇杆移动 | 走到门口出门';
                 }
             } else {
-                joystick.classList.remove('active');
                 if (isOutdoor) {
                     hint.innerHTML = 'WASD移动 | Q控制飞机 | M地图';
                 } else {
