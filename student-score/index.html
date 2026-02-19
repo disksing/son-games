@@ -3914,6 +3914,11 @@
             document.getElementById('roomOutdoor').style.display = 'none';
             updateControlUI();
 
+            // 确保摇杆动画正在运行
+            if (!joystickAnimationId) {
+                startJoystickLoop();
+            }
+
             // 渲染柜子和室内玩家
             renderRoomCabinet();
             renderCarryItems();
@@ -4228,11 +4233,8 @@
             
             currentRoomStudentId = null;
             closeMap();
-            // 停止摇杆动画
-            if (joystickAnimationId) {
-                cancelAnimationFrame(joystickAnimationId);
-                joystickAnimationId = null;
-            }
+            // 注意：不停止摇杆动画，以便下次进入房间时继续使用
+            // 摇杆动画会在页面卸载时自动停止
         }
 
         // 去户外（从门口出去）
@@ -4291,6 +4293,11 @@
                 weatherText.textContent = '晴天';
                 stopRain();
                 updateControlUI();
+            }
+            
+            // 确保摇杆动画正在运行
+            if (!joystickAnimationId) {
+                startJoystickLoop();
             }
         }
 
