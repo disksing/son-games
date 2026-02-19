@@ -1486,25 +1486,42 @@
             100% { transform: scale(1) rotate(360deg); opacity: 0.8; }
         }
 
-        /* 警告提示 */
-        .plane-warning {
+        /* 警告提示（带三角条） */
+        .plane-warning-container {
             position: fixed;
-            top: 20%;
+            top: 15%;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(255, 0, 0, 0.9);
-            color: white;
-            padding: 15px 30px;
-            border-radius: 10px;
-            font-size: 18px;
-            font-weight: bold;
+            display: flex;
+            align-items: center;
             z-index: 1000;
-            animation: warningPulse 0.5s ease-in-out infinite alternate;
+            animation: warningSlideIn 0.3s ease-out;
         }
 
-        @keyframes warningPulse {
-            from { box-shadow: 0 0 10px rgba(255,0,0,0.5); }
-            to { box-shadow: 0 0 30px rgba(255,0,0,0.9); }
+        @keyframes warningSlideIn {
+            from { transform: translateX(-50%) translateY(-20px); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+
+        .warning-arrow {
+            width: 0;
+            height: 0;
+            border-top: 20px solid transparent;
+            border-bottom: 20px solid transparent;
+            border-right: 30px solid #ff0000;
+            margin-right: 0;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        }
+
+        .warning-message {
+            background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+            color: white;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 0 8px 8px 0;
+            box-shadow: 0 4px 15px rgba(255, 0, 0, 0.4);
+            white-space: nowrap;
         }
 
         /* 玩家徽章 */
@@ -2986,7 +3003,7 @@
             },
             {
                 id: 'rc_plane',
-                name: '遥控飞机(5个)',
+                name: '遥控飞机',
                 price: 20,
                 icon: `<svg viewBox="0 0 100 100">
                     <!-- 机身 -->
@@ -4167,14 +4184,17 @@
                 
                 if (warningCount === 1) {
                     // 第一次警告
-                    showPlaneWarning('⚠️ 警告：室内飞行危险！');
+                    showPlaneWarning('不能在室内飞飞机 (1/3)', true);
                 } else if (warningCount === 2) {
                     // 第二次警告
-                    showPlaneWarning('⚠️ 警告：室内飞行！请立即降落！');
+                    showPlaneWarning('不能在室内飞飞机 (2/3)', true);
                 } else if (warningCount >= 3) {
                     // 第三次 - 飞机自动坠毁（撞墙->弹到屋顶->掉到地上）
-                    stopIndoorWarning();
-                    crashPlaneAuto();
+                    showPlaneWarning('不能在室内飞飞机 (3/3)', false);
+                    setTimeout(() => {
+                        stopIndoorWarning();
+                        crashPlaneAuto();
+                    }, 500);
                 }
             }, 1000);
         }
@@ -4186,28 +4206,43 @@
                 planeWarningTimer = null;
             }
             // 移除警告提示
-            const existingWarning = document.querySelector('.plane-warning');
+            const existingWarning = document.querySelector('.plane-warning-container');
             if (existingWarning) existingWarning.remove();
         }
 
-        // 显示飞机警告
-        function showPlaneWarning(text) {
-            let warning = document.querySelector('.plane-warning');
-            if (!warning) {
-                warning = document.createElement('div');
-                warning.className = 'plane-warning';
-                document.body.appendChild(warning);
-            }
-            warning.textContent = text;
+        // 显示飞机警告（带三角警告条样式）
+        function showPlaneWarning(text, isCountdown) {
+            // 移除现有警告
+            const existingWarning = document.querySelector('.plane-warning-container');
+            if (existingWarning) existingWarning.remove();
             
-            // 3秒后自动移除（如果不是持续警告）
-            if (!planeWarningTimer) {
+            // 创建警告容器
+            const container = document.createElement('div');
+            container.className = 'plane-warning-container';
+            
+            // 红色三角警告条（CSS箭头）
+            const arrow = document.createElement('div');
+            arrow.className = 'warning-arrow';
+            
+            // 警告文字
+            const message = document.createElement('div');
+            message.className = 'warning-message';
+            message.textContent = text;
+            
+            container.appendChild(arrow);
+            container.appendChild(message);
+            document.body.appendChild(container);
+            
+            // 非持续警告3秒后移除
+            if (!isCountdown) {
                 setTimeout(() => {
-                    if (warning && warning.parentNode) {
-                        warning.remove();
+                    if (container.parentNode) {
+                        container.remove();
                     }
                 }, 3000);
             }
+            
+            return container;
         }
 
         // 自动坠毁（警告第三次后触发）：撞墙 -> 弹到屋顶 -> 掉到地上
@@ -4281,7 +4316,7 @@
                             renderCarryItems();
                             
                             // 只显示简洁的坠毁提示
-                            alert('飞机坠毁，你失去了一架飞机');
+                            alert('飞机坠毁，你失去了飞机');
                         }, 1000);
                     }
                 }
@@ -4357,7 +4392,7 @@
                 renderCarryItems();
                 
                 // 只显示简洁的坠毁提示
-                alert('飞机坠毁，你失去了一架飞机');
+                alert('飞机坠毁，你失去了飞机');
             }, 1000);
         }
 
