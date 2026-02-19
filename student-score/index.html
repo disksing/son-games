@@ -4104,7 +4104,13 @@
 
         // 摇杆移动循环
         function startJoystickLoop() {
-            const speed = 3;
+            // 真实比例速度设定：
+            // 室内房间约 10m 宽，户外花园约 50m 宽
+            // 人走路速度 1.2m/s，跑步 3.5m/s
+            // 摇杆每帧更新约 60fps，需要平滑移动
+            const indoorSpeed = 0.15;   // 室内：较慢，约 0.15% 每帧 ≈ 走路速度
+            const outdoorSpeed = 0.12;  // 户外：更慢，约 0.12% 每帧（花园更大）
+            const planeSpeed = 0.25;    // 飞机：较快
             
             function update() {
                 if (joystickActive && controlType === 'touch') {
@@ -4113,20 +4119,20 @@
                         const player = document.getElementById('indoorPlayer');
                         let moved = false;
 
-                        if (Math.abs(joystickVector.y) > 0.3) {
+                        if (Math.abs(joystickVector.y) > 0.2) {
                             if (joystickVector.y > 0) {
-                                indoorPlayerPos.y = Math.min(40, indoorPlayerPos.y + speed * Math.abs(joystickVector.y));
+                                indoorPlayerPos.y = Math.min(40, indoorPlayerPos.y + indoorSpeed * Math.abs(joystickVector.y));
                             } else {
-                                indoorPlayerPos.y = Math.max(8, indoorPlayerPos.y - speed * Math.abs(joystickVector.y));
+                                indoorPlayerPos.y = Math.max(8, indoorPlayerPos.y - indoorSpeed * Math.abs(joystickVector.y));
                             }
                             moved = true;
                         }
                         
-                        if (Math.abs(joystickVector.x) > 0.3) {
+                        if (Math.abs(joystickVector.x) > 0.2) {
                             if (joystickVector.x < 0) {
-                                indoorPlayerPos.x = Math.max(10, indoorPlayerPos.x - speed * Math.abs(joystickVector.x));
+                                indoorPlayerPos.x = Math.max(10, indoorPlayerPos.x - indoorSpeed * Math.abs(joystickVector.x));
                             } else {
-                                indoorPlayerPos.x = Math.min(90, indoorPlayerPos.x + speed * Math.abs(joystickVector.x));
+                                indoorPlayerPos.x = Math.min(90, indoorPlayerPos.x + indoorSpeed * Math.abs(joystickVector.x));
                             }
                             moved = true;
                         }
@@ -4147,20 +4153,20 @@
                             const plane = document.getElementById('rcPlane');
                             let moved = false;
 
-                            if (Math.abs(joystickVector.y) > 0.3) {
+                            if (Math.abs(joystickVector.y) > 0.2) {
                                 if (joystickVector.y > 0) {
-                                    planePos.y = Math.min(90, planePos.y + speed * 1.5 * Math.abs(joystickVector.y));
+                                    planePos.y = Math.min(90, planePos.y + planeSpeed * Math.abs(joystickVector.y));
                                 } else {
-                                    planePos.y = Math.max(20, planePos.y - speed * 1.5 * Math.abs(joystickVector.y));
+                                    planePos.y = Math.max(20, planePos.y - planeSpeed * Math.abs(joystickVector.y));
                                 }
                                 moved = true;
                             }
                             
-                            if (Math.abs(joystickVector.x) > 0.3) {
+                            if (Math.abs(joystickVector.x) > 0.2) {
                                 if (joystickVector.x < 0) {
-                                    planePos.x = Math.max(5, planePos.x - speed * 1.5 * Math.abs(joystickVector.x));
+                                    planePos.x = Math.max(5, planePos.x - planeSpeed * Math.abs(joystickVector.x));
                                 } else {
-                                    planePos.x = Math.min(95, planePos.x + speed * 1.5 * Math.abs(joystickVector.x));
+                                    planePos.x = Math.min(95, planePos.x + planeSpeed * Math.abs(joystickVector.x));
                                 }
                                 moved = true;
                             }
@@ -4174,20 +4180,20 @@
                             const player = document.getElementById('player');
                             let moved = false;
 
-                            if (Math.abs(joystickVector.y) > 0.3) {
+                            if (Math.abs(joystickVector.y) > 0.2) {
                                 if (joystickVector.y > 0) {
-                                    playerPos.y = Math.min(55, playerPos.y + speed * Math.abs(joystickVector.y));
+                                    playerPos.y = Math.min(55, playerPos.y + outdoorSpeed * Math.abs(joystickVector.y));
                                 } else {
-                                    playerPos.y = Math.max(18, playerPos.y - speed * Math.abs(joystickVector.y));
+                                    playerPos.y = Math.max(18, playerPos.y - outdoorSpeed * Math.abs(joystickVector.y));
                                 }
                                 moved = true;
                             }
                             
-                            if (Math.abs(joystickVector.x) > 0.3) {
+                            if (Math.abs(joystickVector.x) > 0.2) {
                                 if (joystickVector.x < 0) {
-                                    playerPos.x = Math.max(5, playerPos.x - speed * Math.abs(joystickVector.x));
+                                    playerPos.x = Math.max(5, playerPos.x - outdoorSpeed * Math.abs(joystickVector.x));
                                 } else {
-                                    playerPos.x = Math.min(95, playerPos.x + speed * Math.abs(joystickVector.x));
+                                    playerPos.x = Math.min(95, playerPos.x + outdoorSpeed * Math.abs(joystickVector.x));
                                 }
                                 moved = true;
                             }
@@ -4222,7 +4228,12 @@
         // 处理房间键盘事件
         function handleRoomKeydown(e) {
             const key = e.key.toLowerCase();
-            const speed = 3;
+            // 真实比例速度：
+            // 室内房间约 10m 宽，按一次键移动约 0.6m（走路一步）
+            // 户外花园约 50m 宽，按一次键移动约 0.6m（走路一步）
+            const indoorKeySpeed = 0.6;   // 室内每键移动 0.6%
+            const outdoorKeySpeed = 0.25; // 户外每键移动 0.25%（花园更大，相对移动更慢）
+            const planeKeySpeed = 0.8;    // 飞机每键移动 0.8%
 
             // M键 - 打开/关闭地图
             if (key === 'm' && isOutdoor) {
@@ -4251,16 +4262,16 @@
                 let moved = false;
 
                 if (key === 'w' || key === 'arrowup') {
-                    indoorPlayerPos.y = Math.min(40, indoorPlayerPos.y + speed);
+                    indoorPlayerPos.y = Math.min(40, indoorPlayerPos.y + indoorKeySpeed);
                     moved = true;
                 } else if (key === 's' || key === 'arrowdown') {
-                    indoorPlayerPos.y = Math.max(8, indoorPlayerPos.y - speed);
+                    indoorPlayerPos.y = Math.max(8, indoorPlayerPos.y - indoorKeySpeed);
                     moved = true;
                 } else if (key === 'a' || key === 'arrowleft') {
-                    indoorPlayerPos.x = Math.max(10, indoorPlayerPos.x - speed);
+                    indoorPlayerPos.x = Math.max(10, indoorPlayerPos.x - indoorKeySpeed);
                     moved = true;
                 } else if (key === 'd' || key === 'arrowright') {
-                    indoorPlayerPos.x = Math.min(90, indoorPlayerPos.x + speed);
+                    indoorPlayerPos.x = Math.min(90, indoorPlayerPos.x + indoorKeySpeed);
                     moved = true;
                 }
 
@@ -4284,16 +4295,16 @@
                 let moved = false;
 
                 if (key === 'w' || key === 'arrowup') {
-                    planePos.y = Math.min(90, planePos.y + speed * 1.5);
+                    planePos.y = Math.min(90, planePos.y + planeKeySpeed);
                     moved = true;
                 } else if (key === 's' || key === 'arrowdown') {
-                    planePos.y = Math.max(20, planePos.y - speed * 1.5);
+                    planePos.y = Math.max(20, planePos.y - planeKeySpeed);
                     moved = true;
                 } else if (key === 'a' || key === 'arrowleft') {
-                    planePos.x = Math.max(5, planePos.x - speed * 1.5);
+                    planePos.x = Math.max(5, planePos.x - planeKeySpeed);
                     moved = true;
                 } else if (key === 'd' || key === 'arrowright') {
-                    planePos.x = Math.min(95, planePos.x + speed * 1.5);
+                    planePos.x = Math.min(95, planePos.x + planeKeySpeed);
                     moved = true;
                 }
 
@@ -4308,16 +4319,16 @@
                 let moved = false;
 
                 if (key === 'w' || key === 'arrowup') {
-                    playerPos.y = Math.min(55, playerPos.y + speed);
+                    playerPos.y = Math.min(55, playerPos.y + outdoorKeySpeed);
                     moved = true;
                 } else if (key === 's' || key === 'arrowdown') {
-                    playerPos.y = Math.max(18, playerPos.y - speed);
+                    playerPos.y = Math.max(18, playerPos.y - outdoorKeySpeed);
                     moved = true;
                 } else if (key === 'a' || key === 'arrowleft') {
-                    playerPos.x = Math.max(5, playerPos.x - speed);
+                    playerPos.x = Math.max(5, playerPos.x - outdoorKeySpeed);
                     moved = true;
                 } else if (key === 'd' || key === 'arrowright') {
-                    playerPos.x = Math.min(95, playerPos.x + speed);
+                    playerPos.x = Math.min(95, playerPos.x + outdoorKeySpeed);
                     moved = true;
                 }
 
