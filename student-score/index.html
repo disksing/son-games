@@ -1486,42 +1486,55 @@
             100% { transform: scale(1) rotate(360deg); opacity: 0.8; }
         }
 
-        /* 警告提示（带三角条） */
+        /* 警告提示（带三角条和进度） */
         .plane-warning-container {
             position: fixed;
-            top: 15%;
+            top: 80px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
-            align-items: center;
-            z-index: 1000;
+            align-items: stretch;
+            z-index: 10000;
             animation: warningSlideIn 0.3s ease-out;
         }
 
         @keyframes warningSlideIn {
-            from { transform: translateX(-50%) translateY(-20px); opacity: 0; }
-            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+            from { transform: translateX(-50%) scale(0.8); opacity: 0; }
+            to { transform: translateX(-50%) scale(1); opacity: 1; }
+        }
+
+        @keyframes warningSlideOut {
+            from { transform: translateX(-50%) scale(1); opacity: 1; }
+            to { transform: translateX(-50%) scale(0.8); opacity: 0; }
+        }
+
+        @keyframes warningPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.4); }
+            50% { box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); }
         }
 
         .warning-arrow {
             width: 0;
             height: 0;
-            border-top: 20px solid transparent;
-            border-bottom: 20px solid transparent;
-            border-right: 30px solid #ff0000;
-            margin-right: 0;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+            border-top: 25px solid transparent;
+            border-bottom: 25px solid transparent;
+            border-right: 35px solid #ff0000;
+            filter: drop-shadow(2px 0 4px rgba(0,0,0,0.3));
+            align-self: center;
         }
 
         .warning-message {
-            background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+            background: linear-gradient(135deg, #ff3333 0%, #cc0000 100%);
             color: white;
-            padding: 12px 24px;
-            font-size: 16px;
+            padding: 15px 30px;
+            font-size: 18px;
             font-weight: bold;
-            border-radius: 0 8px 8px 0;
-            box-shadow: 0 4px 15px rgba(255, 0, 0, 0.4);
+            border-radius: 0 10px 10px 0;
+            box-shadow: 0 6px 20px rgba(255, 0, 0, 0.5);
             white-space: nowrap;
+            display: flex;
+            align-items: center;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
 
         /* 玩家徽章 */
@@ -4219,6 +4232,7 @@
             // 创建警告容器
             const container = document.createElement('div');
             container.className = 'plane-warning-container';
+            container.id = 'planeWarning' + Date.now();
             
             // 红色三角警告条（CSS箭头）
             const arrow = document.createElement('div');
@@ -4233,11 +4247,15 @@
             container.appendChild(message);
             document.body.appendChild(container);
             
+            // 强制重绘确保显示
+            container.offsetHeight;
+            
             // 非持续警告3秒后移除
             if (!isCountdown) {
                 setTimeout(() => {
                     if (container.parentNode) {
-                        container.remove();
+                        container.style.animation = 'warningSlideOut 0.3s ease-in';
+                        setTimeout(() => container.remove(), 300);
                     }
                 }, 3000);
             }
