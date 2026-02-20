@@ -292,6 +292,25 @@
             border-radius: 12px;
             box-shadow: 0 8px 20px rgba(0, 0, 0, .12);
             padding: 8px 10px;
+            transition: opacity 200ms ease, transform 200ms ease;
+        }
+
+        /* 手机端 HUD 展开/收起按钮 */
+        .shard-toggle-btn {
+            display: none;
+            appearance: none;
+            border: 0;
+            border-radius: 8px;
+            padding: 6px 10px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 6px 14px rgba(139, 92, 246, .35);
+        }
+
+        .shard-hud.collapsed {
+            display: none !important;
         }
 
         .shard-hud .shard-line {
@@ -368,6 +387,35 @@
                 width: min(92vw, 420px);
                 max-height: none;
             }
+
+            /* 手机端天堂碎片 HUD 默认收起 */
+            .shard-hud {
+                display: block;
+                position: absolute;
+                top: calc(100% + 8px);
+                right: 0;
+                opacity: 0;
+                transform: translateY(-10px);
+                pointer-events: none;
+            }
+
+            .shard-hud.expanded {
+                opacity: 1;
+                transform: translateY(0);
+                pointer-events: auto;
+            }
+
+            .shard-toggle-btn {
+                display: block;
+            }
+
+            /* FAB 容器需要相对定位，以便 HUD 绝对定位 */
+            .fab {
+                position: fixed;
+                top: 16px;
+                right: 16px;
+                z-index: 30;
+            }
         }
 
         @media (max-width: 420px) {
@@ -411,7 +459,8 @@
     <div class="fab">
         <button id="refreshBtn" class="refresh-btn" type="button">刷新显示</button>
         <button id="ascendOpen" class="buy-btn" type="button">飞升</button>
-        <div class="shard-hud">
+        <button id="shardToggle" class="shard-toggle-btn" type="button">天堂碎片 ▼</button>
+        <div class="shard-hud collapsed" id="shardHud">
             <div class="shard-line">天堂碎片：<strong id="hudShards">0</strong></div>
             <div class="tank">
                 <div id="tankInner" class="tank-inner"></div>
@@ -480,6 +529,8 @@
             const tankLabel = document.getElementById('tankLabel');
             const hudNext = document.getElementById('hudNext');
             const refreshBtn = document.getElementById('refreshBtn');
+            const shardToggle = document.getElementById('shardToggle');
+            const shardHud = document.getElementById('shardHud');
 
             const STORAGE_KEY = 'cookieMiniState';
 
@@ -1073,6 +1124,22 @@
                 refreshBtn.addEventListener('click', () => {
                     saveState();
                     window.location.reload();
+                });
+            }
+
+            // 天堂碎片 HUD 展开/收起
+            if (shardToggle && shardHud) {
+                shardToggle.addEventListener('click', () => {
+                    const isCollapsed = shardHud.classList.contains('collapsed');
+                    if (isCollapsed) {
+                        shardHud.classList.remove('collapsed');
+                        shardHud.classList.add('expanded');
+                        shardToggle.textContent = '天堂碎片 ▲';
+                    } else {
+                        shardHud.classList.remove('expanded');
+                        shardHud.classList.add('collapsed');
+                        shardToggle.textContent = '天堂碎片 ▼';
+                    }
                 });
             }
 
