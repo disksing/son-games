@@ -481,12 +481,13 @@
             const hudNext = document.getElementById('hudNext');
             const refreshBtn = document.getElementById('refreshBtn');
 
-            const STORAGE_KEY = 'cookieMiniState';
+            const STORAGE_KEY = 'cookieMiniState_v2';
 
             let count = 0;
             let lifetimeCookies = 0; // total cookies gained this run
             let shards = 0;          // prestige currency
             const boughtUpgrades = new Map(); // id -> times purchased (persists across ascends)
+            let shardPriceMultiplier = 1; // 每次在天堂碎片商店购买后价格 ×10
 
             // Shop data
             const items = [
@@ -507,37 +508,100 @@
                     count: 0
                 },
                 {
+                    id: 'car',
+                    name: '汽车',
+                    basePrice: 80,
+                    priceMultiplier: 1.5,
+                    cps: 0.6,
+                    count: 0
+                },
+                {
                     id: 'plane',
                     name: '飞机',
-                    basePrice: 100,
+                    basePrice: 150,
                     priceMultiplier: 1.75,
                     cps: 1,
                     count: 0
                 },
                 {
+                    id: 'shop',
+                    name: '商店',
+                    basePrice: 250,
+                    priceMultiplier: 1.6,
+                    cps: 2,
+                    count: 0
+                },
+                {
+                    id: 'city',
+                    name: '城市',
+                    basePrice: 500,
+                    priceMultiplier: 1.5,
+                    cps: 5,
+                    count: 0
+                },
+                {
                     id: 'factory',
                     name: '工厂',
-                    basePrice: 300,
+                    basePrice: 1200,
                     priceMultiplier: 1.15,
-                    cps: 10,
+                    cps: 15,
                     count: 0
                 },
                 {
                     id: 'rocket',
                     name: '火箭',
-                    basePrice: 2000,
+                    basePrice: 5000,
                     priceMultiplier: 1.2,
-                    cps: 50,
+                    cps: 60,
+                    count: 0
+                },
+                {
+                    id: 'spacestation',
+                    name: '空间站',
+                    basePrice: 50000,
+                    priceMultiplier: 1.25,
+                    cps: 200,
+                    count: 0
+                },
+                {
+                    id: 'earth',
+                    name: '地球',
+                    basePrice: 500000,
+                    priceMultiplier: 1.3,
+                    cps: 800,
+                    count: 0
+                },
+                {
+                    id: 'sun',
+                    name: '太阳',
+                    basePrice: 5000000,
+                    priceMultiplier: 1.35,
+                    cps: 3500,
+                    count: 0
+                },
+                {
+                    id: 'solarsystem',
+                    name: '太阳系',
+                    basePrice: 50000000,
+                    priceMultiplier: 1.4,
+                    cps: 20000,
                     count: 0
                 }
             ];
 
             const upgrades = [
-                { id: 'pack-turtle-5', name: '开局 5 个乌龟', cost: 1, grant: { turtle: 5 } },
-                { id: 'pack-snail-5', name: '开局 5 个蜗牛', cost: 2, grant: { snail: 5 } },
-                { id: 'pack-plane-5', name: '开局 5 个飞机', cost: 3, grant: { plane: 5 } },
-                { id: 'pack-factory-5', name: '开局 5 个工厂', cost: 5, grant: { factory: 5 } },
-                { id: 'pack-rocket-5', name: '开局 5 个火箭', cost: 15, grant: { rocket: 5 } }
+                { id: 'pack-turtle-5', name: '开局 5 个乌龟', cost: 3, grant: { turtle: 5 } },
+                { id: 'pack-snail-5', name: '开局 5 个蜗牛', cost: 6, grant: { snail: 5 } },
+                { id: 'pack-car-5', name: '开局 5 个汽车', cost: 9, grant: { car: 5 } },
+                { id: 'pack-plane-5', name: '开局 5 个飞机', cost: 12, grant: { plane: 5 } },
+                { id: 'pack-shop-5', name: '开局 5 个商店', cost: 15, grant: { shop: 5 } },
+                { id: 'pack-city-5', name: '开局 5 个城市', cost: 18, grant: { city: 5 } },
+                { id: 'pack-factory-5', name: '开局 5 个工厂', cost: 24, grant: { factory: 5 } },
+                { id: 'pack-rocket-5', name: '开局 5 个火箭', cost: 45, grant: { rocket: 5 } },
+                { id: 'pack-spacestation-5', name: '开局 5 个空间站', cost: 75, grant: { spacestation: 5 } },
+                { id: 'pack-earth-5', name: '开局 5 个地球', cost: 120, grant: { earth: 5 } },
+                { id: 'pack-sun-5', name: '开局 5 个太阳', cost: 180, grant: { sun: 5 } },
+                { id: 'pack-solarsystem-5', name: '开局 5 个太阳系', cost: 300, grant: { solarsystem: 5 } }
             ];
 
             function getItemPrice(item) {
@@ -637,8 +701,8 @@
                     const el = document.createElement('div');
                     el.className = 'upgrade';
                     el.innerHTML = `
-                        <div>${up.name}（${up.cost} 碎片）<span style="color:#374151;font-size:12px;margin-left:6px;">已购 ${ownedCount} 次</span></div>
-                        <button class="buy-btn" ${!affordable ? 'disabled' : ''} data-upgrade="${up.id}">购买</button>
+                        <div>${up.name}（${up.cost * 3 * shardPriceMultiplier} 碎片）<span style="color:#374151;font-size:12px;margin-left:6px;">已购 ${ownedCount} 次</span></div>
+                        <button class="buy-btn" ${!(shards >= up.cost * 3 * shardPriceMultiplier) ? 'disabled' : ''} data-upgrade="${up.id}">购买</button>
                     `;
                     frag.appendChild(el);
                 });
@@ -689,7 +753,8 @@
                         lifetimeCookies,
                         shards,
                         items: items.map(item => ({ id: item.id, count: item.count })),
-                        upgrades: Array.from(boughtUpgrades.entries())
+                        upgrades: Array.from(boughtUpgrades.entries()),
+                        shardPriceMultiplier
                     };
                     localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
                 } catch (err) {
@@ -720,6 +785,7 @@
                             }
                         });
                     }
+                    if (Number.isFinite(data.shardPriceMultiplier)) shardPriceMultiplier = data.shardPriceMultiplier;
                 } catch (err) {
                     console.warn('读取进度失败：', err);
                     localStorage.removeItem(STORAGE_KEY);
@@ -803,6 +869,8 @@
                 count = 0;
                 lifetimeCookies = 0;
                 items.forEach(i => i.count = 0);
+                // reset shard shop price multiplier
+                shardPriceMultiplier = 1;
                 // apply starting packs from bought upgrades
                 applyStartingPacks();
                 render();
@@ -876,8 +944,11 @@
                     const id = btn.getAttribute('data-upgrade');
                     const up = upgrades.find(u => u.id === id);
                     if (!up) return;
-                    if (shards < up.cost) return;
-                    shards -= up.cost;
+                    const actualCost = up.cost * 3 * shardPriceMultiplier;
+                    if (shards < actualCost) return;
+                    shards -= actualCost;
+                    // 每次购买后价格 ×10
+                    shardPriceMultiplier *= 10;
                     const prev = boughtUpgrades.get(id) || 0;
                     boughtUpgrades.set(id, prev + 1);
                     // grant items now for this purchase
