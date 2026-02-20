@@ -536,6 +536,19 @@
             const shardHud = document.getElementById('shardHud');
 
             const STORAGE_KEY = 'cookieMiniState';
+            const DATA_VERSION = '2'; // 数据版本，每次重大更新时递增以清除旧数据
+
+            // 检查并清除旧版本数据
+            try {
+                const savedVersion = localStorage.getItem('cookieMiniVersion');
+                if (savedVersion !== DATA_VERSION) {
+                    localStorage.removeItem(STORAGE_KEY);
+                    localStorage.setItem('cookieMiniVersion', DATA_VERSION);
+                    console.log('数据已重置为新版本:', DATA_VERSION);
+                }
+            } catch (err) {
+                console.warn('版本检查失败:', err);
+            }
 
             let count = 0;
             let lifetimeCookies = 0; // total cookies gained this run
