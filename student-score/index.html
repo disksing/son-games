@@ -2672,8 +2672,32 @@
                         <!-- 密码列表动态生成 -->
                     </div>
                 </div>
-                <div style="margin-top: 15px; text-align: center;">
+                <div style="margin-top: 15px; text-align: center; display: flex; gap: 10px; justify-content: center;">
+                    <button class="btn btn-primary" onclick="openChangeTeacherPasswordModal()" style="background: linear-gradient(135deg, #f59f00 0%, #f76707 100%);">🔐 修改我的密码</button>
                     <button class="btn btn-primary" onclick="closeTeacherViewPasswordModal()">关闭</button>
+                </div>
+            </div>
+
+            <!-- 修改密码模式 -->
+            <div id="teacherChangePasswordMode" style="display: none;">
+                <h3 id="changePasswordTitle" style="font-size: 16px; color: #333; margin-bottom: 15px; text-align: center;">🔐 修改密码</h3>
+                <div style="display: flex; flex-direction: column; gap: 12px; margin: 20px 0;">
+                    <div>
+                        <div style="font-size: 13px; color: #666; margin-bottom: 5px;">原密码</div>
+                        <input type="password" id="changePasswordOldInput" maxlength="4" placeholder="请输入原4位密码" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; text-align: center; letter-spacing: 4px; font-size: 16px;" inputmode="numeric">
+                    </div>
+                    <div>
+                        <div style="font-size: 13px; color: #666; margin-bottom: 5px;">新密码</div>
+                        <input type="password" id="changePasswordNewInput" maxlength="4" placeholder="请输入新4位密码" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; text-align: center; letter-spacing: 4px; font-size: 16px;" inputmode="numeric">
+                    </div>
+                    <div>
+                        <div style="font-size: 13px; color: #666; margin-bottom: 5px;">确认新密码</div>
+                        <input type="password" id="changePasswordConfirmInput" maxlength="4" placeholder="再次确认新密码" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; text-align: center; letter-spacing: 4px; font-size: 16px;" inputmode="numeric">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+                    <button class="btn btn-primary" onclick="saveChangedTeacherPassword()">保存修改</button>
+                    <button class="btn btn-cancel" onclick="backToPasswordList()">返回</button>
                 </div>
             </div>
         </div>
@@ -4149,6 +4173,7 @@
             document.getElementById('teacherSetupMode').style.display = mode === 'setup' ? 'block' : 'none';
             document.getElementById('teacherVerifyMode').style.display = mode === 'verify' ? 'block' : 'none';
             document.getElementById('teacherPasswordViewMode').style.display = mode === 'view' ? 'block' : 'none';
+            document.getElementById('teacherChangePasswordMode').style.display = mode === 'changePassword' ? 'block' : 'none';
             
             if (mode === 'setup') {
                 document.getElementById('teacherModalTitle').textContent = '🔐 首次设置双重保险';
@@ -4156,7 +4181,92 @@
                 document.getElementById('teacherModalTitle').textContent = '👁️ 老师双重保险验证';
             } else if (mode === 'view') {
                 document.getElementById('teacherModalTitle').textContent = '👁️ 学生房间密码';
+            } else if (mode === 'changePassword') {
+                document.getElementById('teacherModalTitle').textContent = '🔐 修改密码';
             }
+        }
+
+        // 打开修改密码界面
+        function openChangeTeacherPasswordModal() {
+            if (!currentTeacherRole) {
+                alert('请先验证身份！');
+                return;
+            }
+            
+            // 清空输入框
+            document.getElementById('changePasswordOldInput').value = '';
+            document.getElementById('changePasswordNewInput').value = '';
+            document.getElementById('changePasswordConfirmInput').value = '';
+            
+            // 更新标题显示当前身份
+            const title = document.getElementById('changePasswordTitle');
+            if (title) {
+                title.textContent = currentTeacherRole === 'main' ? '🔐 修改主老师密码' : '🔐 修改副老师密码';
+            }
+            
+            showTeacherModalMode('changePassword');
+        }
+
+        // 返回密码列表
+        function backToPasswordList() {
+            showTeacherModalMode('view');
+        }
+
+        // 保存修改后的密码
+        function saveChangedTeacherPassword() {
+            if (!currentTeacherRole) {
+                alert('身份验证已过期，请重新验证！');
+                closeTeacherViewPasswordModal();
+                return;
+            }
+            
+            const oldPassword = document.getElementById('changePasswordOldInput').value.trim();
+            const newPassword = document.getElementById('changePasswordNewInput').value.trim();
+            const confirmPassword = document.getElementById('changePasswordConfirmInput').value.trim();
+            
+            // 验证输入
+            if (!/^\d{4}$/.test(oldPassword)) {
+                alert('原密码必须是4位数字！');
+                return;
+            }
+            if (!/^\d{4}$/.test(newPassword)) {
+                alert('新密码必须是4位数字！');
+                return;
+            }
+            if (!/^\d{4}$/.test(confirmPassword)) {
+                alert('确认密码必须是4位数字！');
+                return;
+            }
+            if (newPassword !== confirmPassword) {
+                alert('两次输入的新密码不一致！');
+                return;
+            }
+            if (oldPassword === newPassword) {
+                alert('新密码不能与旧密码相同！');
+                return;
+            }
+            
+            // 验证原密码
+            const settings = loadTeacherSecuritySettings();
+            const correctOldPin = currentTeacherRole === 'main' ? settings.mainPin : settings.subPin;
+            
+            if (oldPassword !== correctOldPin) {
+                alert('原密码错误！');
+                document.getElementById('changePasswordOldInput').value = '';
+                return;
+            }
+            
+            // 保存新密码
+            if (currentTeacherRole === 'main') {
+                localStorage.setItem('mainTeacherPin', newPassword);
+            } else {
+                localStorage.setItem('subTeacherPin', newPassword);
+            }
+            
+            alert('密码修改成功！请牢记新密码。');
+            
+            // 返回密码列表
+            backToPasswordList();
         }
 
         // 保存双重保险设置
