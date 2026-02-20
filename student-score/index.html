@@ -2592,49 +2592,72 @@
             
             <!-- 首次设置模式 -->
             <div id="teacherSetupMode" style="display: none;">
-                <p id="teacherSetupHint" style="color: #666; font-size: 14px; margin: 15px 0; text-align: center;">首次使用，请录入老师触控</p>
-                <div id="teacherSetupArea" style="display: flex; gap: 15px; justify-content: center; margin: 20px 0;">
-                    <div id="mainTeacherSetupArea" style="width: 120px; height: 120px; background: #f1f3f5; border: 3px solid #ced4da; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; user-select: none; -webkit-user-select: none; touch-action: none;" 
-                         ontouchstart="handleTeacherSetupTouch('main')" ontouchend="handleTeacherSetupTouchEnd('main')" 
-                         onmousedown="handleTeacherSetupTouch('main')" onmouseup="handleTeacherSetupTouchEnd('main')" onmouseleave="handleTeacherSetupTouchEnd('main')">
-                        <div style="font-size: 40px;">👨‍🏫</div>
-                        <div style="font-size: 12px; color: #666; margin-top: 5px;">主老师</div>
-                        <div id="mainTeacherSetupStatus" style="font-size: 11px; color: #999; margin-top: 3px;">按住录入</div>
-                    </div>
-                    <div id="subTeacherSetupArea" style="width: 120px; height: 120px; background: #f1f3f5; border: 3px solid #ced4da; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; user-select: none; -webkit-user-select: none; touch-action: none;" 
-                         ontouchstart="handleTeacherSetupTouch('sub')" ontouchend="handleTeacherSetupTouchEnd('sub')" 
-                         onmousedown="handleTeacherSetupTouch('sub')" onmouseup="handleTeacherSetupTouchEnd('sub')" onmouseleave="handleTeacherSetupTouchEnd('sub')">
-                        <div style="font-size: 40px;">👩‍🏫</div>
-                        <div style="font-size: 12px; color: #666; margin-top: 5px;">副老师</div>
-                        <div id="subTeacherSetupStatus" style="font-size: 11px; color: #999; margin-top: 3px;">按住录入</div>
+                <p style="color: #666; font-size: 14px; margin: 15px 0; text-align: center;">首次使用，请设置双重保险验证</p>
+                
+                <!-- 第一步：设置密码 -->
+                <div id="teacherSetupStep1" style="margin: 20px 0;">
+                    <h3 style="font-size: 16px; color: #333; margin-bottom: 15px; text-align: center;">🔐 第一步：设置密码</h3>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="width: 80px; font-size: 14px;">主老师：</span>
+                            <input type="password" id="mainTeacherPinInput" maxlength="4" placeholder="4位数字" style="flex: 1; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; text-align: center; letter-spacing: 4px;" inputmode="numeric">
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="width: 80px; font-size: 14px;">副老师：</span>
+                            <input type="password" id="subTeacherPinInput" maxlength="4" placeholder="4位数字" style="flex: 1; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; text-align: center; letter-spacing: 4px;" inputmode="numeric">
+                        </div>
                     </div>
                 </div>
-                <div id="teacherSetupProgress" style="text-align: center; color: #667eea; font-size: 14px; margin-top: 10px;">
-                    请主老师先按住左侧触控键
+                
+                <!-- 第二步：设置密保问题 -->
+                <div id="teacherSetupStep2" style="margin: 20px 0; padding-top: 15px; border-top: 1px solid #eee;">
+                    <h3 style="font-size: 16px; color: #333; margin-bottom: 15px; text-align: center;">🍜 第二步：设置密保问题</h3>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div>
+                            <div style="font-size: 13px; color: #667eea; margin-bottom: 5px;">主老师：朱老师最喜欢吃什么？</div>
+                            <input type="text" id="mainTeacherAnswerInput" placeholder="请输入答案（如：红烧肉）" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                        </div>
+                        <div>
+                            <div style="font-size: 13px; color: #51cf66; margin-bottom: 5px;">副老师：李老师最喜欢吃什么？</div>
+                            <input type="text" id="subTeacherAnswerInput" placeholder="请输入答案（如：糖醋排骨）" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                        </div>
+                    </div>
                 </div>
+                
+                <button class="btn btn-primary" onclick="saveTeacherSecuritySetup()" style="margin-top: 10px;">💾 保存双重保险设置</button>
             </div>
             
             <!-- 验证模式 -->
             <div id="teacherVerifyMode" style="display: none;">
-                <p style="color: #666; font-size: 14px; margin: 15px 0; text-align: center;">触控验证身份</p>
-                <div id="teacherTouchArea" style="display: flex; gap: 15px; justify-content: center; margin: 20px 0;">
-                    <div id="mainTeacherTouchArea" style="width: 120px; height: 120px; background: #f1f3f5; border: 3px solid #ced4da; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; user-select: none; -webkit-user-select: none; touch-action: none;" 
-                         ontouchstart="handleTeacherVerifyTouch('main')" ontouchend="handleTeacherVerifyTouchEnd('main')" 
-                         onmousedown="handleTeacherVerifyTouch('main')" onmouseup="handleTeacherVerifyTouchEnd('main')" onmouseleave="handleTeacherVerifyTouchEnd('main')">
-                        <div style="font-size: 40px;">👨‍🏫</div>
-                        <div style="font-size: 12px; color: #666; margin-top: 5px;">主老师</div>
-                        <div id="mainTeacherVerifyStatus" style="font-size: 11px; color: #999; margin-top: 3px;">按住验证</div>
-                    </div>
-                    <div id="subTeacherTouchArea" style="width: 120px; height: 120px; background: #f1f3f5; border: 3px solid #ced4da; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; user-select: none; -webkit-user-select: none; touch-action: none;" 
-                         ontouchstart="handleTeacherVerifyTouch('sub')" ontouchend="handleTeacherVerifyTouchEnd('sub')" 
-                         onmousedown="handleTeacherVerifyTouch('sub')" onmouseup="handleTeacherVerifyTouchEnd('sub')" onmouseleave="handleTeacherVerifyTouchEnd('sub')">
-                        <div style="font-size: 40px;">👩‍🏫</div>
-                        <div style="font-size: 12px; color: #666; margin-top: 5px;">副老师</div>
-                        <div id="subTeacherVerifyStatus" style="font-size: 11px; color: #999; margin-top: 3px;">按住验证</div>
+                <p style="color: #666; font-size: 14px; margin: 15px 0; text-align: center;">双重保险验证</p>
+                
+                <!-- 第一步：密码验证 -->
+                <div id="teacherVerifyStep1" style="margin: 20px 0;">
+                    <h3 style="font-size: 16px; color: #333; margin-bottom: 15px; text-align: center;">🔐 第一步：输入密码</h3>
+                    <div style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
+                        <div style="display: flex; gap: 10px; justify-content: center;">
+                            <button class="btn" onclick="selectTeacherRole('main')" id="selectMainTeacherBtn" style="padding: 10px 20px; background: #e0e0e0; color: #333; border: none; border-radius: 8px;">👨‍🏫 我是主老师</button>
+                            <button class="btn" onclick="selectTeacherRole('sub')" id="selectSubTeacherBtn" style="padding: 10px 20px; background: #e0e0e0; color: #333; border: none; border-radius: 8px;">👩‍🏫 我是副老师</button>
+                        </div>
+                        <input type="password" id="teacherPinVerifyInput" maxlength="4" placeholder="请输入4位密码" style="width: 150px; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; text-align: center; letter-spacing: 6px; font-size: 18px;" inputmode="numeric">
+                        <button class="btn btn-primary" onclick="verifyTeacherPin()" style="padding: 10px 30px;">验证密码</button>
                     </div>
                 </div>
+                
+                <!-- 第二步：密保问题验证 -->
+                <div id="teacherVerifyStep2" style="display: none; margin: 20px 0; padding-top: 15px; border-top: 1px solid #eee;">
+                    <h3 style="font-size: 16px; color: #333; margin-bottom: 15px; text-align: center;">🍜 第二步：回答密保问题</h3>
+                    <div style="text-align: center; margin-bottom: 15px;">
+                        <div id="verifyQuestionText" style="font-size: 14px; color: #667eea; margin-bottom: 10px;"></div>
+                        <input type="text" id="teacherAnswerVerifyInput" placeholder="请输入答案" style="width: 200px; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; text-align: center; font-size: 14px;">
+                    </div>
+                    <div style="text-align: center;">
+                        <button class="btn btn-primary" onclick="verifyTeacherAnswer()" style="padding: 10px 30px;">验证答案</button>
+                    </div>
+                </div>
+                
                 <div id="teacherVerifyHint" style="text-align: center; color: #999; font-size: 12px; margin-top: 10px;">
-                    按住任意触控区域验证身份
+                    需要通过双重验证才能查看密码
                 </div>
             </div>
             
@@ -4050,35 +4073,75 @@
 
 
 
-        // 老师触控看密码相关变量
+        // 老师双重保险看密码相关变量
         let currentTeacherRole = null; // 'main' 或 'sub'
-        let teacherVerifyTouchActive = { main: false, sub: false };
-        let teacherSetupState = { main: false, sub: false }; // 录入状态
+        let teacherVerifyStep = 1; // 当前验证步骤
 
-        // 加载老师触控设置状态
-        function loadTeacherTouchSettings() {
-            const isSetup = localStorage.getItem('teacherTouchSetup') === 'true';
-            return { isSetup };
+        // 加载老师安全设置
+        function loadTeacherSecuritySettings() {
+            const mainPin = localStorage.getItem('mainTeacherPin');
+            const subPin = localStorage.getItem('subTeacherPin');
+            const mainAnswer = localStorage.getItem('mainTeacherAnswer');
+            const subAnswer = localStorage.getItem('subTeacherAnswer');
+            return { 
+                mainPin, subPin, mainAnswer, subAnswer,
+                isSetup: !!(mainPin && subPin && mainAnswer && subAnswer)
+            };
         }
 
-        // 打开老师触控看密码弹窗
+        // 打开老师看密码弹窗
         function openTeacherViewPasswordModal() {
-            const settings = loadTeacherTouchSettings();
+            const settings = loadTeacherSecuritySettings();
             
             // 重置状态
             currentTeacherRole = null;
-            teacherVerifyTouchActive = { main: false, sub: false };
-            teacherSetupState = { main: false, sub: false };
+            teacherVerifyStep = 1;
             
             if (!settings.isSetup) {
                 // 首次设置模式
                 showTeacherModalMode('setup');
+                // 清空输入框
+                const mainPinInput = document.getElementById('mainTeacherPinInput');
+                const subPinInput = document.getElementById('subTeacherPinInput');
+                const mainAnswerInput = document.getElementById('mainTeacherAnswerInput');
+                const subAnswerInput = document.getElementById('subTeacherAnswerInput');
+                if (mainPinInput) mainPinInput.value = '';
+                if (subPinInput) subPinInput.value = '';
+                if (mainAnswerInput) mainAnswerInput.value = '';
+                if (subAnswerInput) subAnswerInput.value = '';
             } else {
                 // 验证模式
                 showTeacherModalMode('verify');
+                resetVerifyForm();
             }
             
             document.getElementById('teacherViewPasswordModal').classList.add('active');
+        }
+
+        // 重置验证表单
+        function resetVerifyForm() {
+            currentTeacherRole = null;
+            teacherVerifyStep = 1;
+            
+            // 重置步骤1
+            document.getElementById('teacherVerifyStep1').style.display = 'block';
+            document.getElementById('teacherVerifyStep2').style.display = 'none';
+            
+            const pinInput = document.getElementById('teacherPinVerifyInput');
+            const answerInput = document.getElementById('teacherAnswerVerifyInput');
+            const mainBtn = document.getElementById('selectMainTeacherBtn');
+            const subBtn = document.getElementById('selectSubTeacherBtn');
+            
+            if (pinInput) pinInput.value = '';
+            if (answerInput) answerInput.value = '';
+            if (mainBtn) {
+                mainBtn.style.background = '#e0e0e0';
+                mainBtn.style.color = '#333';
+            }
+            if (subBtn) {
+                subBtn.style.background = '#e0e0e0';
+                subBtn.style.color = '#333';
+            }
         }
 
         // 显示弹窗的不同模式
@@ -4088,135 +4151,152 @@
             document.getElementById('teacherPasswordViewMode').style.display = mode === 'view' ? 'block' : 'none';
             
             if (mode === 'setup') {
-                document.getElementById('teacherModalTitle').textContent = '🔐 首次录入老师触控';
-                updateTeacherSetupUI();
+                document.getElementById('teacherModalTitle').textContent = '🔐 首次设置双重保险';
             } else if (mode === 'verify') {
-                document.getElementById('teacherModalTitle').textContent = '👁️ 老师触控验证';
-                updateTeacherVerifyUI();
+                document.getElementById('teacherModalTitle').textContent = '👁️ 老师双重保险验证';
             } else if (mode === 'view') {
                 document.getElementById('teacherModalTitle').textContent = '👁️ 学生房间密码';
             }
         }
 
-        // 处理设置模式触控按下
-        function handleTeacherSetupTouch(role) {
-            teacherSetupState[role] = true;
-            updateTeacherSetupUI();
+        // 保存双重保险设置
+        function saveTeacherSecuritySetup() {
+            const mainPin = document.getElementById('mainTeacherPinInput').value.trim();
+            const subPin = document.getElementById('subTeacherPinInput').value.trim();
+            const mainAnswer = document.getElementById('mainTeacherAnswerInput').value.trim();
+            const subAnswer = document.getElementById('subTeacherAnswerInput').value.trim();
             
-            // 检查是否都录入完成
-            if (teacherSetupState.main && teacherSetupState.sub) {
-                // 保存设置
-                localStorage.setItem('teacherTouchSetup', 'true');
-                // 延迟一下让用户看到完成状态
-                setTimeout(() => {
-                    alert('触控录入成功！现在可以使用触控验证查看密码了。');
-                    showTeacherModalMode('verify');
-                }, 500);
+            // 验证输入
+            if (!/^\d{4}$/.test(mainPin)) {
+                alert('主老师密码必须是4位数字！');
+                return;
             }
-        }
-
-        // 处理设置模式触控释放
-        function handleTeacherSetupTouchEnd(role) {
-            // 设置模式下不重置，保持录入状态
-        }
-
-        // 更新设置UI
-        function updateTeacherSetupUI() {
-            const mainArea = document.getElementById('mainTeacherSetupArea');
-            const subArea = document.getElementById('subTeacherSetupArea');
-            const mainStatus = document.getElementById('mainTeacherSetupStatus');
-            const subStatus = document.getElementById('subTeacherSetupStatus');
-            const progress = document.getElementById('teacherSetupProgress');
-            
-            if (mainArea) {
-                mainArea.style.background = teacherSetupState.main ? '#d3f9d8' : '#f1f3f5';
-                mainArea.style.borderColor = teacherSetupState.main ? '#51cf66' : '#ced4da';
+            if (!/^\d{4}$/.test(subPin)) {
+                alert('副老师密码必须是4位数字！');
+                return;
             }
-            if (subArea) {
-                subArea.style.background = teacherSetupState.sub ? '#ffd43b' : '#f1f3f5';
-                subArea.style.borderColor = teacherSetupState.sub ? '#fab005' : '#ced4da';
+            if (mainPin === subPin) {
+                alert('主老师和副老师密码不能相同！');
+                return;
             }
-            if (mainStatus) {
-                mainStatus.textContent = teacherSetupState.main ? '已录入 ✓' : '按住录入';
-                mainStatus.style.color = teacherSetupState.main ? '#51cf66' : '#999';
+            if (!mainAnswer || mainAnswer.length < 2) {
+                alert('请填写主老师密保问题答案！');
+                return;
             }
-            if (subStatus) {
-                subStatus.textContent = teacherSetupState.sub ? '已录入 ✓' : '按住录入';
-                subStatus.style.color = teacherSetupState.sub ? '#f59f00' : '#999';
+            if (!subAnswer || subAnswer.length < 2) {
+                alert('请填写副老师密保问题答案！');
+                return;
             }
             
-            // 更新进度提示
-            if (progress) {
-                if (!teacherSetupState.main) {
-                    progress.textContent = '请主老师按住左侧触控键';
-                    progress.style.color = '#667eea';
-                } else if (!teacherSetupState.sub) {
-                    progress.textContent = '请副老师按住右侧触控键';
-                    progress.style.color = '#f59f00';
-                } else {
-                    progress.textContent = '录入完成！';
-                    progress.style.color = '#51cf66';
-                }
-            }
+            // 保存到本地存储
+            localStorage.setItem('mainTeacherPin', mainPin);
+            localStorage.setItem('subTeacherPin', subPin);
+            localStorage.setItem('mainTeacherAnswer', mainAnswer);
+            localStorage.setItem('subTeacherAnswer', subAnswer);
+            
+            alert('双重保险设置成功！请牢记密码和密保答案。');
+            
+            // 关闭弹窗，不能直接查看密码
+            closeTeacherViewPasswordModal();
         }
 
-        // 关闭老师触控看密码弹窗
+        // 关闭老师看密码弹窗
         function closeTeacherViewPasswordModal() {
             document.getElementById('teacherViewPasswordModal').classList.remove('active');
             currentTeacherRole = null;
-            teacherVerifyTouchActive = { main: false, sub: false };
-            teacherSetupState = { main: false, sub: false };
+            teacherVerifyStep = 1;
         }
 
-        // 处理老师验证触控按下
-        function handleTeacherVerifyTouch(role) {
-            teacherVerifyTouchActive[role] = true;
-            updateTeacherVerifyUI();
+        // 选择老师身份
+        function selectTeacherRole(role) {
+            currentTeacherRole = role;
             
-            // 根据触控的区域确定身份
+            const mainBtn = document.getElementById('selectMainTeacherBtn');
+            const subBtn = document.getElementById('selectSubTeacherBtn');
+            
             if (role === 'main') {
-                currentTeacherRole = 'main';
-            } else if (role === 'sub') {
-                currentTeacherRole = 'sub';
-            }
-            
-            // 延迟显示密码列表，给用户反馈时间
-            setTimeout(() => {
-                if (teacherVerifyTouchActive[role]) {
-                    showTeacherPasswordList();
+                if (mainBtn) {
+                    mainBtn.style.background = '#667eea';
+                    mainBtn.style.color = 'white';
                 }
-            }, 500);
+                if (subBtn) {
+                    subBtn.style.background = '#e0e0e0';
+                    subBtn.style.color = '#333';
+                }
+            } else {
+                if (mainBtn) {
+                    mainBtn.style.background = '#e0e0e0';
+                    mainBtn.style.color = '#333';
+                }
+                if (subBtn) {
+                    subBtn.style.background = '#51cf66';
+                    subBtn.style.color = 'white';
+                }
+            }
         }
 
-        // 处理老师验证触控释放
-        function handleTeacherVerifyTouchEnd(role) {
-            teacherVerifyTouchActive[role] = false;
-            updateTeacherVerifyUI();
-        }
-
-        // 更新验证UI
-        function updateTeacherVerifyUI() {
-            const mainArea = document.getElementById('mainTeacherTouchArea');
-            const subArea = document.getElementById('subTeacherTouchArea');
-            const mainStatus = document.getElementById('mainTeacherVerifyStatus');
-            const subStatus = document.getElementById('subTeacherVerifyStatus');
+        // 验证密码（第一步）
+        function verifyTeacherPin() {
+            if (!currentTeacherRole) {
+                alert('请先选择身份（主老师或副老师）！');
+                return;
+            }
             
-            if (mainArea) {
-                mainArea.style.background = teacherVerifyTouchActive.main ? '#d3f9d8' : '#f1f3f5';
-                mainArea.style.borderColor = teacherVerifyTouchActive.main ? '#51cf66' : '#ced4da';
+            const inputPin = document.getElementById('teacherPinVerifyInput').value.trim();
+            const settings = loadTeacherSecuritySettings();
+            
+            if (!/^\d{4}$/.test(inputPin)) {
+                alert('请输入4位数字密码！');
+                return;
             }
-            if (subArea) {
-                subArea.style.background = teacherVerifyTouchActive.sub ? '#ffd43b' : '#f1f3f5';
-                subArea.style.borderColor = teacherVerifyTouchActive.sub ? '#fab005' : '#ced4da';
+            
+            // 验证密码
+            const correctPin = currentTeacherRole === 'main' ? settings.mainPin : settings.subPin;
+            if (inputPin !== correctPin) {
+                alert('密码错误！');
+                document.getElementById('teacherPinVerifyInput').value = '';
+                return;
             }
-            if (mainStatus) {
-                mainStatus.textContent = teacherVerifyTouchActive.main ? '验证中...' : '按住解锁';
-                mainStatus.style.color = teacherVerifyTouchActive.main ? '#51cf66' : '#999';
+            
+            // 密码正确，进入第二步
+            teacherVerifyStep = 2;
+            document.getElementById('teacherVerifyStep1').style.display = 'none';
+            document.getElementById('teacherVerifyStep2').style.display = 'block';
+            
+            // 显示对应的问题
+            const questionText = document.getElementById('verifyQuestionText');
+            if (currentTeacherRole === 'main') {
+                questionText.textContent = '朱老师最喜欢吃什么？';
+                questionText.style.color = '#667eea';
+            } else {
+                questionText.textContent = '李老师最喜欢吃什么？';
+                questionText.style.color = '#51cf66';
             }
-            if (subStatus) {
-                subStatus.textContent = teacherVerifyTouchActive.sub ? '验证中...' : '按住解锁';
-                subStatus.style.color = teacherVerifyTouchActive.sub ? '#f59f00' : '#999';
+            
+            // 清空答案输入框
+            document.getElementById('teacherAnswerVerifyInput').value = '';
+        }
+
+        // 验证密保答案（第二步）
+        function verifyTeacherAnswer() {
+            const inputAnswer = document.getElementById('teacherAnswerVerifyInput').value.trim();
+            const settings = loadTeacherSecuritySettings();
+            
+            if (!inputAnswer) {
+                alert('请输入答案！');
+                return;
             }
+            
+            // 验证答案（不区分大小写）
+            const correctAnswer = currentTeacherRole === 'main' ? settings.mainAnswer : settings.subAnswer;
+            if (inputAnswer.toLowerCase() !== correctAnswer.toLowerCase()) {
+                alert('答案错误！');
+                document.getElementById('teacherAnswerVerifyInput').value = '';
+                return;
+            }
+            
+            // 双重验证通过，显示密码列表
+            showTeacherPasswordList();
         }
 
         // 切换学生重点标记（主老师专用）
