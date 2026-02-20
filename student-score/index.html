@@ -2588,35 +2588,62 @@
     <div class="modal-overlay password-modal" id="teacherViewPasswordModal">
         <div class="modal">
             <button class="modal-close" onclick="closeTeacherViewPasswordModal()">✕</button>
-            <h2>👁️ 老师触控查看密码</h2>
-            <p style="color: #666; font-size: 14px; margin: 15px 0; text-align: center;">需要主老师和副老师同时触控确认</p>
+            <h2 id="teacherModalTitle">👁️ 老师触控查看密码</h2>
             
-            <div id="teacherTouchArea" style="display: flex; gap: 15px; justify-content: center; margin: 20px 0;">
-                <div id="mainTeacherArea" style="width: 120px; height: 120px; background: #f1f3f5; border: 3px solid #ced4da; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; user-select: none; -webkit-user-select: none; touch-action: none;" 
-                     ontouchstart="handleTeacherTouch('main')" ontouchend="handleTeacherTouchEnd('main')" 
-                     onmousedown="handleTeacherTouch('main')" onmouseup="handleTeacherTouchEnd('main')" onmouseleave="handleTeacherTouchEnd('main')">
-                    <div style="font-size: 40px;">👨‍🏫</div>
-                    <div style="font-size: 12px; color: #666; margin-top: 5px;">主老师</div>
-                    <div id="mainTeacherStatus" style="font-size: 11px; color: #999; margin-top: 3px;">未触控</div>
+            <!-- 首次设置模式 -->
+            <div id="teacherSetupMode" style="display: none;">
+                <p style="color: #666; font-size: 14px; margin: 15px 0; text-align: center;">首次使用，请设置主老师和副老师的触控密码</p>
+                <div style="display: flex; flex-direction: column; gap: 15px; margin: 20px 0;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="width: 80px; font-size: 14px;">主老师：</span>
+                        <input type="password" id="mainTeacherPinInput" maxlength="4" placeholder="4位数字密码" style="flex: 1; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; text-align: center; letter-spacing: 4px;" inputmode="numeric">
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="width: 80px; font-size: 14px;">副老师：</span>
+                        <input type="password" id="subTeacherPinInput" maxlength="4" placeholder="4位数字密码" style="flex: 1; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; text-align: center; letter-spacing: 4px;" inputmode="numeric">
+                    </div>
                 </div>
-                <div id="subTeacherArea" style="width: 120px; height: 120px; background: #f1f3f5; border: 3px solid #ced4da; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; user-select: none; -webkit-user-select: none; touch-action: none;" 
-                     ontouchstart="handleTeacherTouch('sub')" ontouchend="handleTeacherTouchEnd('sub')" 
-                     onmousedown="handleTeacherTouch('sub')" onmouseup="handleTeacherTouchEnd('sub')" onmouseleave="handleTeacherTouchEnd('sub')">
-                    <div style="font-size: 40px;">👩‍🏫</div>
-                    <div style="font-size: 12px; color: #666; margin-top: 5px;">副老师</div>
-                    <div id="subTeacherStatus" style="font-size: 11px; color: #999; margin-top: 3px;">未触控</div>
+                <button class="btn btn-primary" onclick="saveTeacherPinSetup()">保存设置</button>
+            </div>
+            
+            <!-- 验证模式 -->
+            <div id="teacherVerifyMode" style="display: none;">
+                <p style="color: #666; font-size: 14px; margin: 15px 0; text-align: center;">触控验证身份</p>
+                <div id="teacherTouchArea" style="display: flex; gap: 15px; justify-content: center; margin: 20px 0;">
+                    <div id="mainTeacherTouchArea" style="width: 120px; height: 120px; background: #f1f3f5; border: 3px solid #ced4da; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; user-select: none; -webkit-user-select: none; touch-action: none;" 
+                         ontouchstart="handleTeacherVerifyTouch('main')" ontouchend="handleTeacherVerifyTouchEnd('main')" 
+                         onmousedown="handleTeacherVerifyTouch('main')" onmouseup="handleTeacherVerifyTouchEnd('main')" onmouseleave="handleTeacherVerifyTouchEnd('main')">
+                        <div style="font-size: 40px;">👨‍🏫</div>
+                        <div style="font-size: 12px; color: #666; margin-top: 5px;">主老师</div>
+                        <div id="mainTeacherVerifyStatus" style="font-size: 11px; color: #999; margin-top: 3px;">按住验证</div>
+                    </div>
+                    <div id="subTeacherTouchArea" style="width: 120px; height: 120px; background: #f1f3f5; border: 3px solid #ced4da; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; user-select: none; -webkit-user-select: none; touch-action: none;" 
+                         ontouchstart="handleTeacherVerifyTouch('sub')" ontouchend="handleTeacherVerifyTouchEnd('sub')" 
+                         onmousedown="handleTeacherVerifyTouch('sub')" onmouseup="handleTeacherVerifyTouchEnd('sub')" onmouseleave="handleTeacherVerifyTouchEnd('sub')">
+                        <div style="font-size: 40px;">👩‍🏫</div>
+                        <div style="font-size: 12px; color: #666; margin-top: 5px;">副老师</div>
+                        <div id="subTeacherVerifyStatus" style="font-size: 11px; color: #999; margin-top: 3px;">按住验证</div>
+                    </div>
+                </div>
+                <div id="teacherVerifyHint" style="text-align: center; color: #999; font-size: 12px; margin-top: 10px;">
+                    按住任意触控区域验证身份
                 </div>
             </div>
             
-            <div id="passwordListArea" style="display: none; margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 12px; max-height: 300px; overflow-y: auto;">
-                <h3 style="text-align: center; color: #333; margin-bottom: 15px;">学生房间密码列表</h3>
-                <div id="teacherPasswordList" style="display: flex; flex-direction: column; gap: 10px;">
-                    <!-- 密码列表动态生成 -->
+            <!-- 密码显示模式 -->
+            <div id="teacherPasswordViewMode" style="display: none;">
+                <div style="display: flex; justify-content: center; gap: 15px; margin-bottom: 15px;">
+                    <span id="currentTeacherBadge" style="background: #667eea; color: white; padding: 5px 15px; border-radius: 15px; font-size: 12px;">主老师</span>
                 </div>
-            </div>
-            
-            <div id="teacherTouchHint" style="text-align: center; color: #999; font-size: 12px; margin-top: 10px;">
-                两位老师同时按住触控区域即可查看
+                <div id="passwordListArea" style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 12px; max-height: 350px; overflow-y: auto;">
+                    <h3 style="text-align: center; color: #333; margin-bottom: 15px;">学生房间密码列表</h3>
+                    <div id="teacherPasswordList" style="display: flex; flex-direction: column; gap: 10px;">
+                        <!-- 密码列表动态生成 -->
+                    </div>
+                </div>
+                <div style="margin-top: 15px; text-align: center;">
+                    <button class="btn btn-primary" onclick="closeTeacherViewPasswordModal()">关闭</button>
+                </div>
             </div>
         </div>
     </div>
@@ -4014,88 +4041,148 @@
         }
 
         // 老师触控看密码相关变量
-        let mainTeacherTouched = false;
-        let subTeacherTouched = false;
-        let teacherTouchTimeout = null;
+        let currentTeacherRole = null; // 'main' 或 'sub'
+        let teacherVerifyTouchActive = { main: false, sub: false };
+
+        // 加载老师PIN码设置
+        function loadTeacherPinSettings() {
+            const mainPin = localStorage.getItem('mainTeacherPin');
+            const subPin = localStorage.getItem('subTeacherPin');
+            return { mainPin, subPin, isSetup: !!(mainPin && subPin) };
+        }
 
         // 打开老师触控看密码弹窗
         function openTeacherViewPasswordModal() {
+            const settings = loadTeacherPinSettings();
+            
             // 重置状态
-            mainTeacherTouched = false;
-            subTeacherTouched = false;
-            updateTeacherTouchUI();
-            document.getElementById('passwordListArea').style.display = 'none';
-            document.getElementById('teacherTouchArea').style.display = 'flex';
-            document.getElementById('teacherTouchHint').style.display = 'block';
+            currentTeacherRole = null;
+            teacherVerifyTouchActive = { main: false, sub: false };
+            
+            if (!settings.isSetup) {
+                // 首次设置模式
+                showTeacherModalMode('setup');
+            } else {
+                // 验证模式
+                showTeacherModalMode('verify');
+            }
+            
             document.getElementById('teacherViewPasswordModal').classList.add('active');
+        }
+
+        // 显示弹窗的不同模式
+        function showTeacherModalMode(mode) {
+            document.getElementById('teacherSetupMode').style.display = mode === 'setup' ? 'block' : 'none';
+            document.getElementById('teacherVerifyMode').style.display = mode === 'verify' ? 'block' : 'none';
+            document.getElementById('teacherPasswordViewMode').style.display = mode === 'view' ? 'block' : 'none';
+            
+            if (mode === 'setup') {
+                document.getElementById('teacherModalTitle').textContent = '🔐 首次设置老师密码';
+                document.getElementById('mainTeacherPinInput').value = '';
+                document.getElementById('subTeacherPinInput').value = '';
+            } else if (mode === 'verify') {
+                document.getElementById('teacherModalTitle').textContent = '👁️ 老师触控验证';
+                updateTeacherVerifyUI();
+            } else if (mode === 'view') {
+                document.getElementById('teacherModalTitle').textContent = '👁️ 学生房间密码';
+            }
+        }
+
+        // 保存老师PIN码设置
+        function saveTeacherPinSetup() {
+            const mainPin = document.getElementById('mainTeacherPinInput').value.trim();
+            const subPin = document.getElementById('subTeacherPinInput').value.trim();
+            
+            if (!/^\d{4}$/.test(mainPin)) {
+                alert('主老师密码必须是4位数字！');
+                return;
+            }
+            if (!/^\d{4}$/.test(subPin)) {
+                alert('副老师密码必须是4位数字！');
+                return;
+            }
+            if (mainPin === subPin) {
+                alert('主老师和副老师密码不能相同！');
+                return;
+            }
+            
+            localStorage.setItem('mainTeacherPin', mainPin);
+            localStorage.setItem('subTeacherPin', subPin);
+            
+            alert('设置成功！现在可以使用触控验证查看密码了。');
+            showTeacherModalMode('verify');
         }
 
         // 关闭老师触控看密码弹窗
         function closeTeacherViewPasswordModal() {
             document.getElementById('teacherViewPasswordModal').classList.remove('active');
-            // 清除超时
-            if (teacherTouchTimeout) {
-                clearTimeout(teacherTouchTimeout);
-                teacherTouchTimeout = null;
-            }
+            currentTeacherRole = null;
+            teacherVerifyTouchActive = { main: false, sub: false };
         }
 
-        // 处理老师触控按下
-        function handleTeacherTouch(teacher) {
-            if (teacher === 'main') {
-                mainTeacherTouched = true;
-            } else if (teacher === 'sub') {
-                subTeacherTouched = true;
-            }
-            updateTeacherTouchUI();
-            checkTeacherTouchStatus();
-        }
-
-        // 处理老师触控释放
-        function handleTeacherTouchEnd(teacher) {
-            // 只有在还没有显示密码列表的情况下才重置
-            const passwordListArea = document.getElementById('passwordListArea');
-            if (passwordListArea && passwordListArea.style.display === 'none') {
-                if (teacher === 'main') {
-                    mainTeacherTouched = false;
-                } else if (teacher === 'sub') {
-                    subTeacherTouched = false;
-                }
-                updateTeacherTouchUI();
-            }
-        }
-
-        // 更新老师触控UI
-        function updateTeacherTouchUI() {
-            const mainArea = document.getElementById('mainTeacherArea');
-            const subArea = document.getElementById('subTeacherArea');
-            const mainStatus = document.getElementById('mainTeacherStatus');
-            const subStatus = document.getElementById('subTeacherStatus');
+        // 处理老师验证触控按下
+        function handleTeacherVerifyTouch(role) {
+            teacherVerifyTouchActive[role] = true;
+            updateTeacherVerifyUI();
             
-            if (mainArea) {
-                mainArea.style.background = mainTeacherTouched ? '#d3f9d8' : '#f1f3f5';
-                mainArea.style.borderColor = mainTeacherTouched ? '#51cf66' : '#ced4da';
-            }
-            if (subArea) {
-                subArea.style.background = subTeacherTouched ? '#d3f9d8' : '#f1f3f5';
-                subArea.style.borderColor = subTeacherTouched ? '#51cf66' : '#ced4da';
-            }
-            if (mainStatus) {
-                mainStatus.textContent = mainTeacherTouched ? '已确认 ✓' : '未触控';
-                mainStatus.style.color = mainTeacherTouched ? '#51cf66' : '#999';
-            }
-            if (subStatus) {
-                subStatus.textContent = subTeacherTouched ? '已确认 ✓' : '未触控';
-                subStatus.style.color = subTeacherTouched ? '#51cf66' : '#999';
-            }
-        }
-
-        // 检查老师触控状态
-        function checkTeacherTouchStatus() {
-            if (mainTeacherTouched && subTeacherTouched) {
-                // 两位老师都触控了，显示密码列表
+            // 检查是否匹配对应的PIN码区域
+            const settings = loadTeacherPinSettings();
+            if (role === 'main' && settings.mainPin) {
+                // 主老师区域被触控，验证为主老师
+                currentTeacherRole = 'main';
+                showTeacherPasswordList();
+            } else if (role === 'sub' && settings.subPin) {
+                // 副老师区域被触控，验证为副老师
+                currentTeacherRole = 'sub';
                 showTeacherPasswordList();
             }
+        }
+
+        // 处理老师验证触控释放
+        function handleTeacherVerifyTouchEnd(role) {
+            teacherVerifyTouchActive[role] = false;
+            updateTeacherVerifyUI();
+        }
+
+        // 更新验证UI
+        function updateTeacherVerifyUI() {
+            const mainArea = document.getElementById('mainTeacherTouchArea');
+            const subArea = document.getElementById('subTeacherTouchArea');
+            const mainStatus = document.getElementById('mainTeacherVerifyStatus');
+            const subStatus = document.getElementById('subTeacherVerifyStatus');
+            
+            if (mainArea) {
+                mainArea.style.background = teacherVerifyTouchActive.main ? '#d3f9d8' : '#f1f3f5';
+                mainArea.style.borderColor = teacherVerifyTouchActive.main ? '#51cf66' : '#ced4da';
+            }
+            if (subArea) {
+                subArea.style.background = teacherVerifyTouchActive.sub ? '#ffd43b' : '#f1f3f5';
+                subArea.style.borderColor = teacherVerifyTouchActive.sub ? '#fab005' : '#ced4da';
+            }
+            if (mainStatus) {
+                mainStatus.textContent = teacherVerifyTouchActive.main ? '验证中...' : '按住验证';
+                mainStatus.style.color = teacherVerifyTouchActive.main ? '#51cf66' : '#999';
+            }
+            if (subStatus) {
+                subStatus.textContent = teacherVerifyTouchActive.sub ? '验证中...' : '按住验证';
+                subStatus.style.color = teacherVerifyTouchActive.sub ? '#f59f00' : '#999';
+            }
+        }
+
+        // 切换学生重点标记（主老师专用）
+        function toggleStudentPriority(studentId) {
+            const settings = loadTeacherPinSettings();
+            if (currentTeacherRole !== 'main') {
+                alert('只有主老师可以设置重点学生！');
+                return;
+            }
+            
+            const student = students.find(s => s.id === studentId);
+            if (!student) return;
+            
+            student.isPriority = !student.isPriority;
+            saveData();
+            showTeacherPasswordList(); // 刷新列表
         }
 
         // 显示密码列表
@@ -4103,38 +4190,57 @@
             const listContainer = document.getElementById('teacherPasswordList');
             listContainer.innerHTML = '';
             
+            // 更新身份标识
+            const badge = document.getElementById('currentTeacherBadge');
+            if (badge) {
+                badge.textContent = currentTeacherRole === 'main' ? '主老师 - 可查看全部' : '副老师 - 仅非重点';
+                badge.style.background = currentTeacherRole === 'main' ? '#667eea' : '#51cf66';
+            }
+            
             // 过滤出有密码的学生
-            const studentsWithPassword = students.filter(s => s.roomPassword && s.roomPassword.length > 0);
+            let studentsWithPassword = students.filter(s => s.roomPassword && s.roomPassword.length > 0);
+            
+            // 副老师只能看非重点学生
+            if (currentTeacherRole === 'sub') {
+                studentsWithPassword = studentsWithPassword.filter(s => !s.isPriority);
+            }
+            
+            // 排序：重点学生在前（主老师视角）
+            if (currentTeacherRole === 'main') {
+                studentsWithPassword.sort((a, b) => (b.isPriority ? 1 : 0) - (a.isPriority ? 1 : 0));
+            }
             
             if (studentsWithPassword.length === 0) {
-                listContainer.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">暂无学生设置房间密码</div>';
+                listContainer.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">' + 
+                    (currentTeacherRole === 'sub' ? '没有可查看的非重点学生' : '暂无学生设置房间密码') + 
+                    '</div>';
             } else {
                 studentsWithPassword.forEach(student => {
+                    const isPriority = student.isPriority;
                     const item = document.createElement('div');
-                    item.style.cssText = 'display: flex; align-items: center; padding: 10px; background: white; border-radius: 8px; border: 1px solid #e0e0e0;';
+                    item.style.cssText = 'display: flex; align-items: center; padding: 10px; background: white; border-radius: 8px; border: 2px solid ' + (isPriority ? '#ff6b6b' : '#e0e0e0') + ';';
+                    
+                    let priorityBtn = '';
+                    if (currentTeacherRole === 'main') {
+                        priorityBtn = `<button onclick="toggleStudentPriority('${student.id}')" style="margin-left: 10px; padding: 5px 10px; border: none; border-radius: 5px; background: ${isPriority ? '#ff6b6b' : '#e0e0e0'}; color: ${isPriority ? 'white' : '#666'}; font-size: 11px; cursor: pointer;">${isPriority ? '取消重点' : '设为重点'}</button>`;
+                    } else if (isPriority) {
+                        priorityBtn = '<span style="margin-left: 10px; color: #ff6b6b; font-size: 11px;">🔒 重点学生</span>';
+                    }
+                    
                     item.innerHTML = `
                         <div style="width: 40px; height: 40px; border-radius: 50%; overflow: hidden; margin-right: 12px;">${student.avatar}</div>
                         <div style="flex: 1;">
-                            <div style="font-weight: bold; color: #333;">${student.name}</div>
+                            <div style="font-weight: bold; color: #333;">${student.name} ${isPriority ? '<span style="color: #ff6b6b; font-size: 12px;">(重点)</span>' : ''}</div>
                             <div style="font-size: 18px; color: #667eea; font-weight: bold; letter-spacing: 4px;">密码: ${student.roomPassword}</div>
                         </div>
+                        ${priorityBtn}
                     `;
                     listContainer.appendChild(item);
                 });
             }
             
-            // 显示密码列表区域
-            document.getElementById('passwordListArea').style.display = 'block';
-            document.getElementById('teacherTouchArea').style.display = 'none';
-            document.getElementById('teacherTouchHint').style.display = 'none';
-            
-            // 3秒后自动关闭弹窗
-            if (teacherTouchTimeout) {
-                clearTimeout(teacherTouchTimeout);
-            }
-            teacherTouchTimeout = setTimeout(() => {
-                closeTeacherViewPasswordModal();
-            }, 10000);
+            // 切换到查看模式
+            showTeacherModalMode('view');
         }
 
         // 打开老师选择学生设置密码弹窗
