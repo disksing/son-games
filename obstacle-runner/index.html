@@ -674,11 +674,11 @@
 
             // 根据关卡调整难度
             function getLevelDifficulty(level) {
-                // 障碍物生成频率：第一关就很多，逐渐增加到第20关
-                // 第一关：40，第20关：15，线性递减（更频繁）
-                const baseObstacleSpawnRate = Math.max(15, 40 - (level - 1) * (25 / 19));
-                // 第一关：0.5，第20关：0.9，线性递增（更高概率）
-                const obstacleSpawnChance = Math.min(0.9, 0.5 + (level - 1) * (0.4 / 19));
+                // 障碍物生成频率：减少生成，给玩家更多空间
+                // 第一关：80，第20关：40，线性递减（更稀疏）
+                const baseObstacleSpawnRate = Math.max(40, 80 - (level - 1) * (40 / 19));
+                // 第一关：0.3，第20关：0.6，线性递增（较低概率）
+                const obstacleSpawnChance = Math.min(0.6, 0.3 + (level - 1) * (0.3 / 19));
                 const speedMultiplier = 1 + (level - 1) * 0.05; // 每关速度增加5%
                 const obstacleSpeedMultiplier = 1 + (level - 1) * 0.03; // 障碍物速度每关增加3%
 
@@ -962,11 +962,11 @@
                 ];
 
                 // 根据数量选择位置策略，确保分散在不同方向，不挨在一起
-                const minDistance = 120; // 炸弹之间的最小距离（不挨在一起）
+                const minDistance = 150; // 炸弹之间的最小距离（给玩家更多躲避空间）
                 let selectedPositions = [];
                 const actualCount = Math.min(count, 4);
 
-                // 定义主要方向
+                // 定义主要方向（留出躲避空间）
                 const mainDirections = [
                     { x: 0, y: -1, name: '上' },   // 上面
                     { x: 0, y: 1, name: '下' },    // 下面
@@ -976,24 +976,46 @@
                 ];
 
                 if (actualCount === 1) {
-                    // 1个炸弹：随机选择一个方向
-                    const dir = mainDirections[Math.floor(Math.random() * 4)]; // 只选上下左右
+                    // 1个炸弹：选择前后左右，留出斜向躲避空间
+                    const dir = mainDirections[Math.floor(Math.random() * 4)]; // 只选上下左右，不选中间
                     selectedPositions.push(dir);
                 } else if (actualCount === 2) {
-                    // 2个炸弹：选择两个不同的主要方向（确保不挨在一起）
-                    const shuffled = [...mainDirections.slice(0, 4)].sort(() => Math.random() - 0.5);
-                    selectedPositions = shuffled.slice(0, 2);
+                    // 2个炸弹：选择相对的方向（上下 或 左右），给玩家侧向躲避空间
+                    if (Math.random() < 0.5) {
+                        // 上下方向，玩家可以左右躲
+                        selectedPositions = [
+                            { x: 0, y: -1, name: '上' },
+                            { x: 0, y: 1, name: '下' }
+                        ];
+                    } else {
+                        // 左右方向，玩家可以上下躲
+                        selectedPositions = [
+                            { x: -1, y: 0, name: '左' },
+                            { x: 1, y: 0, name: '右' }
+                        ];
+                    }
                 } else if (actualCount === 3) {
-                    // 3个炸弹：确保覆盖不同区域（比如：上、左、右 或 下、左、右）
-                    const directions = [...mainDirections.slice(0, 4)].sort(() => Math.random() - 0.5);
-                    selectedPositions = directions.slice(0, 3);
-                } else if (actualCount === 4) {
-                    // 4个炸弹：中间、左边、右边、上面（确保哪里都走不开）
+                    // 3个炸弹：上、左、右（留出下方躲避空间）或 下、左、右（留出上方躲避空间）
+                    if (Math.random() < 0.5) {
+                        selectedPositions = [
+                            { x: 0, y: -1, name: '上' },
+                            { x: -1, y: 0, name: '左' },
+                            { x: 1, y: 0, name: '右' }
+                        ];
+                    } else {
+                        selectedPositions = [
+                            { x: 0, y: 1, name: '下' },
+                            { x: -1, y: 0, name: '左' },
+                            { x: 1, y: 0, name: '右' }
+                        ];
+                    }
+                } else if (actualCount >= 4) {
+                    // 4个炸弹：四个角落，中间留出躲避空间
                     selectedPositions = [
-                        { x: 0, y: 0, name: '中' },   // 中间
-                        { x: -1, y: 0, name: '左' },  // 左边
-                        { x: 1, y: 0, name: '右' },   // 右边
-                        { x: 0, y: -1, name: '上' }   // 上面
+                        { x: -0.7, y: -0.7, name: '左上' },   // 左上
+                        { x: 0.7, y: -0.7, name: '右上' },    // 右上
+                        { x: -0.7, y: 0.7, name: '左下' },    // 左下
+                        { x: 0.7, y: 0.7, name: '右下' }      // 右下
                     ];
                 }
 
@@ -1472,20 +1494,13 @@
                     }
                 }
 
-                // 生成障碍物（根据关卡难度，大量生成）
+                // 生成障碍物（根据关卡难度，适量生成）
                 const difficulty = getLevelDifficulty(state.currentLevel);
-                if (state.tick % difficulty.obstacleSpawnRate === 0) {
+                if (state.tick % Math.floor(difficulty.obstacleSpawnRate) === 0) {
                     spawnObstacle();
                 }
-                if (state.tick % (difficulty.obstacleSpawnRate / 2) === 0 && Math.random() < difficulty.obstacleSpawnChance) {
-                    spawnObstacle();
-                }
-                // 额外生成障碍物（所有关卡都有）
-                if (state.tick % (difficulty.obstacleSpawnRate / 3) === 0 && Math.random() < difficulty.obstacleSpawnChance * 0.6) {
-                    spawnObstacle();
-                }
-                // 更多额外生成（增加难度）
-                if (state.tick % (difficulty.obstacleSpawnRate / 4) === 0 && Math.random() < difficulty.obstacleSpawnChance * 0.4) {
+                // 偶尔额外生成一个障碍物
+                if (state.tick % Math.floor(difficulty.obstacleSpawnRate * 2) === 0 && Math.random() < difficulty.obstacleSpawnChance) {
                     spawnObstacle();
                 }
 
@@ -1523,26 +1538,11 @@
                     spawnPowerup();
                 }
 
-                // 生成雷击（每关都会有，每1秒生成2-4个，增加难度）
-                if (state.tick % 60 === 0) {
-                    // 快速随机转盘决定生成2-4个炸弹（隐藏进行，速度很快）
-                    // 使用多个随机数模拟转盘，确保随机性
-                    const random1 = Math.random();
-                    const random2 = Math.random();
-                    const random3 = Math.random();
-                    // 综合多个随机数，生成2-4之间的随机数（提高难度）
-                    // 概率分布：2个(20%), 3个(40%), 4个(40%) - 增加难度
-                    const totalRandom = (random1 + random2 + random3) / 3;
-                    let bombCount;
-                    if (totalRandom < 0.20) {
-                        bombCount = 2; // 20%概率
-                    } else if (totalRandom < 0.60) {
-                        bombCount = 3; // 40%概率
-                    } else {
-                        bombCount = 4; // 40%概率
-                    }
-
-                    // 生成指定数量的炸弹，确保位置不重复
+                // 生成雷击（每1.5秒生成1-2个炸弹，给玩家躲避空间）
+                if (state.tick % 90 === 0) {
+                    // 随机生成1-2个炸弹，给玩家躲避空间
+                    // 概率分布：1个(60%), 2个(40%)
+                    const bombCount = Math.random() < 0.6 ? 1 : 2;
                     spawnMultipleThunderStrikes(bombCount);
                 }
 
