@@ -239,9 +239,10 @@
             border-radius: 0;
             box-shadow: none;
             padding: 24px;
+            padding-top: 48px;
             position: relative;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
         }
 
@@ -259,6 +260,8 @@
 
         .ascend-content {
             width: min(92vw, 720px);
+            max-height: calc(100vh - 48px);
+            overflow: auto;
             margin: 0 auto;
             background: rgba(255, 255, 255, .85);
             border-radius: 14px;
@@ -821,11 +824,12 @@
                 const frag = document.createDocumentFragment();
                 upgrades.forEach(up => {
                     const ownedCount = boughtUpgrades.get(up.id) || 0;
-                    const affordable = shards >= up.cost;
+                    const actualCost = Math.floor(up.cost * 3 * shardPriceMultiplier);
+                    const affordable = shards >= actualCost;
                     const el = document.createElement('div');
                     el.className = 'upgrade';
                     el.innerHTML = `
-                        <div>${up.name}（${up.cost} 碎片）<span style=\"color:#374151;font-size:12px;margin-left:6px;\">已购 ${ownedCount} 次</span></div>
+                        <div>${up.name}（${actualCost} 碎片）<span style=\"color:#374151;font-size:12px;margin-left:6px;\">已购 ${ownedCount} 次</span></div>
                         <button class=\"buy-btn\" ${!affordable ? 'disabled' : ''} data-upgrade=\"${up.id}\">购买</button>
                     `;
                     frag.appendChild(el);
