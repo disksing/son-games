@@ -2592,11 +2592,26 @@
             
             <!-- 首次设置模式 -->
             <div id="teacherSetupMode" style="display: none;">
-                <p style="color: #666; font-size: 14px; margin: 15px 0; text-align: center;">首次使用，请设置双重保险验证</p>
+                <p style="color: #666; font-size: 14px; margin: 15px 0; text-align: center;">请选择验证方式并设置</p>
                 
-                <!-- 第一步：设置密码 -->
-                <div id="teacherSetupStep1" style="margin: 20px 0;">
-                    <h3 style="font-size: 16px; color: #333; margin-bottom: 15px; text-align: center;">🔐 第一步：设置密码</h3>
+                <!-- 验证方式选择 -->
+                <div style="margin: 15px 0; padding: 15px; background: #f8f9fa; border-radius: 12px;">
+                    <h3 style="font-size: 14px; color: #333; margin-bottom: 10px; text-align: center;">选择验证方式</h3>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border-radius: 8px; background: white;">
+                            <input type="checkbox" id="setupUsePassword" checked onchange="updateSetupForm()">
+                            <span>使用数字密码（4位）</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border-radius: 8px; background: white;">
+                            <input type="checkbox" id="setupUseQuestion" checked onchange="updateSetupForm()">
+                            <span>使用密保问题（最喜欢吃什么）</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- 密码设置 -->
+                <div id="setupPasswordSection" style="margin: 20px 0;">
+                    <h3 style="font-size: 16px; color: #333; margin-bottom: 15px; text-align: center;">🔐 设置密码</h3>
                     <div style="display: flex; flex-direction: column; gap: 12px;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <span style="width: 80px; font-size: 14px;">主老师：</span>
@@ -2609,9 +2624,9 @@
                     </div>
                 </div>
                 
-                <!-- 第二步：设置密保问题 -->
-                <div id="teacherSetupStep2" style="margin: 20px 0; padding-top: 15px; border-top: 1px solid #eee;">
-                    <h3 style="font-size: 16px; color: #333; margin-bottom: 15px; text-align: center;">🍜 第二步：设置密保问题</h3>
+                <!-- 密保问题设置 -->
+                <div id="setupQuestionSection" style="margin: 20px 0; padding-top: 15px; border-top: 1px solid #eee;">
+                    <h3 style="font-size: 16px; color: #333; margin-bottom: 15px; text-align: center;">🍜 设置密保问题</h3>
                     <div style="display: flex; flex-direction: column; gap: 12px;">
                         <div>
                             <div style="font-size: 13px; color: #667eea; margin-bottom: 5px;">主老师：朱老师最喜欢吃什么？</div>
@@ -2624,40 +2639,44 @@
                     </div>
                 </div>
                 
-                <button class="btn btn-primary" onclick="saveTeacherSecuritySetup()" style="margin-top: 10px;">💾 保存双重保险设置</button>
+                <button class="btn btn-primary" onclick="saveTeacherSecuritySetup()" style="margin-top: 10px;">💾 保存设置</button>
             </div>
             
             <!-- 验证模式 -->
             <div id="teacherVerifyMode" style="display: none;">
-                <p style="color: #666; font-size: 14px; margin: 15px 0; text-align: center;">双重保险验证</p>
+                <p id="verifyModeTitle" style="color: #666; font-size: 14px; margin: 15px 0; text-align: center;">身份验证</p>
                 
-                <!-- 第一步：密码验证 -->
-                <div id="teacherVerifyStep1" style="margin: 20px 0;">
-                    <h3 style="font-size: 16px; color: #333; margin-bottom: 15px; text-align: center;">🔐 第一步：输入密码</h3>
-                    <div style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
-                        <div style="display: flex; gap: 10px; justify-content: center;">
-                            <button class="btn" onclick="selectTeacherRole('main')" id="selectMainTeacherBtn" style="padding: 10px 20px; background: #e0e0e0; color: #333; border: none; border-radius: 8px;">👨‍🏫 我是主老师</button>
-                            <button class="btn" onclick="selectTeacherRole('sub')" id="selectSubTeacherBtn" style="padding: 10px 20px; background: #e0e0e0; color: #333; border: none; border-radius: 8px;">👩‍🏫 我是副老师</button>
-                        </div>
-                        <input type="password" id="teacherPinVerifyInput" maxlength="4" placeholder="请输入4位密码" style="width: 150px; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; text-align: center; letter-spacing: 6px; font-size: 18px;" inputmode="numeric">
-                        <button class="btn btn-primary" onclick="verifyTeacherPin()" style="padding: 10px 30px;">验证密码</button>
+                <!-- 选择身份 -->
+                <div style="margin: 15px 0; text-align: center;">
+                    <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 15px;">
+                        <button class="btn" onclick="selectTeacherRole('main')" id="selectMainTeacherBtn" style="padding: 10px 20px; background: #e0e0e0; color: #333; border: none; border-radius: 8px;">👨‍🏫 我是主老师</button>
+                        <button class="btn" onclick="selectTeacherRole('sub')" id="selectSubTeacherBtn" style="padding: 10px 20px; background: #e0e0e0; color: #333; border: none; border-radius: 8px;">👩‍🏫 我是副老师</button>
                     </div>
                 </div>
                 
-                <!-- 第二步：密保问题验证 -->
-                <div id="teacherVerifyStep2" style="display: none; margin: 20px 0; padding-top: 15px; border-top: 1px solid #eee;">
-                    <h3 style="font-size: 16px; color: #333; margin-bottom: 15px; text-align: center;">🍜 第二步：回答密保问题</h3>
-                    <div style="text-align: center; margin-bottom: 15px;">
-                        <div id="verifyQuestionText" style="font-size: 14px; color: #667eea; margin-bottom: 10px;"></div>
+                <!-- 密码验证 -->
+                <div id="teacherVerifyPasswordSection" style="margin: 15px 0; padding: 15px; background: #f8f9fa; border-radius: 12px;">
+                    <h3 style="font-size: 14px; color: #333; margin-bottom: 10px; text-align: center;">🔐 输入密码</h3>
+                    <div style="text-align: center;">
+                        <input type="password" id="teacherPinVerifyInput" maxlength="4" placeholder="4位密码" style="width: 150px; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; text-align: center; letter-spacing: 6px; font-size: 18px; margin-bottom: 10px;" inputmode="numeric">
+                    </div>
+                </div>
+                
+                <!-- 密保问题验证 -->
+                <div id="teacherVerifyQuestionSection" style="margin: 15px 0; padding: 15px; background: #f8f9fa; border-radius: 12px;">
+                    <h3 style="font-size: 14px; color: #333; margin-bottom: 10px; text-align: center;">🍜 回答密保问题</h3>
+                    <div style="text-align: center;">
+                        <div id="verifyQuestionText" style="font-size: 13px; color: #667eea; margin-bottom: 10px;">老师最喜欢吃什么？</div>
                         <input type="text" id="teacherAnswerVerifyInput" placeholder="请输入答案" style="width: 200px; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; text-align: center; font-size: 14px;">
                     </div>
-                    <div style="text-align: center;">
-                        <button class="btn btn-primary" onclick="verifyTeacherAnswer()" style="padding: 10px 30px;">验证答案</button>
-                    </div>
+                </div>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="btn btn-primary" onclick="verifyTeacherIdentity()" style="padding: 12px 40px; font-size: 16px;">验证身份</button>
                 </div>
                 
                 <div id="teacherVerifyHint" style="text-align: center; color: #999; font-size: 12px; margin-top: 10px;">
-                    需要通过双重验证才能查看密码
+                    请完成所有验证步骤
                 </div>
             </div>
             
@@ -2680,21 +2699,45 @@
 
             <!-- 修改密码模式 -->
             <div id="teacherChangePasswordMode" style="display: none;">
-                <h3 id="changePasswordTitle" style="font-size: 16px; color: #333; margin-bottom: 15px; text-align: center;">🔐 修改密码</h3>
-                <div style="display: flex; flex-direction: column; gap: 12px; margin: 20px 0;">
-                    <div>
-                        <div style="font-size: 13px; color: #666; margin-bottom: 5px;">原密码</div>
-                        <input type="password" id="changePasswordOldInput" maxlength="4" placeholder="请输入原4位密码" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; text-align: center; letter-spacing: 4px; font-size: 16px;" inputmode="numeric">
-                    </div>
-                    <div>
-                        <div style="font-size: 13px; color: #666; margin-bottom: 5px;">新密码</div>
-                        <input type="password" id="changePasswordNewInput" maxlength="4" placeholder="请输入新4位密码" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; text-align: center; letter-spacing: 4px; font-size: 16px;" inputmode="numeric">
-                    </div>
-                    <div>
-                        <div style="font-size: 13px; color: #666; margin-bottom: 5px;">确认新密码</div>
-                        <input type="password" id="changePasswordConfirmInput" maxlength="4" placeholder="再次确认新密码" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; text-align: center; letter-spacing: 4px; font-size: 16px;" inputmode="numeric">
+                <h3 id="changePasswordTitle" style="font-size: 16px; color: #333; margin-bottom: 15px; text-align: center;">🔐 修改验证设置</h3>
+                
+                <!-- 验证方式选择 -->
+                <div style="margin: 15px 0; padding: 15px; background: #f8f9fa; border-radius: 12px;">
+                    <h4 style="font-size: 13px; color: #333; margin-bottom: 10px;">验证方式（至少选一种）</h4>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border-radius: 8px; background: white;">
+                            <input type="checkbox" id="changeUsePassword" checked onchange="updateChangeForm()">
+                            <span>使用数字密码</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border-radius: 8px; background: white;">
+                            <input type="checkbox" id="changeUseQuestion" checked onchange="updateChangeForm()">
+                            <span>使用密保问题（最喜欢吃什么）</span>
+                        </label>
                     </div>
                 </div>
+                
+                <!-- 原密码验证 -->
+                <div id="changeOldPasswordSection" style="margin: 15px 0; padding: 15px; background: #fff3cd; border-radius: 12px; border: 1px solid #ffc107;">
+                    <h4 style="font-size: 13px; color: #856404; margin-bottom: 10px;">⚠️ 需要验证原密码</h4>
+                    <input type="password" id="changePasswordOldInput" maxlength="4" placeholder="请输入原4位密码" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; text-align: center; letter-spacing: 4px; font-size: 16px;" inputmode="numeric">
+                </div>
+                
+                <!-- 新密码设置 -->
+                <div id="changeNewPasswordSection" style="margin: 15px 0; padding: 15px; background: #f8f9fa; border-radius: 12px;">
+                    <h4 style="font-size: 13px; color: #333; margin-bottom: 10px;">🔐 新密码</h4>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <input type="password" id="changePasswordNewInput" maxlength="4" placeholder="新4位密码" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; text-align: center; letter-spacing: 4px;" inputmode="numeric">
+                        <input type="password" id="changePasswordConfirmInput" maxlength="4" placeholder="确认新密码" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; text-align: center; letter-spacing: 4px;" inputmode="numeric">
+                    </div>
+                </div>
+                
+                <!-- 新密保设置 -->
+                <div id="changeNewQuestionSection" style="margin: 15px 0; padding: 15px; background: #f8f9fa; border-radius: 12px;">
+                    <h4 style="font-size: 13px; color: #333; margin-bottom: 10px;">🍜 新密保答案</h4>
+                    <div style="font-size: 12px; color: #667eea; margin-bottom: 8px;" id="changeQuestionText">朱老师最喜欢吃什么？</div>
+                    <input type="text" id="changeAnswerNewInput" placeholder="请输入新答案" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                </div>
+                
                 <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
                     <button class="btn btn-primary" onclick="saveChangedTeacherPassword()">保存修改</button>
                     <button class="btn btn-cancel" onclick="backToPasswordList()">返回</button>
@@ -4107,10 +4150,27 @@
             const subPin = localStorage.getItem('subTeacherPin');
             const mainAnswer = localStorage.getItem('mainTeacherAnswer');
             const subAnswer = localStorage.getItem('subTeacherAnswer');
+            const usePassword = localStorage.getItem('teacherUsePassword') !== 'false'; // 默认true
+            const useQuestion = localStorage.getItem('teacherUseQuestion') !== 'false'; // 默认true
             return { 
-                mainPin, subPin, mainAnswer, subAnswer,
-                isSetup: !!(mainPin && subPin && mainAnswer && subAnswer)
+                mainPin, subPin, mainAnswer, subAnswer, usePassword, useQuestion,
+                isSetup: !!(mainPin && subPin)
             };
+        }
+
+        // 更新设置表单显示
+        function updateSetupForm() {
+            const usePassword = document.getElementById('setupUsePassword').checked;
+            const useQuestion = document.getElementById('setupUseQuestion').checked;
+            
+            document.getElementById('setupPasswordSection').style.display = usePassword ? 'block' : 'none';
+            document.getElementById('setupQuestionSection').style.display = useQuestion ? 'block' : 'none';
+            
+            // 至少选择一种验证方式
+            if (!usePassword && !useQuestion) {
+                document.getElementById('setupUsePassword').checked = true;
+                document.getElementById('setupPasswordSection').style.display = 'block';
+            }
         }
 
         // 打开老师看密码弹窗
@@ -4124,6 +4184,10 @@
             if (!settings.isSetup) {
                 // 首次设置模式
                 showTeacherModalMode('setup');
+                // 默认两种验证方式都启用
+                document.getElementById('setupUsePassword').checked = true;
+                document.getElementById('setupUseQuestion').checked = true;
+                updateSetupForm();
                 // 清空输入框
                 const mainPinInput = document.getElementById('mainTeacherPinInput');
                 const subPinInput = document.getElementById('subTeacherPinInput');
@@ -4137,6 +4201,7 @@
                 // 验证模式
                 showTeacherModalMode('verify');
                 resetVerifyForm();
+                updateVerifyForm();
             }
             
             document.getElementById('teacherViewPasswordModal').classList.add('active');
@@ -4193,18 +4258,47 @@
                 return;
             }
             
+            const settings = loadTeacherSecuritySettings();
+            
+            // 设置复选框状态
+            document.getElementById('changeUsePassword').checked = settings.usePassword;
+            document.getElementById('changeUseQuestion').checked = settings.useQuestion;
+            
+            // 更新表单显示
+            updateChangeForm();
+            
             // 清空输入框
             document.getElementById('changePasswordOldInput').value = '';
             document.getElementById('changePasswordNewInput').value = '';
             document.getElementById('changePasswordConfirmInput').value = '';
+            document.getElementById('changeAnswerNewInput').value = '';
             
-            // 更新标题显示当前身份
+            // 更新标题和密保问题文本
             const title = document.getElementById('changePasswordTitle');
+            const questionText = document.getElementById('changeQuestionText');
             if (title) {
-                title.textContent = currentTeacherRole === 'main' ? '🔐 修改主老师密码' : '🔐 修改副老师密码';
+                title.textContent = currentTeacherRole === 'main' ? '🔐 修改主老师验证设置' : '🔐 修改副老师验证设置';
+            }
+            if (questionText) {
+                questionText.textContent = currentTeacherRole === 'main' ? '朱老师最喜欢吃什么？' : '李老师最喜欢吃什么？';
             }
             
             showTeacherModalMode('changePassword');
+        }
+
+        // 更新修改表单显示
+        function updateChangeForm() {
+            const usePassword = document.getElementById('changeUsePassword').checked;
+            const useQuestion = document.getElementById('changeUseQuestion').checked;
+            
+            document.getElementById('changeNewPasswordSection').style.display = usePassword ? 'block' : 'none';
+            document.getElementById('changeNewQuestionSection').style.display = useQuestion ? 'block' : 'none';
+            
+            // 至少选择一种验证方式
+            if (!usePassword && !useQuestion) {
+                document.getElementById('changeUsePassword').checked = true;
+                document.getElementById('changeNewPasswordSection').style.display = 'block';
+            }
         }
 
         // 返回密码列表
@@ -4212,7 +4306,7 @@
             showTeacherModalMode('view');
         }
 
-        // 保存修改后的密码
+        // 保存修改后的密码/验证设置
         function saveChangedTeacherPassword() {
             if (!currentTeacherRole) {
                 alert('身份验证已过期，请重新验证！');
@@ -4220,50 +4314,71 @@
                 return;
             }
             
+            const usePassword = document.getElementById('changeUsePassword').checked;
+            const useQuestion = document.getElementById('changeUseQuestion').checked;
             const oldPassword = document.getElementById('changePasswordOldInput').value.trim();
             const newPassword = document.getElementById('changePasswordNewInput').value.trim();
             const confirmPassword = document.getElementById('changePasswordConfirmInput').value.trim();
+            const newAnswer = document.getElementById('changeAnswerNewInput').value.trim();
             
-            // 验证输入
-            if (!/^\d{4}$/.test(oldPassword)) {
-                alert('原密码必须是4位数字！');
-                return;
-            }
-            if (!/^\d{4}$/.test(newPassword)) {
-                alert('新密码必须是4位数字！');
-                return;
-            }
-            if (!/^\d{4}$/.test(confirmPassword)) {
-                alert('确认密码必须是4位数字！');
-                return;
-            }
-            if (newPassword !== confirmPassword) {
-                alert('两次输入的新密码不一致！');
-                return;
-            }
-            if (oldPassword === newPassword) {
-                alert('新密码不能与旧密码相同！');
-                return;
-            }
-            
-            // 验证原密码
             const settings = loadTeacherSecuritySettings();
-            const correctOldPin = currentTeacherRole === 'main' ? settings.mainPin : settings.subPin;
             
-            if (oldPassword !== correctOldPin) {
+            // 验证原密码（当前必须有密码才能修改）
+            const correctOldPin = currentTeacherRole === 'main' ? settings.mainPin : settings.subPin;
+            if (!/^\d{4}$/.test(oldPassword) || oldPassword !== correctOldPin) {
                 alert('原密码错误！');
                 document.getElementById('changePasswordOldInput').value = '';
                 return;
             }
             
-            // 保存新密码
-            if (currentTeacherRole === 'main') {
-                localStorage.setItem('mainTeacherPin', newPassword);
-            } else {
-                localStorage.setItem('subTeacherPin', newPassword);
+            // 验证新密码（如果启用密码）
+            if (usePassword) {
+                if (!/^\d{4}$/.test(newPassword)) {
+                    alert('新密码必须是4位数字！');
+                    return;
+                }
+                if (!/^\d{4}$/.test(confirmPassword)) {
+                    alert('确认密码必须是4位数字！');
+                    return;
+                }
+                if (newPassword !== confirmPassword) {
+                    alert('两次输入的新密码不一致！');
+                    return;
+                }
             }
             
-            alert('密码修改成功！请牢记新密码。');
+            // 验证新密保答案（如果启用密保）
+            if (useQuestion) {
+                if (!newAnswer || newAnswer.length < 2) {
+                    alert('请输入密保答案！');
+                    return;
+                }
+            }
+            
+            // 至少选择一种验证方式
+            if (!usePassword && !useQuestion) {
+                alert('请至少选择一种验证方式！');
+                return;
+            }
+            
+            // 保存设置
+            if (currentTeacherRole === 'main') {
+                if (usePassword) localStorage.setItem('mainTeacherPin', newPassword);
+                if (useQuestion) localStorage.setItem('mainTeacherAnswer', newAnswer);
+            } else {
+                if (usePassword) localStorage.setItem('subTeacherPin', newPassword);
+                if (useQuestion) localStorage.setItem('subTeacherAnswer', newAnswer);
+            }
+            
+            // 保存验证方式开关
+            localStorage.setItem('teacherUsePassword', usePassword);
+            localStorage.setItem('teacherUseQuestion', useQuestion);
+            
+            const verifyMethods = [];
+            if (usePassword) verifyMethods.push('数字密码');
+            if (useQuestion) verifyMethods.push('密保问题');
+            
+            alert(`修改成功！当前验证方式：${verifyMethods.join(' + ')}`);
             
             // 返回密码列表
             backToPasswordList();
@@ -4271,30 +4386,45 @@
 
         // 保存双重保险设置
         function saveTeacherSecuritySetup() {
+            const usePassword = document.getElementById('setupUsePassword').checked;
+            const useQuestion = document.getElementById('setupUseQuestion').checked;
+            
             const mainPin = document.getElementById('mainTeacherPinInput').value.trim();
             const subPin = document.getElementById('subTeacherPinInput').value.trim();
             const mainAnswer = document.getElementById('mainTeacherAnswerInput').value.trim();
             const subAnswer = document.getElementById('subTeacherAnswerInput').value.trim();
             
-            // 验证输入
-            if (!/^\d{4}$/.test(mainPin)) {
-                alert('主老师密码必须是4位数字！');
-                return;
+            // 验证密码（如果启用）
+            if (usePassword) {
+                if (!/^\d{4}$/.test(mainPin)) {
+                    alert('主老师密码必须是4位数字！');
+                    return;
+                }
+                if (!/^\d{4}$/.test(subPin)) {
+                    alert('副老师密码必须是4位数字！');
+                    return;
+                }
+                if (mainPin === subPin) {
+                    alert('主老师和副老师密码不能相同！');
+                    return;
+                }
             }
-            if (!/^\d{4}$/.test(subPin)) {
-                alert('副老师密码必须是4位数字！');
-                return;
+            
+            // 验证密保（如果启用）
+            if (useQuestion) {
+                if (!mainAnswer || mainAnswer.length < 2) {
+                    alert('请填写主老师密保问题答案！');
+                    return;
+                }
+                if (!subAnswer || subAnswer.length < 2) {
+                    alert('请填写副老师密保问题答案！');
+                    return;
+                }
             }
-            if (mainPin === subPin) {
-                alert('主老师和副老师密码不能相同！');
-                return;
-            }
-            if (!mainAnswer || mainAnswer.length < 2) {
-                alert('请填写主老师密保问题答案！');
-                return;
-            }
-            if (!subAnswer || subAnswer.length < 2) {
-                alert('请填写副老师密保问题答案！');
+            
+            // 至少选择一种验证方式
+            if (!usePassword && !useQuestion) {
+                alert('请至少选择一种验证方式！');
                 return;
             }
             
@@ -4303,8 +4433,14 @@
             localStorage.setItem('subTeacherPin', subPin);
             localStorage.setItem('mainTeacherAnswer', mainAnswer);
             localStorage.setItem('subTeacherAnswer', subAnswer);
+            localStorage.setItem('teacherUsePassword', usePassword);
+            localStorage.setItem('teacherUseQuestion', useQuestion);
             
-            alert('双重保险设置成功！请牢记密码和密保答案。');
+            const verifyMethods = [];
+            if (usePassword) verifyMethods.push('数字密码');
+            if (useQuestion) verifyMethods.push('密保问题');
+            
+            alert(`设置成功！验证方式：${verifyMethods.join(' + ')}\n请牢记密码和密保答案。`);
             
             // 关闭弹窗，不能直接查看密码
             closeTeacherViewPasswordModal();
@@ -4323,6 +4459,7 @@
             
             const mainBtn = document.getElementById('selectMainTeacherBtn');
             const subBtn = document.getElementById('selectSubTeacherBtn');
+            const settings = loadTeacherSecuritySettings();
             
             if (role === 'main') {
                 if (mainBtn) {
@@ -4343,69 +4480,71 @@
                     subBtn.style.color = 'white';
                 }
             }
+            
+            // 更新验证界面
+            updateVerifyForm();
         }
 
-        // 验证密码（第一步）
-        function verifyTeacherPin() {
+        // 更新验证表单显示
+        function updateVerifyForm() {
+            const settings = loadTeacherSecuritySettings();
+            
+            document.getElementById('teacherVerifyPasswordSection').style.display = settings.usePassword ? 'block' : 'none';
+            document.getElementById('teacherVerifyQuestionSection').style.display = settings.useQuestion ? 'block' : 'none';
+            
+            // 更新问题文本
+            if (currentTeacherRole) {
+                const questionText = document.getElementById('verifyQuestionText');
+                if (currentTeacherRole === 'main') {
+                    questionText.textContent = '朱老师最喜欢吃什么？';
+                    questionText.style.color = '#667eea';
+                } else {
+                    questionText.textContent = '李老师最喜欢吃什么？';
+                    questionText.style.color = '#51cf66';
+                }
+            }
+        }
+
+        // 验证老师身份（统一入口）
+        function verifyTeacherIdentity() {
             if (!currentTeacherRole) {
                 alert('请先选择身份（主老师或副老师）！');
                 return;
             }
             
-            const inputPin = document.getElementById('teacherPinVerifyInput').value.trim();
             const settings = loadTeacherSecuritySettings();
             
-            if (!/^\d{4}$/.test(inputPin)) {
-                alert('请输入4位数字密码！');
-                return;
+            // 验证密码（如果启用）
+            if (settings.usePassword) {
+                const inputPin = document.getElementById('teacherPinVerifyInput').value.trim();
+                if (!/^\d{4}$/.test(inputPin)) {
+                    alert('请输入4位数字密码！');
+                    return;
+                }
+                const correctPin = currentTeacherRole === 'main' ? settings.mainPin : settings.subPin;
+                if (inputPin !== correctPin) {
+                    alert('密码错误！');
+                    document.getElementById('teacherPinVerifyInput').value = '';
+                    return;
+                }
             }
             
-            // 验证密码
-            const correctPin = currentTeacherRole === 'main' ? settings.mainPin : settings.subPin;
-            if (inputPin !== correctPin) {
-                alert('密码错误！');
-                document.getElementById('teacherPinVerifyInput').value = '';
-                return;
+            // 验证密保（如果启用）
+            if (settings.useQuestion) {
+                const inputAnswer = document.getElementById('teacherAnswerVerifyInput').value.trim();
+                if (!inputAnswer) {
+                    alert('请输入密保答案！');
+                    return;
+                }
+                const correctAnswer = currentTeacherRole === 'main' ? settings.mainAnswer : settings.subAnswer;
+                if (inputAnswer.toLowerCase() !== correctAnswer.toLowerCase()) {
+                    alert('密保答案错误！');
+                    document.getElementById('teacherAnswerVerifyInput').value = '';
+                    return;
+                }
             }
             
-            // 密码正确，进入第二步
-            teacherVerifyStep = 2;
-            document.getElementById('teacherVerifyStep1').style.display = 'none';
-            document.getElementById('teacherVerifyStep2').style.display = 'block';
-            
-            // 显示对应的问题
-            const questionText = document.getElementById('verifyQuestionText');
-            if (currentTeacherRole === 'main') {
-                questionText.textContent = '朱老师最喜欢吃什么？';
-                questionText.style.color = '#667eea';
-            } else {
-                questionText.textContent = '李老师最喜欢吃什么？';
-                questionText.style.color = '#51cf66';
-            }
-            
-            // 清空答案输入框
-            document.getElementById('teacherAnswerVerifyInput').value = '';
-        }
-
-        // 验证密保答案（第二步）
-        function verifyTeacherAnswer() {
-            const inputAnswer = document.getElementById('teacherAnswerVerifyInput').value.trim();
-            const settings = loadTeacherSecuritySettings();
-            
-            if (!inputAnswer) {
-                alert('请输入答案！');
-                return;
-            }
-            
-            // 验证答案（不区分大小写）
-            const correctAnswer = currentTeacherRole === 'main' ? settings.mainAnswer : settings.subAnswer;
-            if (inputAnswer.toLowerCase() !== correctAnswer.toLowerCase()) {
-                alert('答案错误！');
-                document.getElementById('teacherAnswerVerifyInput').value = '';
-                return;
-            }
-            
-            // 双重验证通过，显示密码列表
+            // 验证通过，显示密码列表
             showTeacherPasswordList();
         }
 
