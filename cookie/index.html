@@ -1044,38 +1044,36 @@
                 openAscendOverlay();
             });
 
-            function handleUpgradePurchase(targetRoot) {
-                targetRoot.addEventListener('click', (e) => {
-                    const t = e.target;
-                    if (!t || !(t instanceof Element)) return;
-                    const btn = t.closest('button[data-upgrade]');
-                    if (!btn) return;
-                    const id = btn.getAttribute('data-upgrade');
-                    const up = upgrades.find(u => u.id === id);
-                    if (!up) return;
-                    const actualCost = up.cost * 3 * shardPriceMultiplier;
-                    if (shards < actualCost) return;
-                    shards -= actualCost;
-                    // 每次购买后价格 ×10
-                    shardPriceMultiplier *= 10;
-                    const prev = boughtUpgrades.get(id) || 0;
-                    boughtUpgrades.set(id, prev + 1);
-                    // grant items now for this purchase
-                    for (const key in up.grant) {
-                        const qtyPerBuy = up.grant[key];
-                        const item = items.find(i => i.id === key);
-                        if (item) item.count += qtyPerBuy;
-                    }
-                    render();
-                    renderShop();
-                    renderPrestige();
-                    renderAscendShop();
-                    saveState();
-                });
-            }
-
-            if (upgradesRoot) handleUpgradePurchase(upgradesRoot);
-            if (ascendShop) handleUpgradePurchase(ascendShop);
+            // 统一的购买处理函数，使用 document 级别的事件委托，防止重复扣费
+            document.addEventListener('click', (e) => {
+                const t = e.target;
+                if (!t || !(t instanceof Element)) return;
+                const btn = t.closest('button[data-upgrade]');
+                if (!btn) return;
+                // 如果按钮已经 disabled，不处理
+                if (btn.disabled) return;
+                const id = btn.getAttribute('data-upgrade');
+                const up = upgrades.find(u => u.id === id);
+                if (!up) return;
+                const actualCost = Math.floor(up.cost * 3 * shardPriceMultiplier);
+                if (shards < actualCost) return;
+                shards -= actualCost;
+                // 每次购买后价格 ×10
+                shardPriceMultiplier *= 10;
+                const prev = boughtUpgrades.get(up.id) || 0;
+                boughtUpgrades.set(up.id, prev + 1);
+                // grant items now for this purchase
+                for (const key in up.grant) {
+                    const qtyPerBuy = up.grant[key];
+                    const item = items.find(i => i.id === key);
+                    if (item) item.count += qtyPerBuy;
+                }
+                render();
+                renderShop();
+                renderPrestige();
+                renderAscendShop();
+                saveState();
+            });
 
             // Auto production loop
             function getTotalCps() {
