@@ -2567,6 +2567,9 @@
             <div style="margin-top: 10px; text-align: center;">
                 <button class="btn btn-primary" onclick="openTeacherSelectStudentForPasswordModal()" style="font-size: 14px; padding: 10px 20px;">👨‍🏫 老师设置学生密码</button>
             </div>
+            <div style="margin-top: 10px; text-align: center;">
+                <button class="btn btn-primary" onclick="openTeacherViewPasswordModal()" style="font-size: 14px; padding: 10px 20px; background: linear-gradient(135deg, #f59f00 0%, #f76707 100%);">👁️ 老师触控看密码</button>
+            </div>
         </div>
     </div>
 
@@ -2577,6 +2580,43 @@
             <h2>🔐 选择要设置密码的学生</h2>
             <div class="select-student-list" id="studentSelectSelfForPasswordList">
                 <!-- 学生列表会动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 老师触控看密码弹窗 -->
+    <div class="modal-overlay password-modal" id="teacherViewPasswordModal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeTeacherViewPasswordModal()">✕</button>
+            <h2>👁️ 老师触控查看密码</h2>
+            <p style="color: #666; font-size: 14px; margin: 15px 0; text-align: center;">需要主老师和副老师同时触控确认</p>
+            
+            <div id="teacherTouchArea" style="display: flex; gap: 15px; justify-content: center; margin: 20px 0;">
+                <div id="mainTeacherArea" style="width: 120px; height: 120px; background: #f1f3f5; border: 3px solid #ced4da; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; user-select: none; -webkit-user-select: none; touch-action: none;" 
+                     ontouchstart="handleTeacherTouch('main')" ontouchend="handleTeacherTouchEnd('main')" 
+                     onmousedown="handleTeacherTouch('main')" onmouseup="handleTeacherTouchEnd('main')" onmouseleave="handleTeacherTouchEnd('main')">
+                    <div style="font-size: 40px;">👨‍🏫</div>
+                    <div style="font-size: 12px; color: #666; margin-top: 5px;">主老师</div>
+                    <div id="mainTeacherStatus" style="font-size: 11px; color: #999; margin-top: 3px;">未触控</div>
+                </div>
+                <div id="subTeacherArea" style="width: 120px; height: 120px; background: #f1f3f5; border: 3px solid #ced4da; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; user-select: none; -webkit-user-select: none; touch-action: none;" 
+                     ontouchstart="handleTeacherTouch('sub')" ontouchend="handleTeacherTouchEnd('sub')" 
+                     onmousedown="handleTeacherTouch('sub')" onmouseup="handleTeacherTouchEnd('sub')" onmouseleave="handleTeacherTouchEnd('sub')">
+                    <div style="font-size: 40px;">👩‍🏫</div>
+                    <div style="font-size: 12px; color: #666; margin-top: 5px;">副老师</div>
+                    <div id="subTeacherStatus" style="font-size: 11px; color: #999; margin-top: 3px;">未触控</div>
+                </div>
+            </div>
+            
+            <div id="passwordListArea" style="display: none; margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 12px; max-height: 300px; overflow-y: auto;">
+                <h3 style="text-align: center; color: #333; margin-bottom: 15px;">学生房间密码列表</h3>
+                <div id="teacherPasswordList" style="display: flex; flex-direction: column; gap: 10px;">
+                    <!-- 密码列表动态生成 -->
+                </div>
+            </div>
+            
+            <div id="teacherTouchHint" style="text-align: center; color: #999; font-size: 12px; margin-top: 10px;">
+                两位老师同时按住触控区域即可查看
             </div>
         </div>
     </div>
@@ -3971,6 +4011,130 @@
                 };
                 list.appendChild(div);
             });
+        }
+
+        // 老师触控看密码相关变量
+        let mainTeacherTouched = false;
+        let subTeacherTouched = false;
+        let teacherTouchTimeout = null;
+
+        // 打开老师触控看密码弹窗
+        function openTeacherViewPasswordModal() {
+            // 重置状态
+            mainTeacherTouched = false;
+            subTeacherTouched = false;
+            updateTeacherTouchUI();
+            document.getElementById('passwordListArea').style.display = 'none';
+            document.getElementById('teacherTouchArea').style.display = 'flex';
+            document.getElementById('teacherTouchHint').style.display = 'block';
+            document.getElementById('teacherViewPasswordModal').classList.add('active');
+        }
+
+        // 关闭老师触控看密码弹窗
+        function closeTeacherViewPasswordModal() {
+            document.getElementById('teacherViewPasswordModal').classList.remove('active');
+            // 清除超时
+            if (teacherTouchTimeout) {
+                clearTimeout(teacherTouchTimeout);
+                teacherTouchTimeout = null;
+            }
+        }
+
+        // 处理老师触控按下
+        function handleTeacherTouch(teacher) {
+            if (teacher === 'main') {
+                mainTeacherTouched = true;
+            } else if (teacher === 'sub') {
+                subTeacherTouched = true;
+            }
+            updateTeacherTouchUI();
+            checkTeacherTouchStatus();
+        }
+
+        // 处理老师触控释放
+        function handleTeacherTouchEnd(teacher) {
+            // 只有在还没有显示密码列表的情况下才重置
+            const passwordListArea = document.getElementById('passwordListArea');
+            if (passwordListArea && passwordListArea.style.display === 'none') {
+                if (teacher === 'main') {
+                    mainTeacherTouched = false;
+                } else if (teacher === 'sub') {
+                    subTeacherTouched = false;
+                }
+                updateTeacherTouchUI();
+            }
+        }
+
+        // 更新老师触控UI
+        function updateTeacherTouchUI() {
+            const mainArea = document.getElementById('mainTeacherArea');
+            const subArea = document.getElementById('subTeacherArea');
+            const mainStatus = document.getElementById('mainTeacherStatus');
+            const subStatus = document.getElementById('subTeacherStatus');
+            
+            if (mainArea) {
+                mainArea.style.background = mainTeacherTouched ? '#d3f9d8' : '#f1f3f5';
+                mainArea.style.borderColor = mainTeacherTouched ? '#51cf66' : '#ced4da';
+            }
+            if (subArea) {
+                subArea.style.background = subTeacherTouched ? '#d3f9d8' : '#f1f3f5';
+                subArea.style.borderColor = subTeacherTouched ? '#51cf66' : '#ced4da';
+            }
+            if (mainStatus) {
+                mainStatus.textContent = mainTeacherTouched ? '已确认 ✓' : '未触控';
+                mainStatus.style.color = mainTeacherTouched ? '#51cf66' : '#999';
+            }
+            if (subStatus) {
+                subStatus.textContent = subTeacherTouched ? '已确认 ✓' : '未触控';
+                subStatus.style.color = subTeacherTouched ? '#51cf66' : '#999';
+            }
+        }
+
+        // 检查老师触控状态
+        function checkTeacherTouchStatus() {
+            if (mainTeacherTouched && subTeacherTouched) {
+                // 两位老师都触控了，显示密码列表
+                showTeacherPasswordList();
+            }
+        }
+
+        // 显示密码列表
+        function showTeacherPasswordList() {
+            const listContainer = document.getElementById('teacherPasswordList');
+            listContainer.innerHTML = '';
+            
+            // 过滤出有密码的学生
+            const studentsWithPassword = students.filter(s => s.roomPassword && s.roomPassword.length > 0);
+            
+            if (studentsWithPassword.length === 0) {
+                listContainer.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">暂无学生设置房间密码</div>';
+            } else {
+                studentsWithPassword.forEach(student => {
+                    const item = document.createElement('div');
+                    item.style.cssText = 'display: flex; align-items: center; padding: 10px; background: white; border-radius: 8px; border: 1px solid #e0e0e0;';
+                    item.innerHTML = `
+                        <div style="width: 40px; height: 40px; border-radius: 50%; overflow: hidden; margin-right: 12px;">${student.avatar}</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: bold; color: #333;">${student.name}</div>
+                            <div style="font-size: 18px; color: #667eea; font-weight: bold; letter-spacing: 4px;">密码: ${student.roomPassword}</div>
+                        </div>
+                    `;
+                    listContainer.appendChild(item);
+                });
+            }
+            
+            // 显示密码列表区域
+            document.getElementById('passwordListArea').style.display = 'block';
+            document.getElementById('teacherTouchArea').style.display = 'none';
+            document.getElementById('teacherTouchHint').style.display = 'none';
+            
+            // 3秒后自动关闭弹窗
+            if (teacherTouchTimeout) {
+                clearTimeout(teacherTouchTimeout);
+            }
+            teacherTouchTimeout = setTimeout(() => {
+                closeTeacherViewPasswordModal();
+            }, 10000);
         }
 
         // 打开老师选择学生设置密码弹窗
