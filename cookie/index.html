@@ -481,7 +481,7 @@
             const hudNext = document.getElementById('hudNext');
             const refreshBtn = document.getElementById('refreshBtn');
 
-            const STORAGE_KEY = 'cookieMiniState_v2';
+            const STORAGE_KEY = 'cookieMiniState_v3';
 
             let count = 0;
             let lifetimeCookies = 0; // total cookies gained this run
@@ -586,6 +586,54 @@
                     priceMultiplier: 1.4,
                     cps: 20000,
                     count: 0
+                },
+                {
+                    id: 'galaxy',
+                    name: '银河系',
+                    basePrice: 1000000000,
+                    priceMultiplier: 1.45,
+                    cps: 150000,
+                    count: 0
+                },
+                {
+                    id: 'localgroup',
+                    name: '本星系群',
+                    basePrice: 20000000000,
+                    priceMultiplier: 1.5,
+                    cps: 1200000,
+                    count: 0
+                },
+                {
+                    id: 'supercluster',
+                    name: '超星系团',
+                    basePrice: 400000000000,
+                    priceMultiplier: 1.55,
+                    cps: 10000000,
+                    count: 0
+                },
+                {
+                    id: 'observableuniverse',
+                    name: '可观测宇宙',
+                    basePrice: 8000000000000,
+                    priceMultiplier: 1.6,
+                    cps: 90000000,
+                    count: 0
+                },
+                {
+                    id: 'universe',
+                    name: '宇宙',
+                    basePrice: 160000000000000,
+                    priceMultiplier: 1.65,
+                    cps: 800000000,
+                    count: 0
+                },
+                {
+                    id: 'multiverse',
+                    name: '多元宇宙',
+                    basePrice: 3200000000000000,
+                    priceMultiplier: 1.7,
+                    cps: 7500000000,
+                    count: 0
                 }
             ];
 
@@ -601,7 +649,13 @@
                 { id: 'pack-spacestation-5', name: '开局 5 个空间站', cost: 75, grant: { spacestation: 5 } },
                 { id: 'pack-earth-5', name: '开局 5 个地球', cost: 120, grant: { earth: 5 } },
                 { id: 'pack-sun-5', name: '开局 5 个太阳', cost: 180, grant: { sun: 5 } },
-                { id: 'pack-solarsystem-5', name: '开局 5 个太阳系', cost: 300, grant: { solarsystem: 5 } }
+                { id: 'pack-solarsystem-5', name: '开局 5 个太阳系', cost: 300, grant: { solarsystem: 5 } },
+                { id: 'pack-galaxy-5', name: '开局 5 个银河系', cost: 450, grant: { galaxy: 5 } },
+                { id: 'pack-localgroup-5', name: '开局 5 个本星系群', cost: 600, grant: { localgroup: 5 } },
+                { id: 'pack-supercluster-5', name: '开局 5 个超星系团', cost: 750, grant: { supercluster: 5 } },
+                { id: 'pack-observableuniverse-5', name: '开局 5 个可观测宇宙', cost: 900, grant: { observableuniverse: 5 } },
+                { id: 'pack-universe-5', name: '开局 5 个宇宙', cost: 1200, grant: { universe: 5 } },
+                { id: 'pack-multiverse-5', name: '开局 5 个多元宇宙', cost: 1500, grant: { multiverse: 5 } }
             ];
 
             function getItemPrice(item) {
